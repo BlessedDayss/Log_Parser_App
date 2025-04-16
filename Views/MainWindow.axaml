@@ -335,7 +335,7 @@
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate x:DataType="models:LogEntry">
                                                 <Button Background="Transparent" BorderThickness="0" Padding="2,1" Command="{Binding OpenFileCommand}" CommandParameter="{Binding}">
-                                                    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontWeight="Normal" FontSize="13"/>
+                                                    <TextBlock Text="{Binding DisplayMessage}" TextWrapping="Wrap" FontWeight="Normal" FontSize="13"/>
                                                 </Button>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
@@ -400,7 +400,7 @@
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate x:DataType="models:LogEntry">
                                                 <Button Background="Transparent" BorderThickness="0" Padding="2,1" Command="{Binding OpenFileCommand}" CommandParameter="{Binding}">
-                                                    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontWeight="Normal" FontSize="13"/>
+                                                    <TextBlock Text="{Binding DisplayMessage}" TextWrapping="Wrap" FontWeight="Normal" FontSize="13"/>
                                                 </Button>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
@@ -508,7 +508,7 @@
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate x:DataType="models:LogEntry">
                                                     <Button Background="Transparent" BorderThickness="0" Padding="2,1" Command="{Binding OpenFileCommand}" CommandParameter="{Binding}">
-                                                        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontWeight="Normal" FontSize="13"/>
+                                                        <TextBlock Text="{Binding DisplayMessage}" TextWrapping="Wrap" FontWeight="Normal" FontSize="13"/>
                                                     </Button>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>

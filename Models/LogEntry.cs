@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Avalonia.Media;
+using System.Text.RegularExpressions;
 // using CommunityToolkit.Mvvm.ComponentModel; // Removed dependency
 
 namespace LogParserApp.Models
@@ -101,5 +102,24 @@ namespace LogParserApp.Models
         public int? LineNumber { get; set; }
 
         public System.Windows.Input.ICommand? OpenFileCommand { get; set; }
+
+        public string DisplayMessage
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(Message))
+                    return string.Empty;
+                var lines = Message.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                var regex = new Regex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}");
+                foreach (var line in lines)
+                {
+                    if (regex.IsMatch(line))
+                        return line.Trim();
+                }
+                return lines[0].Trim();
+            }
+        }
+
+        public string? StackTrace { get; set; }
     }
 } 

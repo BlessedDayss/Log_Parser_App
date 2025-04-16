@@ -188,8 +188,31 @@ namespace LogParserApp.ViewModels
 
                     var entries = await _logParserService.ParseLogFileAsync(file);
                     
-                    // Присваиваю команду открытия файла каждой записи
+                    var filteredEntries = new List<LogEntry>();
                     foreach (var entry in entries)
+                    {
+                        if (!string.IsNullOrEmpty(entry.Message))
+                        {
+                            var lines = entry.Message.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                            var regex = new System.Text.RegularExpressions.Regex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}");
+                            string? mainLine = lines.FirstOrDefault(l => regex.IsMatch(l));
+                            if (mainLine == null)
+                                mainLine = lines[0];
+                            var stackLines = lines.Where(l => l != mainLine).ToList();
+                            entry.Message = mainLine.Trim();
+                            entry.StackTrace = stackLines.Count > 0 ? string.Join("\n", stackLines) : null;
+
+                            // Фильтрация: если все строки похожи на стек, не добавлять
+                            bool allStack = lines.All(l => l.TrimStart().StartsWith("at ") || string.IsNullOrWhiteSpace(l));
+                            bool hasDate = lines.Any(l => regex.IsMatch(l));
+                            bool hasKeywords = lines[0].Contains("Exception") || lines[0].Contains("Error") || lines[0].Contains("Warning");
+                            if (allStack && !hasDate && !hasKeywords)
+                                continue; 
+                        }
+                        filteredEntries.Add(entry);
+                    }
+                    
+                    foreach (var entry in filteredEntries)
                     {
                         entry.OpenFileCommand = ExternalOpenFileCommand;
                     }
@@ -197,7 +220,7 @@ namespace LogParserApp.ViewModels
                     // Pre-process all entries before adding them
                     await Dispatcher.UIThread.InvokeAsync(() =>
                     {
-                        _logger.LogInformation("Processing {Count} log entries", entries.Count());
+                        _logger.LogInformation("Processing {Count} log entries", filteredEntries.Count);
                         
                         // Clear collections
                         LogEntries.Clear();
@@ -207,7 +230,7 @@ namespace LogParserApp.ViewModels
                         int warningCount = 0;
                         
                         // Add all entries to main collection and classify them
-                        foreach (var entry in entries)
+                        foreach (var entry in filteredEntries)
                         {
                             // Add entry to main collection
                             LogEntries.Add(entry);
