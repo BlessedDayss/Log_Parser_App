@@ -1,15 +1,114 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="Log_Parser_App.App"
-             xmlns:local="using:Log_Parser_App"
-             RequestedThemeVariant="Default">
-             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+             xmlns:local="using:LogParserApp"
+             xmlns:logParserApp="clr-namespace:LogParserApp"
+             x:Class="LogParserApp.App"
+             RequestedThemeVariant="Dark">
+             <!-- "Default" ThemeVariant will inherit OS setting, "Dark" or "Light" to override -->
 
     <Application.DataTemplates>
-        <local:ViewLocator/>
+        <logParserApp:ViewLocator/>
     </Application.DataTemplates>
-  
+
     <Application.Styles>
         <FluentTheme />
+        <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
+
+        <!-- Global styles -->
+        <Style Selector="Window">
+            <Setter Property="FontFamily" Value="Inter, SF Pro Display, Segoe UI" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Background" Value="{DynamicResource SystemAcrylicWindowBrush}" />
+            <Setter Property="TransparencyLevelHint" Value="AcrylicBlur" />
+        </Style>
+        
+        <Style Selector="Button.modern">
+            <Setter Property="Padding" Value="16,10" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Background" Value="{DynamicResource SystemAccentColor}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0.2" />
+                    <BrushTransition Property="Background" Duration="0.2" />
+                </Transitions>
+            </Setter>
+            <Style Selector="^:pointerover">
+                <Setter Property="Background" Value="{DynamicResource SystemAccentColorLight1}" />
+                <Setter Property="RenderTransform" Value="scale(1.02)" />
+            </Style>
+            <Style Selector="^:pressed">
+                <Setter Property="RenderTransform" Value="scale(0.98)" />
+                <Setter Property="Background" Value="{DynamicResource SystemAccentColorDark1}" />
+            </Style>
+        </Style>
+        
+        <Style Selector="TextBox">
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0.2" />
+                    <BrushTransition Property="BorderBrush" Duration="0.2" />
+                </Transitions>
+            </Setter>
+            <Style Selector="^:focus">
+                <Setter Property="BorderBrush" Value="{DynamicResource SystemAccentColor}" />
+                <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltMediumHighBrush}" />
+            </Style>
+        </Style>
+        
+        <Style Selector="DataGrid">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="GridLinesVisibility" Value="Horizontal" />
+            <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+            <Setter Property="RowBackground" Value="Transparent" />
+        </Style>
+        
+        <Style Selector="DataGridRow">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0.2" />
+                </Transitions>
+            </Setter>
+            <Style Selector="^:pointerover">
+                <Setter Property="Background" Value="{DynamicResource SystemListLowColor}" />
+            </Style>
+            <Style Selector="^:selected">
+                <Setter Property="Background" Value="{DynamicResource SystemAccentColorLight2}" />
+            </Style>
+        </Style>
+        
+        <Style Selector="TabControl">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        
+        <Style Selector="TabItem">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Padding" Value="16 12" />
+            <Setter Property="Margin" Value="0 0 4 0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource SystemBaseHighColor}" />
+            <Style Selector="^:selected">
+                <Setter Property="Foreground" Value="{DynamicResource SystemAccentColor}" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </Style>
+        </Style>
+        
+        <Style Selector="ProgressBar">
+            <Setter Property="Height" Value="4" />
+            <Setter Property="Background" Value="{DynamicResource SystemBaseLowColor}" />
+            <Setter Property="Foreground" Value="{DynamicResource SystemAccentColor}" />
+        </Style>
     </Application.Styles>
 </Application>

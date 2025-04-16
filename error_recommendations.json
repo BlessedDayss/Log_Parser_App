@@ -1,0 +1,174 @@
+[
+  {
+    "error_pattern": "System\\.ApplicationException: Dependent package \"(.*)\" not found[\\s\\S]*at Terrasoft\\.Core\\.Packages",
+    "error_type": "DependentPackageNotFound",
+    "description": "Указанный зависимый пакет ({package_name}) не найден.",
+    "recommendations": [
+      "Это указывает на то, что этот пакет \"{package_name}\" отсутствует в среде, но присутствует в среде, из которой вы переносите пакет.",
+      "Пожалуйста добавьте ({package_name}) для установки зависимостей или удалите зависимость с app-description."
+    ]
+  },
+  {
+    "error_pattern": "Dependent package \"(.*)\" not found",
+    "error_type": "DependentPackageNotFound",
+    "description": "Указанный зависимый пакет ({package_name}) не найден.",
+    "recommendations": [
+      "Это указывает на то, что этот пакет \"{package_name}\" отсутствует в среде, но присутствует в среде, из которой вы переносите пакет.",
+      "Пожалуйста добавьте ({package_name}) для установки зависимостей или удалите зависимость с app-description."
+    ]
+  },
+  {
+    "error_pattern": "Dependent package.*?([\\w\\.-]+).*?not found",
+    "error_type": "DependentPackageNotFound",
+    "description": "Указанный зависимый пакет ({package_name}) не найден.",
+    "recommendations": [
+      "Это указывает на то, что этот пакет \"{package_name}\" отсутствует в среде, но присутствует в среде, из которой вы переносите пакет.",
+      "Пожалуйста добавьте ({package_name}) для установки зависимостей или удалите зависимость с app-description."
+    ]
+  },
+  {
+    "error_pattern": "Failed to install package '([^']+)'",
+    "error_type": "PackageInstallationFailed",
+    "description": "Не удалось установить пакет {package_name}.",
+    "recommendations": [
+      "Проверьте, есть ли у вас права на установку пакетов в данной директории.",
+      "Убедитесь, что пакет \"{package_name}\" существует в репозитории.",
+      "Проверьте совместимость версий пакета с вашим проектом.",
+      "Попробуйте очистить кэш менеджера пакетов и повторить установку."
+    ]
+  },
+  {
+    "error_pattern": "System\\.ComponentModel\\.Win32Exception \\(0x80004005\\): The system cannot find the file specified",
+    "error_type": "DotnetCliExecutionError",
+    "description": "Compilation in the cloud finishes with an error: \"An error occured while running dotnet cli\"",
+    "recommendations": [
+      "Точная причина ошибки неизвестна, но обычно она возникает, когда dotnet CLI не может быть найден или используется некорректно.",
+      "Проверьте, установлены ли все необходимые компоненты .NET. Полный список компонентов приведён в документации Creatio: https://academy.creatio.com/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/enable-required-windows-components",
+      "Если все компоненты уже установлены — попробуйте переустановить их, чтобы убедиться, что конфигурация корректна.",
+      "Убедитесь, что путь к dotnet CLI добавлен в переменную среды PATH."
+    ]
+  },
+  {
+    "error_pattern": "Version conflict detected for '([^']+)'",
+    "error_type": "VersionConflict",
+    "description": "Обнаружен конфликт версий для пакета {package_name}.",
+    "recommendations": [
+      "Проверьте зависимости вашего проекта, требующие разные версии пакета \"{package_name}\".",
+      "Обновите все зависимости до совместимых версий.",
+      "Рассмотрите возможность использования диапазона версий вместо конкретной версии.",
+      "Используйте инструменты для разрешения конфликтов версий (например, npm-check-updates, maven enforcer plugin)."
+    ]
+  },
+  {
+    "error_pattern": "Invalid package specification: '([^']+)'",
+    "error_type": "InvalidPackageSpecification",
+    "description": "Некорректная спецификация пакета: {package_name}.",
+    "recommendations": [
+      "Проверьте правильность указания имени и версии пакета \"{package_name}\".",
+      "Убедитесь, что используете правильный формат спецификации для вашего менеджера пакетов.",
+      "Для NuGet: [PackageId].[Version], для npm: [PackageId]@[Version].",
+      "Избегайте использования специальных символов в имени пакета."
+    ]
+  },
+  {
+    "error_pattern": "Access denied .* '([^']+)'",
+    "error_type": "AccessDenied",
+    "description": "Отказано в доступе при работе с пакетом {package_name}.",
+    "recommendations": [
+      "Проверьте права доступа к директории установки пакетов.",
+      "Запустите программу управления пакетами с повышенными привилегиями (например, от имени администратора).",
+      "Проверьте, не заблокирован ли файл другим процессом.",
+      "Попробуйте временно отключить антивирус или файрвол, которые могут блокировать доступ."
+    ]
+  },
+  {
+    "error_pattern": "Package '([^']+)' already exists",
+    "error_type": "PackageAlreadyExists",
+    "description": "Пакет {package_name} уже существует в системе.",
+    "recommendations": [
+      "Если вы выполняете обновление, используйте соответствующую команду (например, `npm update` вместо `npm install`).",
+      "Используйте флаг принудительной установки, чтобы переустановить существующий пакет (например, `--force` в npm).",
+      "Удалите существующий пакет перед установкой новой версии.",
+      "Проверьте, не конфликтует ли этот пакет с другими установленными пакетами."
+    ]
+  },
+  {
+    "error_pattern": "Network error .* '([^']+)'",
+    "error_type": "NetworkError",
+    "description": "Сетевая ошибка при загрузке пакета {package_name}.",
+    "recommendations": [
+      "Проверьте подключение к интернету.",
+      "Убедитесь, что репозиторий пакетов доступен (например, npmjs.com или nuget.org).",
+      "Если вы используете прокси, проверьте его настройки.",
+      "Попробуйте использовать другой источник пакетов или зеркало.",
+      "Если проблема с конкретным пакетом, проверьте его доступность в репозитории."
+    ]
+  },
+  {
+    "error_pattern": "Checksum validation failed for '([^']+)'",
+    "error_type": "ChecksumValidationFailed",
+    "description": "Ошибка проверки контрольной суммы для пакета {package_name}.",
+    "recommendations": [
+      "Пакет может быть поврежден. Попробуйте очистить кэш и повторить загрузку.",
+      "Проверьте, не блокирует ли антивирус загрузку пакета.",
+      "Используйте другой источник пакетов или зеркало.",
+      "Если проблема повторяется, сообщите о ней в репозиторий пакетов."
+    ]
+  },
+  {
+    "error_pattern": "Timeout .* '([^']+)'",
+    "error_type": "Timeout",
+    "description": "Превышено время ожидания при загрузке пакета {package_name}.",
+    "recommendations": [
+      "Проверьте скорость вашего интернет-соединения.",
+      "Попробуйте загрузить пакет позже, когда серверы будут менее загружены.",
+      "Используйте локальный кэш пакетов, если доступен.",
+      "Увеличьте время ожидания для загрузки пакетов в настройках менеджера пакетов."
+    ]
+  },
+  {
+    "error_pattern": "System\\.ApplicationException: (.*)",
+    "error_type": "GenericApplicationException",
+    "description": "Неизвестная ошибка приложения: {error_details}.",
+    "recommendations": [
+      "Проверьте полный лог ошибки для дополнительной информации.",
+      "Убедитесь, что все зависимости установлены и совместимы.",
+      "Обратитесь к документации или разработчику системы."
+    ]
+  },
+  {
+    "error_pattern": ".*Error in ConvertToResourceItem\\. CultureId = ([a-f0-9-]+)",
+    "error_type": "ConvertToResourceItemError",
+    "description": "Ошибка при конвертации в ResourceItem для CultureId {culture_id}. Указанный идентификатор культуры не найден или некорректен.",
+    "recommendations": [
+      "Проверьте, существует ли CultureId '{culture_id}' в базе данных или конфигурации системы локализации.",
+      "Убедитесь, что указанный CultureId соответствует формату GUID и зарегистрирован в системе.",
+      "Проверьте, есть ли ресурсы (например, строки локализации) для данной культуры.",
+      "Если CultureId не используется, попробуйте использовать другой идентификатор культуры или язык по умолчанию.",
+      "Проверьте логи системы для получения дополнительной информации об ошибке.",
+      "Если это сторонняя система (например, CRM), обратитесь к документации по управлению локализацией."
+    ]
+  },
+  {
+    "error_pattern": "An error occured while running dotnet cli",
+    "error_type": "DotnetCliExecutionError",
+    "description": "Произошла ошибка при выполнении команды dotnet CLI.",
+    "recommendations": [
+      "Точная причина ошибки неизвестна, но обычно она возникает, когда dotnet CLI не может быть найден или используется некорректно.",
+      "Проверьте, установлены ли все необходимые компоненты .NET. Полный список компонентов приведён в документации Creatio: https://academy.creatio.com/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/enable-required-windows-components",
+      "Если все компоненты уже установлены — попробуйте переустановить их, чтобы убедиться, что конфигурация корректна.",
+      "Убедитесь, что путь к dotnet CLI добавлен в переменную среды PATH."
+    ]
+  },
+  {
+    "error_pattern": "Error Anton",
+    "error_type": "",
+    "description": "Ошибка Антон.",
+    "recommendations": [
+      "Проверьте полный лог ошибки для дополнительной информации.",
+      "Убедитесь, что все зависимости установлены и совместимы.",
+      "Обратитесь к документации или разработчику системы."
+    ]
+  } 
+  
+]

@@ -1,6 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace Log_Parser_App.ViewModels;
+namespace LogParserApp.ViewModels;
 
 public class ViewModelBase : ObservableObject
 {
