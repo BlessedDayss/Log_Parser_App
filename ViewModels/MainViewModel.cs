@@ -112,6 +112,13 @@ namespace LogParserApp.ViewModels
         
         public System.Windows.Input.ICommand? ExternalOpenFileCommand { get; set; }
         
+        private string? _lastOpenedFilePath;
+        public string? LastOpenedFilePath
+        {
+            get => _lastOpenedFilePath;
+            set => SetProperty(ref _lastOpenedFilePath, value);
+        }
+        
         public MainViewModel(
             ILogParserService logParserService,
             ILogger<MainViewModel> logger,
@@ -159,6 +166,7 @@ namespace LogParserApp.ViewModels
             {
                 var file = await _fileService.PickLogFileAsync();
                 if (file == null) return;
+                LastOpenedFilePath = file;
                 
                 StatusMessage = $"Opening {Path.GetFileName(file)}...";
                 IsLoading = true;
@@ -354,24 +362,82 @@ namespace LogParserApp.ViewModels
         [RelayCommand]
         private void OpenLogFile(LogEntry? entry)
         {
-            if (entry == null || string.IsNullOrEmpty(entry.FilePath))
+            if (entry == null)
                 return;
-            var filePath = entry.FilePath;
-            var line = entry.LineNumber ?? 1;
+            var filePath = LastOpenedFilePath;
+            if (string.IsNullOrEmpty(filePath))
+            {
+                StatusMessage = "Файл не был загружен";
+                return;
+            }
             try
             {
-                // macOS: VS Code
-                var psi = new System.Diagnostics.ProcessStartInfo
+                bool opened = false;
+                string? error = null;
+                if (OperatingSystem.IsMacOS())
                 {
-                    FileName = "/usr/bin/open",
-                    Arguments = $"-a 'Visual Studio Code' --args --goto '{filePath}:{line}'",
-                    UseShellExecute = false
-                };
-                System.Diagnostics.Process.Start(psi);
+                    try
+                    {
+                        var psi = new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = "/usr/bin/open",
+                            Arguments = $"\"{filePath}\"",
+                            UseShellExecute = false
+                        };
+                        var proc = System.Diagnostics.Process.Start(psi);
+                        if (proc != null) opened = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        error = $"Не удалось открыть файл через open: {ex.Message}\n{ex.StackTrace}";
+                        _logger.LogError(ex, "open failed");
+                    }
+                }
+                else if (OperatingSystem.IsWindows())
+                {
+                    try
+                    {
+                        var proc = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });
+                        if (proc != null) opened = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        error = $"Не удалось открыть файл: {ex.Message}\n{ex.StackTrace}";
+                        _logger.LogError(ex, "Windows open failed");
+                    }
+                }
+                else if (OperatingSystem.IsLinux())
+                {
+                    try
+                    {
+                        var psi = new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = "xdg-open",
+                            Arguments = $"\"{filePath}\"",
+                            UseShellExecute = false
+                        };
+                        var proc = System.Diagnostics.Process.Start(psi);
+                        if (proc != null) opened = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        error = $"Не удалось открыть файл через xdg-open: {ex.Message}\n{ex.StackTrace}";
+                        _logger.LogError(ex, "Linux open failed");
+                    }
+                }
+                else
+                {
+                    error = "Неизвестная ОС, не могу открыть файл";
+                }
+                if (!opened)
+                {
+                    StatusMessage = error ?? "Не удалось открыть файл (неизвестная ошибка)";
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to open file {FilePath} at line {Line}", filePath, line);
+                _logger.LogError(ex, "Failed to open file {FilePath}", filePath);
+                StatusMessage = $"Ошибка открытия файла: {ex.Message}\n{ex.StackTrace}";
             }
         }
     }
