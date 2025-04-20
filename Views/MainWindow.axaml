@@ -8,7 +8,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="750"
-        x:Class="LogParserApp.Views.MainWindow"
+        x:Class="Log_Parser_App.Views.MainWindow"
         x:Name="mainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/logparserv1.ico"
@@ -314,6 +314,7 @@
                     <TabControl Grid.Column="0" SelectedIndex="{Binding MainView.SelectedTabIndex}">
                         <TabItem Header="All entries">
                             <DataGrid ItemsSource="{Binding MainView.LogEntries}"
+                                    SelectedItem="{Binding MainView.SelectedLogEntry, Mode=TwoWay}"
                                     Classes="visible"
                                     CanUserReorderColumns="True"
                                     IsReadOnly="True"
@@ -379,6 +380,7 @@
                         </TabItem>
                         <TabItem Header="Query results">
                             <DataGrid ItemsSource="{Binding MainView.FilteredLogEntries}"
+                                    SelectedItem="{Binding MainView.SelectedLogEntry, Mode=TwoWay}"
                                     Classes="visible"
                                     CanUserReorderColumns="True"
                                     IsReadOnly="True"
@@ -487,6 +489,7 @@
                                 </ItemsControl>
                                 <Button Content="✔️ Apply Filters" Classes="apply-filters-button" Command="{Binding ApplyFiltersCommand}" HorizontalAlignment="Left" Margin="0,8,0,0" />
                                 <DataGrid ItemsSource="{Binding MainView.ErrorLogEntries}"
+                                        SelectedItem="{Binding MainView.SelectedLogEntry, Mode=TwoWay}"
                                         Classes="visible"
                                         CanUserReorderColumns="True"
                                         IsReadOnly="True"

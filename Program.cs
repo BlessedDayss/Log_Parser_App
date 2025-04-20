@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using LogParserApp.Services;
 using LogParserApp.ViewModels;
+using MainViewModel = Log_Parser_App.ViewModels.MainViewModel;
 
 namespace LogParserApp;
 

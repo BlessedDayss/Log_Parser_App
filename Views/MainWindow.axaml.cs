@@ -1,9 +1,9 @@
-using Avalonia.Controls;
-using LogParserApp.ViewModels;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Styling;
+using LogParserApp.ViewModels;
 
-namespace LogParserApp.Views;
+namespace Log_Parser_App.Views;
 
 public partial class MainWindow : Window
 {
@@ -11,13 +11,13 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         
-        this.AttachedToVisualTree += (s, e) =>
+        this.AttachedToVisualTree += (_, _) =>
         {
-            if (DataContext is MainWindowViewModel vm && vm.MainView != null)
+            if (DataContext is MainWindowViewModel { MainView: not null } vm)
             {
                 UpdateTheme(vm.MainView.IsDarkTheme);
                 
-                vm.MainView.PropertyChanged += (sender, args) =>
+                vm.MainView.PropertyChanged += (_, args) =>
                 {
                     if (args.PropertyName == nameof(vm.MainView.IsDarkTheme))
                     {

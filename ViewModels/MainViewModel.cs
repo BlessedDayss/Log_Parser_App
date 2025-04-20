@@ -1,22 +1,17 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-// using LiveChartsCore; // Comment out
-// using LiveChartsCore.SkiaSharpView; // Comment out
-// using SkiaSharp; // Comment out
-using Avalonia.Controls;
 using LogParserApp.Models;
 using LogParserApp.Services;
+using LogParserApp.ViewModels;
 using Microsoft.Extensions.Logging;
 
-namespace LogParserApp.ViewModels
+namespace Log_Parser_App.ViewModels
 {
     public partial class MainViewModel : ViewModelBase
     {
@@ -85,9 +80,8 @@ namespace LogParserApp.ViewModels
         [ObservableProperty]
         private PackageLogEntry? _selectedPackageEntry;
         
-        // COMMENTED OUT: Property for selected log entry in main grid
-        // [ObservableProperty]
-        // private LogEntry? _selectedLogEntry;
+        [ObservableProperty]
+        private LogEntry? _selectedLogEntry;
         
         // COMMENTED OUT: Chart Series Properties
         /*
@@ -176,7 +170,7 @@ namespace LogParserApp.ViewModels
                 IsDashboardVisible = true;
                 
                 // Execute parsing in a separate thread
-                await Task.Run(async () =>
+                await Task.Run((Func<Task?>)(async () =>
                 {
                     // Clear collections only through UI thread
                     await Dispatcher.UIThread.InvokeAsync(() =>
@@ -188,102 +182,88 @@ namespace LogParserApp.ViewModels
 
                     var entries = await _logParserService.ParseLogFileAsync(file);
                     
-                    var filteredEntries = new List<LogEntry>();
-                    foreach (var entry in entries)
+                    
+                    var logEntries = entries as LogEntry[] ?? entries.ToArray();
+                    foreach (var entry in logEntries)
                     {
                         if (!string.IsNullOrEmpty(entry.Message))
                         {
                             var lines = entry.Message.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
                             var regex = new System.Text.RegularExpressions.Regex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}");
-                            string? mainLine = lines.FirstOrDefault(l => regex.IsMatch(l));
-                            if (mainLine == null)
-                                mainLine = lines[0];
-                            var stackLines = lines.Where(l => l != mainLine).ToList();
+                            string mainLine = lines.FirstOrDefault(l => !l.TrimStart().StartsWith("at ")) ?? lines[0];
+                            var stackLines = lines.SkipWhile(l => !l.TrimStart().StartsWith("at ")).Where(l => l.TrimStart().StartsWith("at ")).ToList();
                             entry.Message = mainLine.Trim();
                             entry.StackTrace = stackLines.Count > 0 ? string.Join("\n", stackLines) : null;
-
-                            // Фильтрация: если все строки похожи на стек, не добавлять
-                            bool allStack = lines.All(l => l.TrimStart().StartsWith("at ") || string.IsNullOrWhiteSpace(l));
-                            bool hasDate = lines.Any(l => regex.IsMatch(l));
-                            bool hasKeywords = lines[0].Contains("Exception") || lines[0].Contains("Error") || lines[0].Contains("Warning");
-                            if (allStack && !hasDate && !hasKeywords)
-                                continue; 
                         }
-                        filteredEntries.Add(entry);
                     }
                     
-                    foreach (var entry in filteredEntries)
+                    foreach (var entry in logEntries)
                     {
                         entry.OpenFileCommand = ExternalOpenFileCommand;
                     }
                     
-                    // Pre-process all entries before adding them
                     await Dispatcher.UIThread.InvokeAsync(() =>
                     {
-                        _logger.LogInformation("Processing {Count} log entries", filteredEntries.Count);
+                        _logger.LogInformation("Processing {Count} log entries", logEntries.Count());
                         
-                        // Clear collections
                         LogEntries.Clear();
                         ErrorLogEntries.Clear();
                         
                         int errorCount = 0;
                         int warningCount = 0;
                         
-                        // Add all entries to main collection and classify them
-                        foreach (var entry in filteredEntries)
+                        foreach (var entry in logEntries)
                         {
-                            // Add entry to main collection
                             LogEntries.Add(entry);
-                            
-                            // Check log level and add to appropriate collection
-                            if (entry.Level == "ERROR")
+
+                            switch (entry.Level)
                             {
-                                _logger.LogDebug("Found ERROR entry: '{Message}'", entry.Message);
-                                
-                                // Анализируем ошибку и добавляем рекомендации
-                                var recommendation = _errorRecommendationService.AnalyzeError(entry.Message);
-                                _logger.LogDebug("Recommendation result: {Result}", recommendation != null ? "Found" : "Not found");
-                                
-                                if (recommendation != null)
+                                case "ERROR":
                                 {
-                                    entry.ErrorType = recommendation.ErrorType;
-                                    entry.ErrorDescription = recommendation.Description;
-                                    entry.ErrorRecommendations.Clear();
-                                    entry.ErrorRecommendations.AddRange(recommendation.Recommendations);
-                                    
-                                    _logger.LogDebug("Added recommendations for error: {ErrorType} with {Count} recommendations", 
-                                        entry.ErrorType, entry.ErrorRecommendations.Count);
-                                    _logger.LogDebug("HasRecommendations: {HasRecommendations}", entry.HasRecommendations);
-                                }
-                                else
-                                {
-                                    // Если рекомендация не найдена, добавляем дефолтное сообщение
-                                    entry.ErrorType = "UnknownError";
-                                    entry.ErrorDescription = "Unknown error. Recommendations not found.";
-                                    entry.ErrorRecommendations.Add("Check error log for additional information.");
-                                    entry.ErrorRecommendations.Add("Contact documentation or support.");
-                                    
-                                    _logger.LogWarning("No recommendation found for error message: {Message}", entry.Message);
-                                    _logger.LogDebug("Added default recommendations. HasRecommendations: {HasRecommendations}", entry.HasRecommendations);
-                                }
+                                    _logger.LogDebug("Found ERROR entry: '{Message}'", entry.Message);
                                 
-                                ErrorLogEntries.Add(entry);
-                                errorCount++;
-                            }
-                            else if (entry.Level == "WARNING")
-                            {
-                                warningCount++;
+                                    var recommendation = _errorRecommendationService.AnalyzeError(entry.Message);
+                                    _logger.LogDebug("Recommendation result: {Result}", recommendation != null ? "Found" : "Not found");
+                                
+                                    if (recommendation != null)
+                                    {
+                                        entry.ErrorType = recommendation.ErrorType;
+                                        entry.ErrorDescription = recommendation.Description;
+                                        entry.ErrorRecommendations.Clear();
+                                        entry.ErrorRecommendations.AddRange(recommendation.Recommendations);
+                                    
+                                        _logger.LogDebug("Added recommendations for error: {ErrorType} with {Count} recommendations", 
+                                            entry.ErrorType, entry.ErrorRecommendations.Count);
+                                        _logger.LogDebug("HasRecommendations: {HasRecommendations}", entry.HasRecommendations);
+                                    }
+                                    else
+                                    {
+                                        entry.ErrorType = "UnknownError";
+                                        entry.ErrorDescription = "Unknown error. Recommendations not found.";
+                                        entry.ErrorRecommendations.Add("Check error log for additional information.");
+                                        entry.ErrorRecommendations.Add("Contact documentation or support.");
+                                    
+                                        _logger.LogWarning("No recommendation found for error message: {Message}", entry.Message);
+                                        _logger.LogDebug("Added default recommendations. HasRecommendations: {HasRecommendations}", entry.HasRecommendations);
+                                    }
+                                
+                                    ErrorLogEntries.Add(entry);
+                                    errorCount++;
+                                    break;
+                                }
+                                case "WARNING":
+                                    warningCount++;
+                                    break;
                             }
                         }
                         
                         _logger.LogInformation("Added {Count} entries, including {ErrorCount} errors and {WarningCount} warnings", 
                             LogEntries.Count, errorCount, warningCount);
                     });
-                });
+                }));
                 
-                // Update statistics and status
                 await Dispatcher.UIThread.InvokeAsync(() => {
-                    UpdateLogStatistics(); // Reverted method name
+                    UpdateLogStatistics(); 
                     StatusMessage = $"Loaded {LogEntries.Count} log entries";
                     SelectedTabIndex = 0;
                 });
@@ -308,12 +288,10 @@ namespace LogParserApp.ViewModels
             _logger.LogInformation("Theme changed to: {Theme}", IsDarkTheme ? "Dark" : "Light");
         }
         
-        // Renamed back to UpdateLogStatistics
         private void UpdateLogStatistics()
         {
             if (LogEntries.Count == 0)
             {
-                // Reset stats 
                 ErrorCount = 0;
                 WarningCount = 0;
                 InfoCount = 0;
@@ -322,17 +300,12 @@ namespace LogParserApp.ViewModels
                 WarningPercent = 0;
                 InfoPercent = 0;
                 OtherPercent = 0;
-                // COMMENTED OUT: Chart resets
-                // LevelsOverTimeSeries = Array.Empty<ISeries>();
-                // TopNErrorsSeries = Array.Empty<ISeries>();
-                // LogIntensitySeries = Array.Empty<ISeries>();
                 return;
             }
             
-            // Calculate basic counts
-            ErrorCount = LogEntries.Count(e => e.Level == "ERROR");
-            WarningCount = LogEntries.Count(e => e.Level == "WARNING");
-            InfoCount = LogEntries.Count(e => e.Level == "INFO");
+            ErrorCount = LogEntries.Count<LogEntry>(e => e.Level == "ERROR");
+            WarningCount = LogEntries.Count<LogEntry>(e => e.Level == "WARNING");
+            InfoCount = LogEntries.Count<LogEntry>(e => e.Level == "INFO");
             OtherCount = LogEntries.Count - ErrorCount - WarningCount - InfoCount;
             
             var total = (double)LogEntries.Count;
@@ -342,30 +315,11 @@ namespace LogParserApp.ViewModels
             OtherPercent = total > 0 ? Math.Round((OtherCount / total) * 100, 1) : 0;
             
             _logger.LogInformation("Updated basic statistics");
-
-            // COMMENTED OUT: Calculate Chart Data
-            // CalculateLevelsOverTimeChart();
-            // CalculateTopNErrorsChart();
-            // CalculateLogIntensityChart();
+            
         }
-
-        // COMMENTED OUT: Chart calculation methods
-        /*
-        private void CalculateLevelsOverTimeChart() { ... }
-        private void CalculateTopNErrorsChart(int N = 10) { ... }
-        private void CalculateLogIntensityChart() { ... }
-        */
-
-        // COMMENTED OUT: Method to update highlighting based on SelectedLogEntry
-        /*
-        private void UpdateHighlightedEntries()
-        {
-            // ... implementation ...
-        }
-        */
         
         [RelayCommand]
-        private void ShowPackageErrorDetails(PackageLogEntry entry)
+        private void ShowPackageErrorDetails(PackageLogEntry? entry)
         {
             if (entry == null)
                 return;
@@ -375,7 +329,7 @@ namespace LogParserApp.ViewModels
         }
 
         [RelayCommand]
-        private void ApplyFilters()
+        private static void ApplyFilters()
         {
             // Implementation of ApplyFilters method
             // This method should filter LogEntries and result in FilteredLogEntries
@@ -390,12 +344,12 @@ namespace LogParserApp.ViewModels
             var filePath = LastOpenedFilePath;
             if (string.IsNullOrEmpty(filePath))
             {
-                StatusMessage = "Файл не был загружен";
+                StatusMessage = "File path is empty. Cannot open file.";
                 return;
             }
             try
             {
-                bool opened = false;
+                var opened = false;
                 string? error = null;
                 if (OperatingSystem.IsMacOS())
                 {
@@ -412,7 +366,7 @@ namespace LogParserApp.ViewModels
                     }
                     catch (Exception ex)
                     {
-                        error = $"Не удалось открыть файл через open: {ex.Message}\n{ex.StackTrace}";
+                        error = $"Can't open: {ex.Message}\n{ex.StackTrace}";
                         _logger.LogError(ex, "open failed");
                     }
                 }
@@ -425,7 +379,7 @@ namespace LogParserApp.ViewModels
                     }
                     catch (Exception ex)
                     {
-                        error = $"Не удалось открыть файл: {ex.Message}\n{ex.StackTrace}";
+                        error = $"Cannot open: {ex.Message}\n{ex.StackTrace}";
                         _logger.LogError(ex, "Windows open failed");
                     }
                 }

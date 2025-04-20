@@ -19,12 +19,12 @@ namespace LogParserApp.ViewModels;
 public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly ILogger<MainWindowViewModel> _logger;
-    private readonly MainViewModel _mainView;
+    private readonly Log_Parser_App.ViewModels.MainViewModel _mainView;
 
     [ObservableProperty]
     private string _appVersion = string.Empty;
 
-    public MainViewModel MainView => _mainView;
+    public Log_Parser_App.ViewModels.MainViewModel MainView => _mainView;
 
     // Filter Builder properties and commands moved here
     [ObservableProperty]
@@ -43,13 +43,13 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         // Design-time constructor
         _logger = null!; 
-        _mainView = new MainViewModel(null!, null!, null!, null!); // Provide dummy services for design time
+        _mainView = new Log_Parser_App.ViewModels.MainViewModel(null!, null!, null!, null!); // Provide dummy services for design time
         AppVersion = "v0.0.1-design";
         // Add a design-time filter criterion for the previewer
         FilterCriteria.Add(new FilterCriterion { SelectedField = "Level", SelectedOperator = "Equals", Value = "ERROR" });
     }
     
-    public MainWindowViewModel(ILogger<MainWindowViewModel> logger, MainViewModel mainView)
+    public MainWindowViewModel(ILogger<MainWindowViewModel> logger, Log_Parser_App.ViewModels.MainViewModel mainView)
     {
         _logger = logger;
         _mainView = mainView;

@@ -12,6 +12,8 @@ using System;
 using System.IO;
 using LogParserApp.ViewModels;
 using LogParserApp.Services;
+using MainViewModel = Log_Parser_App.ViewModels.MainViewModel;
+using MainWindow = Log_Parser_App.Views.MainWindow;
 
 namespace LogParserApp;
 
