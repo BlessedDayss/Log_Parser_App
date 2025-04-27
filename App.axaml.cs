@@ -10,8 +10,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
+using Log_Parser_App.Services;
 using LogParserApp.ViewModels;
-using LogParserApp.Services;
 using MainViewModel = Log_Parser_App.ViewModels.MainViewModel;
 using MainWindow = Log_Parser_App.Views.MainWindow;
 

@@ -1,9 +1,9 @@
 using System.Collections.Generic;
-using LogParserApp.ViewModels; // Assuming ViewModelBase is here or adjust namespace
+using LogParserApp.ViewModels;
 
-namespace LogParserApp.Models
+namespace Log_Parser_App.Models
 {
-    public class FilterCriterion : ViewModelBase // Inherit from ViewModelBase for INotifyPropertyChanged if needed
+    public class FilterCriterion : ViewModelBase 
     {
         private string? _selectedField;
         public string? SelectedField
@@ -11,14 +11,12 @@ namespace LogParserApp.Models
             get => _selectedField;
             set
             {
-                if (SetProperty(ref _selectedField, value))
-                {
-                    // Reset operator and value when field changes
-                    SelectedOperator = null;
-                    Value = string.Empty;
-                    // Optionally, trigger update for available operators if needed
-                    OnPropertyChanged(nameof(AvailableOperators)); 
-                }
+                if (!SetProperty(ref _selectedField, value)) return;
+                SelectedOperator = null;
+                Value = string.Empty;
+                OnPropertyChanged(nameof(AvailableOperators)); 
+                OnPropertyChanged(nameof(AvailableValues));
+                OnPropertyChanged(nameof(ShowValueComboBox));
             }
         }
 
@@ -36,16 +34,23 @@ namespace LogParserApp.Models
             set => SetProperty(ref _value, value);
         }
         
-        // Reference to the parent ViewModel to access lists and commands
         public MainWindowViewModel? ParentViewModel { get; set; }
 
-        // Property to get available operators based on selected field from ParentViewModel
         public List<string>? AvailableOperators => 
             SelectedField != null && ParentViewModel?.OperatorsByFieldType.ContainsKey(SelectedField) == true
             ? ParentViewModel.OperatorsByFieldType[SelectedField]
             : null;
 
-        // Property to get available fields from ParentViewModel
         public List<string>? AvailableFields => ParentViewModel?.AvailableFields;
+        
+        public List<string>? AvailableValues =>
+            SelectedField != null && ParentViewModel?.AvailableValuesByField.ContainsKey(SelectedField) == true
+                ? ParentViewModel.AvailableValuesByField[SelectedField]
+                : null;
+                
+        public bool ShowValueComboBox =>
+            SelectedField != null &&
+            ParentViewModel?.AvailableValuesByField.ContainsKey(SelectedField) == true &&
+            ParentViewModel.AvailableValuesByField[SelectedField].Count > 0;
     }
 } 

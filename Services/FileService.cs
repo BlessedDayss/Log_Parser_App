@@ -1,13 +1,12 @@
-using Avalonia.Platform.Storage;
-using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Avalonia.Controls;
-using System.Linq;
+using Avalonia.Platform.Storage;
 using LogParserApp;
-using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 
-namespace LogParserApp.Services
+namespace Log_Parser_App.Services
 {
     public interface IFileService
     {
@@ -31,10 +30,6 @@ namespace LogParserApp.Services
             _topLevel = topLevel;
         }
         
-        /// <summary>
-        /// Picks a log file using file picker dialog
-        /// </summary>
-        /// <returns>Path to the selected file or null if cancelled</returns>
         public async Task<string?> PickLogFileAsync(string extension = "")
         {
             if (_topLevel == null)
@@ -61,7 +56,6 @@ namespace LogParserApp.Services
                     }
                 };
                 
-                // If specific extension is specified, add it as the first option
                 if (!string.IsNullOrEmpty(extension))
                 {
                     extensions.Insert(0, new FilePickerFileType($"{extension.TrimStart('.')} Files") 
@@ -98,8 +92,7 @@ namespace LogParserApp.Services
         public async Task<string?> PickSaveLocationAsync(string defaultFileName, string extension)
         {
             try
-            {
-                // Проверка инициализации
+            { 
                 if (_topLevel == null)
                 {
                     _topLevel = TopLevel.GetTopLevel(App.MainWindow);

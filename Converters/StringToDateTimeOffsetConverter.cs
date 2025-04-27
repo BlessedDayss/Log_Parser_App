@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using Avalonia.Data.Converters;
 
-namespace LogParserApp.Converters // Changed namespace
+namespace Log_Parser_App.Converters 
 {
     public class StringToDateTimeOffsetConverter : IValueConverter
     {
@@ -19,10 +19,8 @@ namespace LogParserApp.Converters // Changed namespace
         {            
             if (value is DateTimeOffset dto)
             {
-                // Using a common format that TryParse can handle by default
                 return dto.ToString("o", culture); // ISO 8601 format
             }
-            // Return empty string or null if the value is not a DateTimeOffset
             return string.Empty; 
         }
     }

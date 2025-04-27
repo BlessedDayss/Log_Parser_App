@@ -4,7 +4,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
-using LogParserApp.Services;
+using Log_Parser_App.Services;
 using LogParserApp.ViewModels;
 using MainViewModel = Log_Parser_App.ViewModels.MainViewModel;
 

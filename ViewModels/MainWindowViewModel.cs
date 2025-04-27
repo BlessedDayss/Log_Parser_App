@@ -9,8 +9,7 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using LogParserApp.Models;
-using LogParserApp.Services;
+using Log_Parser_App.Models;
 using LogParserApp.Views;
 using Microsoft.Extensions.Logging;
 
@@ -34,9 +33,16 @@ public partial class MainWindowViewModel : ViewModelBase
     public Dictionary<string, List<string>> OperatorsByFieldType { get; } = new Dictionary<string, List<string>>
     {
         { "Timestamp", new List<string> { "Equals", "NotEquals", "GreaterThan", "LessThan", "GreaterThanOrEqual", "LessThanOrEqual" } },
-        { "Level", new List<string> { "Equals", "NotEquals", "Contains" } }, // Assuming Level is string
+        { "Level", new List<string> { "Equals", "NotEquals", "Contains" } },
         { "Source", new List<string> { "Equals", "NotEquals", "Contains", "StartsWith", "EndsWith" } },
         { "Message", new List<string> { "Equals", "NotEquals", "Contains", "StartsWith", "EndsWith" } }
+    };
+    
+    // Dictionary to store available values for fields
+    public Dictionary<string, List<string>> AvailableValuesByField { get; } = new Dictionary<string, List<string>>
+    {
+        { "Level", new List<string>() },
+        { "Source", new List<string>() }
     };
 
     public MainWindowViewModel()
@@ -60,7 +66,57 @@ public partial class MainWindowViewModel : ViewModelBase
         var version = assembly.GetName().Version;
         AppVersion = $"v{version?.Major ?? 0}.{version?.Minor ?? 0}.{version?.Build ?? 0}";
         
+        // Subscribe to MainView's PropertyChanged event to update filter values when log entries change
+        _mainView.PropertyChanged += (sender, args) =>
+        {
+            if (args.PropertyName == nameof(_mainView.LogEntries))
+            {
+                PopulateAvailableFilterValues();
+            }
+        };
+        
         _logger.LogInformation("MainWindowViewModel initialized");
+    }
+    
+    // Method to populate available values for filter fields based on log entries
+    private void PopulateAvailableFilterValues()
+    {
+        if (MainView.LogEntries == null || MainView.LogEntries.Count == 0)
+        {
+            _logger.LogDebug("No log entries available to populate filter values");
+            return;
+        }
+        
+        _logger.LogInformation("Populating available filter values from {Count} log entries", MainView.LogEntries.Count);
+        
+        // Clear existing values
+        foreach (var key in AvailableValuesByField.Keys.ToList())
+        {
+            AvailableValuesByField[key].Clear();
+        }
+        
+        // Extract unique values for Level
+        var levels = MainView.LogEntries
+            .Select(e => e.Level)
+            .Where(l => !string.IsNullOrEmpty(l))
+            .Distinct()
+            .OrderBy(l => l)
+            .ToList();
+        AvailableValuesByField["Level"] = levels;
+        _logger.LogDebug("Found {Count} unique levels: {Levels}", levels.Count, string.Join(", ", levels));
+        
+        // Extract unique values for Source
+        var sources = MainView.LogEntries
+            .Select(e => e.Source)
+            .Where(s => !string.IsNullOrEmpty(s))
+            .Distinct()
+            .OrderBy(s => s)
+            .ToList();
+        AvailableValuesByField["Source"] = sources;
+        _logger.LogDebug("Found {Count} unique sources", sources.Count);
+        
+        // Notify UI of changes
+        OnPropertyChanged(nameof(AvailableValuesByField));
     }
 
     [RelayCommand]
@@ -137,7 +193,6 @@ public partial class MainWindowViewModel : ViewModelBase
                         MainView.FilteredLogEntries.Add(entry);
                     }
                     MainView.StatusMessage = $"Filters applied. Found {MainView.FilteredLogEntries.Count} entries";
-                    MainView.SelectedTabIndex = 1; // Switch tab in MainView
                 });
             });
         }
@@ -222,10 +277,52 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
+    [RelayCommand]
+    private async Task ResetFilters()
+    {
+        if (MainView.LogEntries.Count == 0)
+        {
+            MainView.StatusMessage = "No log entries to reset";
+            return;
+        }
+        
+        try
+        {
+            MainView.StatusMessage = "Resetting filters...";
+            MainView.IsLoading = true;
+            
+            await Task.Run(() =>
+            {
+                var allEntries = MainView.LogEntries.ToList();
+                
+                Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    MainView.FilteredLogEntries.Clear();
+                    foreach (var entry in allEntries)
+                    {
+                        MainView.FilteredLogEntries.Add(entry);
+                    }
+                    
+                    MainView.StatusMessage = $"Filters reset. Showing all {MainView.FilteredLogEntries.Count} entries";
+                });
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error resetting filters");
+            MainView.StatusMessage = $"Error resetting filters: {ex.Message}";
+        }
+        finally
+        {
+            MainView.IsLoading = false;
+        }
+    }
+
     private void OpenLogFile(LogEntry? entry)
     {
         MainView.OpenLogFileCommand.Execute(entry);
     }
 
-    public IRelayCommand OpenLogFileCommand { get; }
+    // Удаляем required и используем null! для подавления предупреждения компилятора
+    public IRelayCommand OpenLogFileCommand { get; } = null!;
 }

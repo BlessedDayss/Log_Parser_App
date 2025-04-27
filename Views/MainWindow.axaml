@@ -1,12 +1,12 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:LogParserApp.ViewModels"
-        xmlns:models="using:LogParserApp.Models"
-        xmlns:conv="using:LogParserApp.Converters"
         xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
         xmlns:views="clr-namespace:LogParserApp.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:converters="clr-namespace:Log_Parser_App.Converters"
+        xmlns:models1="clr-namespace:Log_Parser_App.Models"
         mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="750"
         x:Class="Log_Parser_App.Views.MainWindow"
         x:Name="mainWindow"
@@ -18,9 +18,9 @@
         ExtendClientAreaToDecorationsHint="True">
 
     <Window.Resources>
-        <conv:StringToDateTimeOffsetConverter x:Key="StringToDateTimeOffsetConverter" />
-        <conv:EqualityToVisibilityConverter x:Key="IsEqualToVisibleConverter" />
-        <conv:InverseEqualityToVisibilityConverter x:Key="NotEqualToVisibleConverter" />
+        <converters:StringToDateTimeOffsetConverter x:Key="StringToDateTimeOffsetConverter" />
+        <converters:EqualityToVisibilityConverter x:Key="IsEqualToVisibleConverter" />
+        <converters:InverseEqualityToVisibilityConverter x:Key="NotEqualToVisibleConverter" />
         <views:BindingProxy x:Key="MainWindowViewModelProxy" Data="{Binding}" />
     </Window.Resources>
 
@@ -215,6 +215,24 @@
         <Style Selector="Button.apply-filters-button:pointerover">
             <Setter Property="Background" Value="#5a80d3" />
         </Style>
+        
+        <Style Selector="Button.reset-filters-button">
+            <Setter Property="Background" Value="#7c8694" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Padding" Value="16 8" />
+            <Setter Property="Margin" Value="0 12 0 0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0.15"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        
+        <Style Selector="Button.reset-filters-button:pointerover">
+            <Setter Property="Background" Value="#8d98a6" />
+        </Style>
     </Window.Styles>
 
     <Panel>
@@ -313,79 +331,10 @@
                     </Grid.ColumnDefinitions>
                     <TabControl Grid.Column="0" SelectedIndex="{Binding MainView.SelectedTabIndex}">
                         <TabItem Header="All entries">
-                            <DataGrid ItemsSource="{Binding MainView.LogEntries}"
-                                    SelectedItem="{Binding MainView.SelectedLogEntry, Mode=TwoWay}"
-                                    Classes="visible"
-                                    CanUserReorderColumns="True"
-                                    IsReadOnly="True"
-                                    Margin="1">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Time" Binding="{Binding Timestamp, StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}" Width="150" />
-                                    <DataGridTemplateColumn Header="Level" Width="130">
-                                        <DataGridTemplateColumn.CellTemplate>
-                                            <DataTemplate x:DataType="models:LogEntry">
-                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
-                                                    <PathIcon Data="{Binding LevelIcon}" Width="16" Height="16" Foreground="{Binding LevelColor}"/>
-                                                    <TextBlock Text="{Binding Level}" VerticalAlignment="Center" Foreground="{Binding LevelColor}"/>
-                                                </StackPanel>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellTemplate>
-                                    </DataGridTemplateColumn>
-                                    <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="120" />
-                                    <DataGridTemplateColumn Header="Message" Width="*">
-                                        <DataGridTemplateColumn.CellTemplate>
-                                            <DataTemplate x:DataType="models:LogEntry">
-                                                <Button Background="Transparent" BorderThickness="0" Padding="2,1" Command="{Binding OpenFileCommand}" CommandParameter="{Binding}">
-                                                    <TextBlock Text="{Binding DisplayMessage}" TextWrapping="Wrap" FontWeight="Normal" FontSize="13"/>
-                                                </Button>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellTemplate>
-                                    </DataGridTemplateColumn>
-                                    <DataGridTemplateColumn Header="Рекомендации" Width="350">
-                                        <DataGridTemplateColumn.CellTemplate>
-                                            <DataTemplate x:DataType="models:LogEntry">
-                                                <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="200" IsVisible="{Binding HasRecommendations}">
-                                                    <StackPanel Margin="6">
-                                                        <TextBlock Text="{Binding ErrorDescription}" 
-                                                                 TextWrapping="Wrap"
-                                                                 FontSize="12" 
-                                                                 Foreground="#CCCCCC"
-                                                                 Margin="0,0,0,8"/>
-                                                        <ItemsControl ItemsSource="{Binding ErrorRecommendations}">
-                                                            <ItemsControl.ItemTemplate>
-                                                                <DataTemplate>
-                                                                    <StackPanel Orientation="Horizontal" Margin="0,3">
-                                                                        <TextBlock Text="•" 
-                                                                                 Foreground="#64B5F6" 
-                                                                                 FontWeight="Bold" 
-                                                                                 Margin="0,0,8,0"
-                                                                                 VerticalAlignment="Top"/>
-                                                                        <TextBlock Text="{Binding}"
-                                                                                 TextWrapping="Wrap"
-                                                                                 FontSize="12"
-                                                                                 LineHeight="18"
-                                                                                 Foreground="#E0E0E0"
-                                                                                 MaxWidth="300"/>
-                                                                    </StackPanel>
-                                                                </DataTemplate>
-                                                            </ItemsControl.ItemTemplate>
-                                                        </ItemsControl>
-                                                    </StackPanel>
-                                                </ScrollViewer>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellTemplate>
-                                    </DataGridTemplateColumn>
-                                </DataGrid.Columns>
-                            </DataGrid>
-                        </TabItem>
-                        <TabItem>
-                            <TabItem.Header>
+                            <StackPanel>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
-                                    <TextBlock Text="Errors only" FontWeight="SemiBold" FontSize="14" />
                                     <Button Content="+ Add Filter" Classes="add-button" Command="{Binding AddFilterCriterionCommand}" Padding="10,4" FontSize="12" MinWidth="0" MinHeight="0" Margin="8,0,0,0" />
                                 </StackPanel>
-                            </TabItem.Header>
-                            <StackPanel>
                                 <ItemsControl ItemsSource="{Binding FilterCriteria}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
@@ -393,7 +342,7 @@
                                         </ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="models:FilterCriterion">
+                                        <DataTemplate x:DataType="models1:FilterCriterion">
                                             <Border Background="#2D2E32" CornerRadius="6" Padding="12 8">
                                                 <Grid ColumnDefinitions="Auto,Auto,*,Auto" VerticalAlignment="Center">
                                                     <ComboBox Grid.Column="0"
@@ -406,11 +355,17 @@
                                                               SelectedItem="{Binding SelectedOperator}"
                                                               MinWidth="100"
                                                               Margin="0,0,5,0"/>
-                                                    <TextBox Grid.Column="2"
-                                                             Text="{Binding Value}"
-                                                             Watermark="Value"
-                                                             VerticalAlignment="Center"
-                                                             Margin="0,0,5,0"/>
+                                                    <Panel Grid.Column="2" Margin="0,0,5,0">
+                                                        <ComboBox IsVisible="{Binding ShowValueComboBox}"
+                                                                 ItemsSource="{Binding AvailableValues}"
+                                                                 SelectedItem="{Binding Value}"
+                                                                 PlaceholderText="Select a value"
+                                                                 MinWidth="150"/>
+                                                        <TextBox IsVisible="{Binding !ShowValueComboBox}"
+                                                                Text="{Binding Value}"
+                                                                Watermark="Value"
+                                                                VerticalAlignment="Center"/>
+                                                    </Panel>
                                                     <Button Grid.Column="3"
                                                             Content="Remove"
                                                             Command="{Binding ParentViewModel.RemoveFilterCriterionCommand}"
@@ -421,8 +376,11 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <Button Content="✔️ Apply Filters" Classes="apply-filters-button" Command="{Binding ApplyFiltersCommand}" HorizontalAlignment="Left" Margin="0,8,0,0" />
-                                <DataGrid ItemsSource="{Binding MainView.ErrorLogEntries}"
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Spacing="10">
+                                    <Button Content="✔️ Apply Filters" Classes="apply-filters-button" Command="{Binding ApplyFiltersCommand}" Padding="16,8" Margin="0,8,0,0" />
+                                    <Button Content="🔄 Reset Filters" Classes="reset-filters-button" Command="{Binding ResetFiltersCommand}" Padding="16,8" Margin="10,8,0,0" />
+                                </StackPanel>
+                                <DataGrid ItemsSource="{Binding MainView.FilteredLogEntries}"
                                         SelectedItem="{Binding MainView.SelectedLogEntry, Mode=TwoWay}"
                                         Classes="visible"
                                         CanUserReorderColumns="True"
@@ -432,7 +390,7 @@
                                         <DataGridTextColumn Header="Time" Binding="{Binding Timestamp, StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}" Width="150" />
                                         <DataGridTemplateColumn Header="Level" Width="130">
                                             <DataGridTemplateColumn.CellTemplate>
-                                                <DataTemplate x:DataType="models:LogEntry">
+                                                <DataTemplate x:DataType="models1:LogEntry">
                                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
                                                         <PathIcon Data="{Binding LevelIcon}" Width="16" Height="16" Foreground="{Binding LevelColor}"/>
                                                         <TextBlock Text="{Binding Level}" VerticalAlignment="Center" Foreground="{Binding LevelColor}"/>
@@ -443,7 +401,7 @@
                                         <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="120" />
                                         <DataGridTemplateColumn Header="Message" Width="*">
                                             <DataGridTemplateColumn.CellTemplate>
-                                                <DataTemplate x:DataType="models:LogEntry">
+                                                <DataTemplate x:DataType="models1:LogEntry">
                                                     <Button Background="Transparent" BorderThickness="0" Padding="2,1" Command="{Binding OpenFileCommand}" CommandParameter="{Binding}">
                                                         <TextBlock Text="{Binding DisplayMessage}" TextWrapping="Wrap" FontWeight="Normal" FontSize="13"/>
                                                     </Button>
@@ -452,7 +410,124 @@
                                         </DataGridTemplateColumn>
                                         <DataGridTemplateColumn Header="Рекомендации" Width="350">
                                             <DataGridTemplateColumn.CellTemplate>
-                                                <DataTemplate x:DataType="models:LogEntry">
+                                                <DataTemplate x:DataType="models1:LogEntry">
+                                                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="200" IsVisible="{Binding HasRecommendations}">
+                                                        <StackPanel Margin="6">
+                                                            <TextBlock Text="{Binding ErrorDescription}" 
+                                                                     TextWrapping="Wrap"
+                                                                     FontSize="12" 
+                                                                     Foreground="#CCCCCC"
+                                                                     Margin="0,0,0,8"/>
+                                                            <ItemsControl ItemsSource="{Binding ErrorRecommendations}">
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <StackPanel Orientation="Horizontal" Margin="0,3">
+                                                                            <TextBlock Text="•" 
+                                                                                     Foreground="#64B5F6" 
+                                                                                     FontWeight="Bold" 
+                                                                                     Margin="0,0,8,0"
+                                                                                     VerticalAlignment="Top"/>
+                                                                            <TextBlock Text="{Binding}"
+                                                                                     TextWrapping="Wrap"
+                                                                                     FontSize="12"
+                                                                                     LineHeight="18"
+                                                                                     Foreground="#E0E0E0"
+                                                                                     MaxWidth="300"/>
+                                                                        </StackPanel>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                        </StackPanel>
+                                                    </ScrollViewer>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+                        </TabItem>
+                        <TabItem Header="Errors only">
+                            <TabItem.Header>
+                                <TextBlock Text="Errors only" FontWeight="SemiBold" FontSize="14" />
+                            </TabItem.Header>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Spacing="10">
+                                    <Button Content="+ Add Filter" Classes="add-button" Command="{Binding AddFilterCriterionCommand}" Padding="10,4" FontSize="12" Margin="0" />
+                                    <Button Content="✔️ Apply Filters" Classes="apply-filters-button" Command="{Binding ApplyFiltersCommand}" Padding="10,4" FontSize="12" Margin="0" />
+                                    <Button Content="🔄 Reset Filters" Classes="reset-filters-button" Command="{Binding ResetFiltersCommand}" Padding="10,4" FontSize="12" Margin="0" />
+                                </StackPanel>
+                                <ItemsControl ItemsSource="{Binding FilterCriteria}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Vertical" Spacing="6" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="models1:FilterCriterion">
+                                            <Border Background="#2D2E32" CornerRadius="6" Padding="12 8">
+                                                <Grid ColumnDefinitions="Auto,Auto,*,Auto" VerticalAlignment="Center">
+                                                    <ComboBox Grid.Column="0"
+                                                              ItemsSource="{Binding ParentViewModel.AvailableFields}"
+                                                              SelectedItem="{Binding SelectedField}"
+                                                              MinWidth="150"
+                                                              Margin="0,0,5,0"/>
+                                                    <ComboBox Grid.Column="1"
+                                                              ItemsSource="{Binding AvailableOperators}"
+                                                              SelectedItem="{Binding SelectedOperator}"
+                                                              MinWidth="100"
+                                                              Margin="0,0,5,0"/>
+                                                    <Panel Grid.Column="2" Margin="0,0,5,0">
+                                                        <ComboBox IsVisible="{Binding ShowValueComboBox}"
+                                                                 ItemsSource="{Binding AvailableValues}"
+                                                                 SelectedItem="{Binding Value}"
+                                                                 PlaceholderText="Select a value"
+                                                                 MinWidth="150"/>
+                                                        <TextBox IsVisible="{Binding !ShowValueComboBox}"
+                                                                Text="{Binding Value}"
+                                                                Watermark="Value"
+                                                                VerticalAlignment="Center"/>
+                                                    </Panel>
+                                                    <Button Grid.Column="3"
+                                                            Content="Remove"
+                                                            Command="{Binding ParentViewModel.RemoveFilterCriterionCommand}"
+                                                            CommandParameter="{Binding}"
+                                                            Classes="danger"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <DataGrid ItemsSource="{Binding MainView.ErrorLogEntries}"
+                                          SelectedItem="{Binding MainView.SelectedLogEntry, Mode=TwoWay}"
+                                          Classes="visible"
+                                          CanUserReorderColumns="True"
+                                          IsReadOnly="True"
+                                          Margin="1">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Time" Binding="{Binding Timestamp, StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}" Width="150" />
+                                        <DataGridTemplateColumn Header="Level" Width="130">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate x:DataType="models1:LogEntry">
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                                                        <PathIcon Data="{Binding LevelIcon}" Width="16" Height="16" Foreground="{Binding LevelColor}"/>
+                                                        <TextBlock Text="{Binding Level}" VerticalAlignment="Center" Foreground="{Binding LevelColor}"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="120" />
+                                        <DataGridTemplateColumn Header="Message" Width="*">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate x:DataType="models1:LogEntry">
+                                                    <Button Background="Transparent" BorderThickness="0" Padding="2,1" Command="{Binding OpenFileCommand}" CommandParameter="{Binding}">
+                                                        <TextBlock Text="{Binding DisplayMessage}" TextWrapping="Wrap" FontWeight="Normal" FontSize="13"/>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTemplateColumn Header="Рекомендации" Width="350">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate x:DataType="models1:LogEntry">
                                                     <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="200" IsVisible="{Binding HasRecommendations}">
                                                         <StackPanel Margin="6">
                                                             <TextBlock Text="{Binding ErrorDescription}" 

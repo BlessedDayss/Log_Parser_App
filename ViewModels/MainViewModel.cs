@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using LogParserApp.Models;
-using LogParserApp.Services;
+using Log_Parser_App.Models;
+using Log_Parser_App.Services;
 using LogParserApp.ViewModels;
 using Microsoft.Extensions.Logging;
 
@@ -257,8 +257,18 @@ namespace Log_Parser_App.ViewModels
                             }
                         }
                         
+                        // Explicitly notify that LogEntries collection has been updated
+                        OnPropertyChanged(nameof(LogEntries));
+                        
                         _logger.LogInformation("Added {Count} entries, including {ErrorCount} errors and {WarningCount} warnings", 
                             LogEntries.Count, errorCount, warningCount);
+                        
+                        // Initialize FilteredLogEntries with all entries
+                        FilteredLogEntries.Clear();
+                        foreach (var entry in LogEntries)
+                        {
+                            FilteredLogEntries.Add(entry);
+                        }
                     });
                 }));
                 
