@@ -10,9 +10,11 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
 using Log_Parser_App.Services;
-using LogParserApp.ViewModels;
+using Log_Parser_App.ViewModels;
 using MainViewModel = Log_Parser_App.ViewModels.MainViewModel;
 using MainWindow = Log_Parser_App.Views.MainWindow;
+using System.Threading.Tasks;
+using LogParserApp.ViewModels;
 
 namespace LogParserApp;
 
@@ -29,14 +31,18 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            // Disable double validation
             DisableAvaloniaDataAnnotationValidation();
             
             var serviceCollection = new ServiceCollection();
             ConfigureServices(serviceCollection);
             var services = serviceCollection.BuildServiceProvider();
             
-            // Создаем главное окно и MainViewModel
+            var updateViewModel = services.GetService<Log_Parser_App.ViewModels.UpdateViewModel>();
+            if (updateViewModel != null)
+            {
+                Task.Run(async () => await updateViewModel.CheckForUpdatesOnStartupAsync());
+            }
+            
             var mainViewModel = services.GetRequiredService<MainViewModel>();
             var logger = services.GetRequiredService<ILogger<MainWindowViewModel>>();
             
@@ -101,6 +107,19 @@ public partial class App : Application
         services.AddSingleton<ILogParserService, LogParserService>();
         services.AddSingleton<IFileService, FileService>();
         services.AddSingleton<IErrorRecommendationService, ErrorRecommendationService>();
+        
+        // Регистрация сервисов обновления
+        services.AddSingleton<IUpdateService>(provider => 
+            new GitHubUpdateService(
+                provider.GetRequiredService<ILogger<GitHubUpdateService>>(),
+                "BlessedDayss", 
+                "Log_Parser_App"  
+            ));
+        services.AddSingleton<UpdateViewModel>();
+        
+        // Закомментируем сервисы фильтрации, если они не определены
+        // services.AddSingleton<IFilterService, FilterService>();
+        // services.AddSingleton<FilterViewModel>();
     }
     
     private void RegisterViewModels(ServiceCollection services)

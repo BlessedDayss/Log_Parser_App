@@ -1,9 +1,10 @@
 using System;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
+using Log_Parser_App.ViewModels;
 using LogParserApp.ViewModels;
 
-namespace LogParserApp;
+namespace Log_Parser_App;
 
 public class ViewLocator : IDataTemplate
 {

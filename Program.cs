@@ -1,58 +1,53 @@
-﻿using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
+﻿using System;
+using Avalonia;
+using Log_Parser_App.Services;
+using LogParserApp;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System;
-using Log_Parser_App.Services;
-using LogParserApp.ViewModels;
 using MainViewModel = Log_Parser_App.ViewModels.MainViewModel;
+using UpdateViewModel = Log_Parser_App.ViewModels.UpdateViewModel;
 
-namespace LogParserApp;
+namespace Log_Parser_App;
 
-class Program
+internal class Program
 {
-    // Initialization code. Don't use any Avalonia, third-party APIs or any
-    // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
-    // yet and stuff might break.
+
     [STAThread]
     public static void Main(string[] args) => BuildAvaloniaApp()
         .StartWithClassicDesktopLifetime(args);
 
-    // Avalonia configuration, don't remove; also used by visual designer.
-    public static AppBuilder BuildAvaloniaApp()
+    private static AppBuilder BuildAvaloniaApp()
     {
         var builder = AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .WithInterFont()
             .LogToTrace();
             
-        ConfigureServices(builder);
+        ConfigureServices();
             
         return builder;
     }
     
-    private static void ConfigureServices(AppBuilder builder)
+    private static void ConfigureServices()
     {
         var services = new ServiceCollection();
         
-        // Регистрация логгера
         services.AddLogging(configure => configure.AddConsole());
-        
-        // Регистрация сервисов
         services.AddSingleton<ILogParserService, LogParserService>();
         services.AddSingleton<IErrorRecommendationService, ErrorRecommendationService>();
-        
-        // Регистрация ViewModel
         services.AddSingleton<MainViewModel>();
         
-        // Регистрация FileService с отложенной инициализацией TopLevel
-        services.AddSingleton<IFileService>(provider => 
-        {
-            return new FileService(
-                provider.GetRequiredService<ILogger<FileService>>(),
-                null    // Будет инициализирован позже
-            );
-        });
+        services.AddSingleton<IFileService>(provider => new FileService(
+            provider.GetRequiredService<ILogger<FileService>>()   
+        ));
+
+        services.AddSingleton<IUpdateService>(provider => 
+            new GitHubUpdateService(
+                provider.GetRequiredService<ILogger<GitHubUpdateService>>(),
+                "OG", 
+                "RepoName"  
+            ));
+
+        services.AddSingleton<UpdateViewModel>();
     }
 }

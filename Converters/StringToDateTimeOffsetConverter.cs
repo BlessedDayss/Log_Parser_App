@@ -19,7 +19,7 @@ namespace Log_Parser_App.Converters
         {            
             if (value is DateTimeOffset dto)
             {
-                return dto.ToString("o", culture); // ISO 8601 format
+                return dto.ToString("o", culture); 
             }
             return string.Empty; 
         }

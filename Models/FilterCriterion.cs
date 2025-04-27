@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Log_Parser_App.ViewModels;
 using LogParserApp.ViewModels;
 
 namespace Log_Parser_App.Models
