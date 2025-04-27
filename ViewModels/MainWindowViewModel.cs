@@ -10,7 +10,6 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Log_Parser_App.Models;
-using LogParserApp.Views;
 using Microsoft.Extensions.Logging;
 
 namespace LogParserApp.ViewModels;

@@ -1,7 +1,6 @@
 using Avalonia;
-using Avalonia.Controls;
 
-namespace LogParserApp.Views
+namespace Log_Parser_App.Views
 {
     public class BindingProxy : AvaloniaObject
     {
