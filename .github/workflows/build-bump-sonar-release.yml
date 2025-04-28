@@ -49,12 +49,12 @@ jobs:
 
       - name: Run Tests and Collect Coverage
         run: |
-          dotnet test --collect:"XPlat Code Coverage" --results-directory ./coverage
+          dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=./coverage/coverage.xml
 
       - name: Generate Coverage Report
         run: |
           reportgenerator `
-            -reports:coverage/**/coverage.cobertura.xml `
+            -reports:coverage/coverage.xml `
             -targetdir:coverage-report `
             -reporttypes:SonarQube
 
