@@ -1,17 +1,35 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Avalonia.Media;
 
 namespace Log_Parser_App.Models
 {
 
-    public partial class LogEntry 
+    public partial class LogEntry : INotifyPropertyChanged
     {
 
         public DateTime Timestamp { get; set; } = DateTime.Now;
         
-        public string Level { get; set; } = "INFO";
+        private string _level = "INFO";
+        
+        public string Level
+        {
+            get => _level;
+            set
+            {
+                if (_level != value)
+                {
+                    _level = value;
+                    OnPropertyChanged(); // Уведомляем об изменении Level
+                    OnPropertyChanged(nameof(LevelIcon)); // Уведомляем об изменении зависимых свойств
+                    OnPropertyChanged(nameof(LevelBackground));
+                    OnPropertyChanged(nameof(LevelColor));
+                }
+            }
+        }
         
         public string Source { get; set; } = string.Empty;
         
@@ -34,7 +52,7 @@ namespace Log_Parser_App.Models
         };
         
 
-        public string LevelBackground => Level.ToUpperInvariant() switch
+        public string LevelBackground => _level.ToUpperInvariant() switch
         {
             "ERROR" => "#FFEBEE",    // Light red
             "WARNING" => "#FFF3E0",  // Light orange
@@ -45,7 +63,7 @@ namespace Log_Parser_App.Models
             _ => "#FFFFFF"           // White
         };
 
-        public IBrush LevelColor => Level switch
+        public IBrush LevelColor => _level switch
         {
             "ERROR" => new SolidColorBrush(Color.Parse("#F15B5B")),
             "WARNING" => new SolidColorBrush(Color.Parse("#F9A825")),
@@ -58,7 +76,7 @@ namespace Log_Parser_App.Models
 
         public string? ErrorDescription { get; set; }
         
-        public List<string> ErrorRecommendations { get; set; } = [];
+        public List<string> ErrorRecommendations { get; set; } = new List<string>();
         
         public bool HasRecommendations => Level.Equals("ERROR", StringComparison.OrdinalIgnoreCase) && ErrorRecommendations.Count > 0;
 
@@ -73,7 +91,7 @@ namespace Log_Parser_App.Models
             {
                 if (string.IsNullOrEmpty(Message))
                     return string.Empty;
-                var lines = Message.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+                var lines = Message.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
                 var regex = MyRegex();
                 foreach (var line in lines)
                 {
@@ -88,5 +106,12 @@ namespace Log_Parser_App.Models
 
         [GeneratedRegex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}")]
         private static partial Regex MyRegex();
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
     }
 } 

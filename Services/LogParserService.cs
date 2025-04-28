@@ -304,67 +304,59 @@ namespace Log_Parser_App.Services
 
         private LogEntry? ParseLogLine(string line, string format, string filePath, int lineCount)
         {
+            LogEntry? entry = null;
             try
             {
-                // Special ConfigUpdate format
-                if (format.Equals("ConfigUpdate", StringComparison.OrdinalIgnoreCase))
-                {
-                    return ParseConfigUpdateFormat(line, filePath, lineCount);
-                }
-                
-                // Check for separate word Error, not part of another word
-                if (Regex.IsMatch(line, @"\bError\b|\bERROR\b|\berror\b"))
-                {
-                    logger.LogDebug("Found exact word Error: '{0}'", line.Substring(0, Math.Min(50, line.Length)));
-                    return new LogEntry
-                    {
-                        Timestamp = DateTime.Now,
-                        Level = "Error", // Force ERROR
-                        Source = ExtractSourceFromXmlStyleLog(line),
-                        Message = line,
-                        RawData = line,
-                        FilePath = filePath,
-                        LineNumber = lineCount
-                    };
-                }
-                
-                // Check for separate word Warning, not part of another word
-                if (Regex.IsMatch(line, @"\bWarning\b|\bWARNING\b|\bwarning\b"))
-                {
-                    logger.LogDebug("Found exact word Warning: '{0}'", line.Substring(0, Math.Min(50, line.Length)));
-                    return new LogEntry
-                    {
-                        Timestamp = DateTime.Now,
-                        Level = "Warning", // Force WARNING
-                        Source = ExtractSourceFromXmlStyleLog(line),
-                        Message = line,
-                        RawData = line,
-                        FilePath = filePath,
-                        LineNumber = lineCount
-                    };
-                }
-                
                 // Determine format and parse
                 switch (format.ToLowerInvariant())
                 {
                     case "standard":
-                        return ParseStandardLogFormat(line, filePath, lineCount);
+                        entry = ParseStandardLogFormat(line, filePath, lineCount);
+                        break;
                     case "common":
-                        return ParseCommonLogFormat(line, filePath, lineCount);
-                    case "csv":
-                        return ParseCsvLogFormat(line, filePath, lineCount);
-                    case "simple":
-                        return ParseSimpleFormat(line, filePath, lineCount);
-                    default:
-                        var entry = ParseStandardLogFormat(line, filePath, lineCount);
-                        if (entry != null) return entry;
-                        
                         entry = ParseCommonLogFormat(line, filePath, lineCount);
-                        if (entry != null) return entry;
-                        
+                        break;
+                    case "csv":
                         entry = ParseCsvLogFormat(line, filePath, lineCount);
-                        return entry ?? ParseSimpleFormat(line, filePath, lineCount);
+                        break;
+                    case "simple":
+                        entry = ParseSimpleFormat(line, filePath, lineCount);
+                        break;
+                    case "configupdate":
+                        entry = ParseConfigUpdateFormat(line, filePath, lineCount);
+                        break;
+                    default:
+                        entry = ParseStandardLogFormat(line, filePath, lineCount);
+                        if (entry == null) entry = ParseCommonLogFormat(line, filePath, lineCount);
+                        if (entry == null) entry = ParseCsvLogFormat(line, filePath, lineCount);
+                        if (entry == null) entry = ParseSimpleFormat(line, filePath, lineCount);
+                        break;
                 }
+
+                // --- Centralized Keyword Override --- START
+                if (entry != null)
+                {
+                    // Use Message if available, otherwise fall back to RawData for keyword check
+                    string messageToCheck = entry.Message ?? entry.RawData ?? "";
+                    if (!string.IsNullOrEmpty(messageToCheck))
+                    {
+                        if (messageToCheck.Contains("failed", StringComparison.OrdinalIgnoreCase))
+                        {
+                            entry.Level = "Error";
+                        }
+                        else if (messageToCheck.Contains("successful", StringComparison.OrdinalIgnoreCase))
+                        {
+                            entry.Level = "Information";
+                        }
+                        else if (messageToCheck.Contains("skipped", StringComparison.OrdinalIgnoreCase) || messageToCheck.Contains("skip", StringComparison.OrdinalIgnoreCase))
+                        {
+                            entry.Level = "Warning";
+                        }
+                    }
+                }
+                // --- Centralized Keyword Override --- END
+
+                return entry; // Return the final entry (possibly null if parsing failed)
             }
             catch (Exception ex)
             {
@@ -412,23 +404,6 @@ namespace Log_Parser_App.Services
                 level = DetermineLogLevel(level, message);
             }
 
-            // Переопределение уровня на основе ключевых слов в сообщении (без учета регистра)
-            if (!string.IsNullOrEmpty(message))
-            {
-                if (message.Contains("failed", StringComparison.OrdinalIgnoreCase))
-                {
-                    level = "Error";
-                }
-                else if (message.Contains("successful", StringComparison.OrdinalIgnoreCase))
-                {
-                    level = "Information";
-                }
-                else if (message.Contains("skipped", StringComparison.OrdinalIgnoreCase) || message.Contains("skip", StringComparison.OrdinalIgnoreCase))
-                {
-                    level = "Warning";
-                }
-            }
-
             return new LogEntry
             {
                 Timestamp = timestamp,
@@ -455,23 +430,6 @@ namespace Log_Parser_App.Services
 
             string message = $"Status: {match.Groups[3].Value}, Size: {match.Groups[4].Value}";
             string level = DetermineLogLevel("INFO", message);
-
-            // Переопределение уровня на основе ключевых слов в сообщении (без учета регистра)
-            if (!string.IsNullOrEmpty(message))
-            {
-                if (message.Contains("failed", StringComparison.OrdinalIgnoreCase))
-                {
-                    level = "Error";
-                }
-                else if (message.Contains("successful", StringComparison.OrdinalIgnoreCase))
-                {
-                    level = "Information";
-                }
-                else if (message.Contains("skipped", StringComparison.OrdinalIgnoreCase) || message.Contains("skip", StringComparison.OrdinalIgnoreCase))
-                {
-                    level = "Warning";
-                }
-            }
 
             return new LogEntry
             {
@@ -506,23 +464,6 @@ namespace Log_Parser_App.Services
 
             // Normalize log level
             level = DetermineLogLevel(level, message);
-
-            // Переопределение уровня на основе ключевых слов в сообщении (без учета регистра)
-            if (!string.IsNullOrEmpty(message))
-            {
-                if (message.Contains("failed", StringComparison.OrdinalIgnoreCase))
-                {
-                    level = "Error";
-                }
-                else if (message.Contains("successful", StringComparison.OrdinalIgnoreCase))
-                {
-                    level = "Information";
-                }
-                else if (message.Contains("skipped", StringComparison.OrdinalIgnoreCase) || message.Contains("skip", StringComparison.OrdinalIgnoreCase))
-                {
-                    level = "Warning";
-                }
-            }
 
             return new LogEntry
             {
@@ -679,23 +620,6 @@ namespace Log_Parser_App.Services
                     level = "Warning";
                 }
                 
-                // Переопределение уровня на основе ключевых слов в сообщении (без учета регистра)
-                if (!string.IsNullOrEmpty(message))
-                {
-                    if (message.Contains("failed", StringComparison.OrdinalIgnoreCase))
-                    {
-                        level = "Error";
-                    }
-                    else if (message.Contains("successful", StringComparison.OrdinalIgnoreCase))
-                    {
-                        level = "Information";
-                    }
-                    else if (message.Contains("skipped", StringComparison.OrdinalIgnoreCase) || message.Contains("skip", StringComparison.OrdinalIgnoreCase))
-                    {
-                        level = "Warning";
-                    }
-                }
-
                 return new LogEntry
                 {
                     Timestamp = timestamp,
@@ -767,23 +691,6 @@ namespace Log_Parser_App.Services
                 
                 string level = isError ? "Error" : (isWarning ? "Warning" : "Information");
                 string message = line; // Используем всю строку как сообщение для поиска ключей
-                
-                // Переопределение уровня на основе ключевых слов в сообщении (без учета регистра)
-                if (!string.IsNullOrEmpty(message))
-                {
-                    if (message.Contains("failed", StringComparison.OrdinalIgnoreCase))
-                    {
-                        level = "Error";
-                    }
-                    else if (message.Contains("successful", StringComparison.OrdinalIgnoreCase))
-                    {
-                        level = "Information";
-                    }
-                    else if (message.Contains("skipped", StringComparison.OrdinalIgnoreCase) || message.Contains("skip", StringComparison.OrdinalIgnoreCase))
-                    {
-                        level = "Warning";
-                    }
-                }
                 
                 logger.LogDebug("ConfigUpdate log: IsError={IsError}, IsWarning={IsWarning}, Source={Source}", 
                     isError, isWarning, source);
