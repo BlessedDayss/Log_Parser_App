@@ -1,0 +1,106 @@
+name: Build, Test, Sonar Scan, Bump Version and Release EXE
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install SonarScanner
+        run: dotnet tool install --global dotnet-sonarscanner
+
+      - name: Start SonarCloud Analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          dotnet sonarscanner begin `
+            /k:"codebless_log_parser_app" `
+            /o:"codebless" `
+            /d:sonar.login="${{ secrets.SONAR_TOKEN }}" `
+            /d:sonar.cs.opencover.reportsPaths="coverage/coverage.opencover.xml" `
+            /d:sonar.qualitygate.wait=true
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Test with Coverage
+        run: |
+          dotnet test --collect:"XPlat Code Coverage" --results-directory ./coverage
+
+      - name: Convert coverage to OpenCover
+        run: |
+          $coveragePath = Get-ChildItem -Path ./coverage -Recurse -Filter "coverage.cobertura.xml" | Select-Object -ExpandProperty FullName
+          Move-Item $coveragePath coverage/coverage.opencover.xml
+
+      - name: Build
+        run: dotnet build --configuration Release
+
+      - name: End SonarCloud Analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: dotnet sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
+
+      - name: Publish
+        run: dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish/
+
+      - name: Bump version in csproj
+        id: bump_version
+        run: |
+          $file = './Log_Parser_App.csproj'
+          $content = Get-Content $file
+          $versionLine = $content | Select-String '<Version>(.*)</Version>'
+          $currentVersion = $versionLine.Matches.Groups[1].Value
+          Write-Host "Current Version: $currentVersion"
+
+          $parts = $currentVersion -split '\.'
+          $major = [int]$parts[0]
+          $minor = [int]$parts[1]
+          $patch = [int]$parts[2]
+
+          $patch += 1
+
+          $newVersion = "$major.$minor.$patch"
+          Write-Host "New Version: $newVersion"
+
+          $newContent = $content -replace "<Version>.*</Version>", "<Version>$newVersion</Version>"
+          Set-Content -Path $file -Value $newContent
+
+          echo "NEW_VERSION=$newVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Commit bumped version
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Log_Parser_App.csproj
+          git commit -m "chore: bump version to v${{ env.NEW_VERSION }}"
+          git push
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.NEW_VERSION }}
+          name: Release v${{ env.NEW_VERSION }}
+          files: publish/*.exe
+          generate_release_notes: true

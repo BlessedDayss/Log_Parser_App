@@ -30,6 +30,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include=".github\workflows\build-and-release.yml" />
+      <Content Include=".github\workflows\build-bump-sonar-release.yml" />
     </ItemGroup>
 </Project>
