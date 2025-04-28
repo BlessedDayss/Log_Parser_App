@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   release:
@@ -26,13 +25,7 @@ jobs:
         run: dotnet restore
 
       - name: Build and Publish self-contained EXE
-        run: |
-          dotnet publish \
-            --configuration Release \
-            --runtime win-x64 \
-            --self-contained true \
-            -p:PublishSingleFile=true \
-            -o publish/
+        run: dotnet publish --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true -o publish/
 
       - name: Bump version in csproj
         id: bump
@@ -41,9 +34,8 @@ jobs:
           $content = Get-Content $file
           $versionLine = Select-String '<Version>(.*)</Version>' -InputObject $content
           if (-not $versionLine) {
-            # если Version нет, добавить стартовую
-            $content = $content -replace '</PropertyGroup>', "  <Version>0.1.0</Version>`n</PropertyGroup>"
             $new = '0.1.0'
+            $content = $content -replace '</PropertyGroup>', "  <Version>$new</Version>`n</PropertyGroup>"
           } else {
             $current = $versionLine.Matches.Groups[1].Value
             $parts = $current -split '\.'
@@ -74,7 +66,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload EXE asset
+      - name: Upload EXE as release asset
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
