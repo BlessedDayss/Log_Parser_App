@@ -36,11 +36,11 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           dotnet sonarscanner begin `
-            /k:"Log_Parser_App" `
-            /o:"CodeBless" `
-            /d:sonar.login="${{ secrets.SONAR_TOKEN }}" `
-            /d:sonar.cs.opencover.reportsPaths="coverage/coverage.opencover.xml" `
-            /d:sonar.qualitygate.wait=true
+          /k:"Log_Parser_App" `
+          /o:"blesseddayss" `
+          /d:sonar.login="${{ secrets.SONAR_TOKEN }}" `
+          /d:sonar.cs.opencover.reportsPaths="coverage/coverage.opencover.xml" `
+          /d:sonar.qualitygate.wait=true
 
       - name: Restore dependencies
         run: dotnet restore

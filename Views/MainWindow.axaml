@@ -445,52 +445,6 @@
                                 <TextBlock Text="Errors only" FontWeight="SemiBold" FontSize="14" />
                             </TabItem.Header>
                             <StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Spacing="10">
-                                    <Button Content="+ Add Filter" Classes="add-button" Command="{Binding AddFilterCriterionCommand}" Padding="10,4" FontSize="12" Margin="0" />
-                                    <Button Content="✔️ Apply Filters" Classes="apply-filters-button" Command="{Binding ApplyFiltersCommand}" Padding="10,4" FontSize="12" Margin="0" />
-                                    <Button Content="🔄 Reset Filters" Classes="reset-filters-button" Command="{Binding ResetFiltersCommand}" Padding="10,4" FontSize="12" Margin="0" />
-                                </StackPanel>
-                                <ItemsControl ItemsSource="{Binding FilterCriteria}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <StackPanel Orientation="Vertical" Spacing="6" />
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="models1:FilterCriterion">
-                                            <Border Background="#2D2E32" CornerRadius="6" Padding="12 8">
-                                                <Grid ColumnDefinitions="Auto,Auto,*,Auto" VerticalAlignment="Center">
-                                                    <ComboBox Grid.Column="0"
-                                                              ItemsSource="{Binding ParentViewModel.AvailableFields}"
-                                                              SelectedItem="{Binding SelectedField}"
-                                                              MinWidth="150"
-                                                              Margin="0,0,5,0"/>
-                                                    <ComboBox Grid.Column="1"
-                                                              ItemsSource="{Binding AvailableOperators}"
-                                                              SelectedItem="{Binding SelectedOperator}"
-                                                              MinWidth="100"
-                                                              Margin="0,0,5,0"/>
-                                                    <Panel Grid.Column="2" Margin="0,0,5,0">
-                                                        <ComboBox IsVisible="{Binding ShowValueComboBox}"
-                                                                 ItemsSource="{Binding AvailableValues}"
-                                                                 SelectedItem="{Binding Value}"
-                                                                 PlaceholderText="Select a value"
-                                                                 MinWidth="150"/>
-                                                        <TextBox IsVisible="{Binding !ShowValueComboBox}"
-                                                                Text="{Binding Value}"
-                                                                Watermark="Value"
-                                                                VerticalAlignment="Center"/>
-                                                    </Panel>
-                                                    <Button Grid.Column="3"
-                                                            Content="Remove"
-                                                            Command="{Binding ParentViewModel.RemoveFilterCriterionCommand}"
-                                                            CommandParameter="{Binding}"
-                                                            Classes="danger"/>
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
                                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                     <StackPanel>
                                         <dataGrid:DataGrid ItemsSource="{Binding MainView.ErrorLogEntries}"
