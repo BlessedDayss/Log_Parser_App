@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -10,6 +11,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Log_Parser_App.Models;
+using Log_Parser_App.Services;
 using Log_Parser_App.ViewModels;
 using Microsoft.Extensions.Logging;
 
@@ -19,9 +21,16 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly ILogger<MainWindowViewModel> _logger;
     private readonly Log_Parser_App.ViewModels.MainViewModel _mainView;
+    private readonly IUpdateService? _updateService;
 
     [ObservableProperty]
     private string _appVersion = string.Empty;
+
+    [ObservableProperty]
+    private bool _isUpdateAvailable;
+
+    [ObservableProperty]
+    private UpdateInfo? _availableUpdate;
 
     public Log_Parser_App.ViewModels.MainViewModel MainView => _mainView;
 
@@ -59,12 +68,26 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         _logger = logger;
         _mainView = mainView;
+        
+        // Пытаемся получить сервис обновлений
+        try
+        {
+            var serviceProvider = LogParserApp.App.Services;
+            if (serviceProvider != null)
+            {
+                _updateService = serviceProvider.GetService(typeof(IUpdateService)) as IUpdateService;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get update service");
+        }
+        
         OpenLogFileCommand = new RelayCommand<LogEntry?>(OpenLogFile);
         _mainView.ExternalOpenFileCommand = OpenLogFileCommand;
         
-        var assembly = Assembly.GetExecutingAssembly();
-        var version = assembly.GetName().Version;
-        AppVersion = $"v{version?.Major ?? 0}.{version?.Minor ?? 0}.{version?.Build ?? 0}";
+        // Получаем версию приложения
+        LoadApplicationVersion();
         
         // Subscribe to MainView's PropertyChanged event to update filter values when log entries change
         _mainView.PropertyChanged += (sender, args) =>
@@ -75,7 +98,116 @@ public partial class MainWindowViewModel : ViewModelBase
             }
         };
         
+        // Проверяем обновления при запуске
+        CheckForUpdatesCommand.Execute(null);
+        
         _logger.LogInformation("MainWindowViewModel initialized");
+    }
+    
+    private void LoadApplicationVersion()
+    {
+        try
+        {
+            var versionFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "VERSION.txt");
+            if (File.Exists(versionFilePath))
+            {
+                var versionString = File.ReadAllText(versionFilePath).Trim();
+                AppVersion = $"v{versionString}";
+                return;
+            }
+            
+            var assembly = Assembly.GetExecutingAssembly();
+            var version = assembly.GetName().Version;
+            AppVersion = $"v{version?.Major ?? 0}.{version?.Minor ?? 0}.{version?.Build ?? 0}";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load application version");
+            AppVersion = "v?.?.?";
+        }
+    }
+    
+    [RelayCommand]
+    private async Task CheckForUpdates()
+    {
+        if (_updateService == null)
+        {
+            _logger.LogWarning("Update service is not available");
+            return;
+        }
+        
+        try
+        {
+            _logger.LogInformation("Checking for updates");
+            AvailableUpdate = await _updateService.CheckForUpdatesAsync();
+            
+            if (AvailableUpdate != null)
+            {
+                IsUpdateAvailable = true;
+                _logger.LogInformation("Update available: {Version}", AvailableUpdate.Version);
+            }
+            else
+            {
+                IsUpdateAvailable = false;
+                _logger.LogInformation("No updates available");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to check for updates");
+            IsUpdateAvailable = false;
+        }
+    }
+    
+    [RelayCommand]
+    private async Task InstallUpdate()
+    {
+        if (_updateService == null || AvailableUpdate == null)
+        {
+            _logger.LogWarning("Update service or update info is not available");
+            return;
+        }
+        
+        try
+        {
+            _logger.LogInformation("Starting update installation");
+            
+            // Загружаем обновление
+            var progress = new Progress<int>(percent =>
+            {
+                _mainView.StatusMessage = $"Загрузка обновления... {percent}%";
+            });
+            
+            var filePath = await _updateService.DownloadUpdateAsync(AvailableUpdate, progress);
+            
+            if (string.IsNullOrEmpty(filePath))
+            {
+                _logger.LogWarning("Download failed");
+                _mainView.StatusMessage = "Не удалось загрузить обновление";
+                return;
+            }
+            
+            // Устанавливаем обновление
+            _mainView.StatusMessage = "Установка обновления...";
+            var result = await _updateService.InstallUpdateAsync(filePath);
+            
+            if (result)
+            {
+                _mainView.StatusMessage = "Обновление успешно установлено. Требуется перезапуск приложения.";
+                
+                // TODO: Добавить логику перезапуска приложения
+                // Environment.Exit(0);
+            }
+            else
+            {
+                _mainView.StatusMessage = "Не удалось установить обновление";
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to install update");
+            _mainView.StatusMessage = $"Ошибка установки: {ex.Message}";
+        }
     }
     
     // Method to populate available values for filter fields based on log entries

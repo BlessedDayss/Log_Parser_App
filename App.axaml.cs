@@ -21,6 +21,7 @@ namespace LogParserApp;
 public partial class App : Application
 {
     public static Window? MainWindow { get; private set; }
+    public static IServiceProvider? Services { get; private set; }
     
     public override void Initialize()
     {
@@ -36,6 +37,7 @@ public partial class App : Application
             var serviceCollection = new ServiceCollection();
             ConfigureServices(serviceCollection);
             var services = serviceCollection.BuildServiceProvider();
+            Services = services;
             
             var updateViewModel = services.GetService<Log_Parser_App.ViewModels.UpdateViewModel>();
             if (updateViewModel != null)

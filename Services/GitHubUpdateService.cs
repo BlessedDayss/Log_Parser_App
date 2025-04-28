@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Log_Parser_App.Models;
 using Microsoft.Extensions.Logging;
+using System.Text.Json.Serialization;
 
 namespace Log_Parser_App.Services
 {
@@ -79,14 +80,14 @@ namespace Log_Parser_App.Services
                     return new UpdateInfo();
                 }
                 
-                // Проверяем, есть ли более новая версия
-                var currentVersion = GetCurrentVersion();
-                if (latestVersion <= currentVersion)
-                {
-                    _logger.LogInformation("Application is up to date. Current version: {CurrentVersion}, Latest version: {LatestVersion}", 
-                        currentVersion, latestVersion);
-                    return new UpdateInfo();
-                }
+                // For testing purposes, force update even if the current version is up to date.
+                // var currentVersion = GetCurrentVersion();
+                // if (latestVersion <= currentVersion)
+                // {
+                //     _logger.LogInformation("Application is up to date. Current version: {CurrentVersion}, Latest version: {LatestVersion}", 
+                //         currentVersion, latestVersion);
+                //     return new UpdateInfo();
+                // }
                 
                 // Выбираем подходящий ассет для загрузки (обычно это .zip или .exe)
                 var asset = releaseInfo.Assets.FirstOrDefault(a => 
@@ -98,16 +99,27 @@ namespace Log_Parser_App.Services
                     return new UpdateInfo();
                 }
                 
+                var downloadUrl = GetAssetDownloadUrl(releaseInfo);
+                _logger.LogInformation("Selected download URL: {Url}", downloadUrl);
+                
+                if (string.IsNullOrEmpty(downloadUrl))
+                {
+                    _logger.LogWarning("No valid download URL found in release");
+                    return new UpdateInfo();
+                }
+                
                 var updateInfo = new UpdateInfo
                 {
                     Version = latestVersion,
                     ReleaseName = releaseInfo.Name,
                     ReleaseNotes = releaseInfo.Body,
-                    DownloadUrl = asset.BrowserDownloadUrl,
-                    FileSize = asset.Size,
+                    DownloadUrl = downloadUrl,
+                    FileSize = 0, // Размер файла будет неизвестен для zipball
                     PublishedAt = releaseInfo.PublishedAt,
                     RequiresRestart = true
                 };
+                
+                _logger.LogInformation("Created UpdateInfo with URL: {Url}", updateInfo.DownloadUrl);
                 
                 // Парсим ChangeLog из описания релиза
                 if (!string.IsNullOrEmpty(releaseInfo.Body))
@@ -137,6 +149,21 @@ namespace Log_Parser_App.Services
         {
             try
             {
+                _logger.LogInformation("Starting download with URL: {Url}", updateInfo.DownloadUrl);
+                
+                if (string.IsNullOrEmpty(updateInfo.DownloadUrl))
+                {
+                    _logger.LogError("Download URL is empty in UpdateInfo");
+                    throw new InvalidOperationException("Download URL is empty");
+                }
+                
+                // Проверяем, что URL абсолютный
+                if (!Uri.TryCreate(updateInfo.DownloadUrl, UriKind.Absolute, out var uri))
+                {
+                    _logger.LogError("Invalid download URL format: {Url}", updateInfo.DownloadUrl);
+                    throw new InvalidOperationException($"Invalid download URL: {updateInfo.DownloadUrl}");
+                }
+                
                 _logger.LogInformation("Downloading update {Version} from {Url}", 
                     updateInfo.Version, updateInfo.DownloadUrl);
                 
@@ -151,7 +178,7 @@ namespace Log_Parser_App.Services
                 }
                 
                 // Загружаем файл с отображением прогресса
-                using var response = await _httpClient.GetAsync(updateInfo.DownloadUrl, HttpCompletionOption.ResponseHeadersRead);
+                using var response = await _httpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead);
                 response.EnsureSuccessStatusCode();
                 
                 var totalBytes = response.Content.Headers.ContentLength ?? -1L;
@@ -224,25 +251,64 @@ namespace Log_Parser_App.Services
             }
         }
         
-        /// <inheritdoc/>
         public Version GetCurrentVersion()
         {
-            var assembly = Assembly.GetExecutingAssembly();
-            var version = assembly.GetName().Version;
-            return version ?? new Version(0, 0, 0);
+            try
+            {
+                var versionFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "VERSION.txt");
+                
+                if (File.Exists(versionFilePath))
+                {
+                    var versionString = File.ReadAllText(versionFilePath).Trim();
+                    if (Version.TryParse(versionString, out var version))
+                    {
+                        _logger.LogInformation("Using version from VERSION.txt: {Version}", version);
+                        return version;
+                    }
+                    
+                    _logger.LogWarning("Failed to parse version from VERSION.txt: {Version}", versionString);
+                }
+                else
+                {
+                    _logger.LogWarning("VERSION.txt file not found at {Path}", versionFilePath);
+                }
+                
+                // Если чтение из файла не удалось, используем версию из сборки
+                var assembly = Assembly.GetExecutingAssembly();
+                var assemblyVersion = assembly.GetName().Version;
+                _logger.LogInformation("Using assembly version: {Version}", assemblyVersion);
+                return assemblyVersion ?? new Version(0, 0, 0);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting current version");
+                return new Version(0, 0, 0);
+            }
         }
         
         // Вспомогательные классы для десериализации JSON ответа от GitHub API
         private class GitHubReleaseInfo
         {
-            public string Url { get; set; } = string.Empty;
-            public string TagName { get; set; } = string.Empty;
-            public string Name { get; set; } = string.Empty;
-            public string Body { get; set; } = string.Empty;
-            public bool Draft { get; set; }
-            public bool Prerelease { get; set; }
-            public DateTime PublishedAt { get; set; }
-            public List<GitHubAsset> Assets { get; set; } = new List<GitHubAsset>();
+            [JsonPropertyName("tag_name")]
+            public required string TagName { get; set; }
+
+            [JsonPropertyName("name")]
+            public required string Name { get; set; }
+
+            [JsonPropertyName("assets")]
+            public required List<GitHubAsset> Assets { get; set; }
+
+            [JsonPropertyName("zipball_url")]
+            public required string ZipballUrl { get; set; }
+
+            [JsonPropertyName("tarball_url")]
+            public required string TarballUrl { get; set; }
+
+            [JsonPropertyName("body")]
+            public required string Body { get; set; }
+
+            [JsonPropertyName("published_at")]
+            public required DateTime PublishedAt { get; set; }
         }
         
         private class GitHubAsset
@@ -252,6 +318,28 @@ namespace Log_Parser_App.Services
             public string ContentType { get; set; } = string.Empty;
             public long Size { get; set; }
             public string BrowserDownloadUrl { get; set; } = string.Empty;
+        }
+
+        private string GetAssetDownloadUrl(GitHubReleaseInfo release)
+        {
+            // Fallback download URL from GitHub release
+            string fallbackUrl = !string.IsNullOrEmpty(release.ZipballUrl) ? release.ZipballUrl : release.TarballUrl;
+            
+            if (release.Assets == null || !release.Assets.Any())
+            {
+                _logger.LogInformation("No assets found in release, using fallback URL: {Url}", fallbackUrl);
+                return fallbackUrl;
+            }
+            
+            var asset = release.Assets.FirstOrDefault(a => a.Name.EndsWith(".zip") || a.Name.EndsWith(".exe"));
+            if (asset != null && !string.IsNullOrEmpty(asset.BrowserDownloadUrl))
+            {
+                _logger.LogInformation("Found suitable asset: {Name} with URL: {Url}", asset.Name, asset.BrowserDownloadUrl);
+                return asset.BrowserDownloadUrl;
+            }
+            
+            _logger.LogInformation("No suitable assets found, using fallback URL: {Url}", fallbackUrl);
+            return fallbackUrl;
         }
     }
 } 

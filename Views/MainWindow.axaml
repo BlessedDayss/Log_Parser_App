@@ -253,6 +253,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     
                     <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
@@ -269,6 +270,38 @@
                                HorizontalAlignment="Center"
                                Foreground="#CCCCCC"
                                FontSize="14" />
+                    
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                        <Button Classes="icon-button"
+                                ToolTip.Tip="Проверить обновления"
+                                Command="{Binding CheckForUpdatesCommand}">
+                            <TextBlock Text="🔄" FontSize="18" />
+                        </Button>
+                        
+                        <Border Background="#A33F3F" 
+                                CornerRadius="4" 
+                                Padding="8,4" 
+                                IsVisible="{Binding IsUpdateAvailable}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="Доступно обновление!" 
+                                           Foreground="White" 
+                                           VerticalAlignment="Center" 
+                                           FontSize="12" />
+                                <Button Content="Установить" 
+                                        Padding="8,2" 
+                                        FontSize="12"
+                                        Background="#4CAF50"
+                                        Command="{Binding InstallUpdateCommand}" />
+                            </StackPanel>
+                        </Border>
+                        
+                        <TextBlock Text="{Binding AppVersion}" 
+                                   VerticalAlignment="Center" 
+                                   HorizontalAlignment="Right"
+                                   Foreground="#AAAAAA"
+                                   Margin="16,0,0,0"
+                                   FontSize="12" />
+                    </StackPanel>
                 </Grid>
             </Border>
             
