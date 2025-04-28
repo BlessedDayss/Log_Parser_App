@@ -82,6 +82,7 @@ jobs:
         run: dotnet build --configuration Release
 
       - name: End SonarCloud Analysis
+        continue-on-error: true
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: dotnet sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"

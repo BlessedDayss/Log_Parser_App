@@ -319,7 +319,7 @@ namespace Log_Parser_App.Services
                     return new LogEntry
                     {
                         Timestamp = DateTime.Now,
-                        Level = "ERROR", // Force ERROR
+                        Level = "Error", // Force ERROR
                         Source = ExtractSourceFromXmlStyleLog(line),
                         Message = line,
                         RawData = line,
@@ -335,7 +335,7 @@ namespace Log_Parser_App.Services
                     return new LogEntry
                     {
                         Timestamp = DateTime.Now,
-                        Level = "WARNING", // Force WARNING
+                        Level = "Warning", // Force WARNING
                         Source = ExtractSourceFromXmlStyleLog(line),
                         Message = line,
                         RawData = line,
@@ -373,7 +373,7 @@ namespace Log_Parser_App.Services
                 return new LogEntry
                 {
                     Timestamp = DateTime.Now,
-                    Level = "INFO",
+                    Level = "Information",
                     Source = "Parser",
                     Message = line, 
                     FilePath = filePath,
@@ -399,12 +399,12 @@ namespace Log_Parser_App.Services
             
             if (MyRegex().IsMatch(message))
             {
-                level = "ERROR";
+                level = "Error";
                 logger.LogDebug("Found exact word Error in message: '{0}'", message.Substring(0, Math.Min(30, message.Length)));
             }
             else if (Regex.IsMatch(message, @"\bWarning\b|\bWARNING\b|\bwarning\b"))
             {
-                level = "WARNING";
+                level = "Warning";
                 logger.LogDebug("Found exact word Warning in message: '{0}'", message.Substring(0, Math.Min(30, message.Length)));
             }
             else
@@ -417,15 +417,15 @@ namespace Log_Parser_App.Services
             {
                 if (message.Contains("failed", StringComparison.OrdinalIgnoreCase))
                 {
-                    level = "ERROR";
+                    level = "Error";
                 }
                 else if (message.Contains("successful", StringComparison.OrdinalIgnoreCase))
                 {
-                    level = "INFO";
+                    level = "Information";
                 }
                 else if (message.Contains("skipped", StringComparison.OrdinalIgnoreCase) || message.Contains("skip", StringComparison.OrdinalIgnoreCase))
                 {
-                    level = "WARNING";
+                    level = "Warning";
                 }
             }
 
@@ -461,15 +461,15 @@ namespace Log_Parser_App.Services
             {
                 if (message.Contains("failed", StringComparison.OrdinalIgnoreCase))
                 {
-                    level = "ERROR";
+                    level = "Error";
                 }
                 else if (message.Contains("successful", StringComparison.OrdinalIgnoreCase))
                 {
-                    level = "INFO";
+                    level = "Information";
                 }
                 else if (message.Contains("skipped", StringComparison.OrdinalIgnoreCase) || message.Contains("skip", StringComparison.OrdinalIgnoreCase))
                 {
-                    level = "WARNING";
+                    level = "Warning";
                 }
             }
 
@@ -512,15 +512,15 @@ namespace Log_Parser_App.Services
             {
                 if (message.Contains("failed", StringComparison.OrdinalIgnoreCase))
                 {
-                    level = "ERROR";
+                    level = "Error";
                 }
                 else if (message.Contains("successful", StringComparison.OrdinalIgnoreCase))
                 {
-                    level = "INFO";
+                    level = "Information";
                 }
                 else if (message.Contains("skipped", StringComparison.OrdinalIgnoreCase) || message.Contains("skip", StringComparison.OrdinalIgnoreCase))
                 {
-                    level = "WARNING";
+                    level = "Warning";
                 }
             }
 
@@ -546,13 +546,13 @@ namespace Log_Parser_App.Services
             if (Regex.IsMatch(message, @"\bError\b|\bERROR\b|\berror\b"))
             {
                 logger.LogDebug("Found exact word Error in message");
-                return "ERROR";
+                return "Error";
             }
             
             if (Regex.IsMatch(message, @"\bWarning\b|\bWARNING\b|\bwarning\b"))
             {
                 logger.LogDebug("Found exact word Warning in message");
-                return "WARNING";
+                return "Warning";
             }
             
             // Strictly check message content for exact match with Error/Warning
@@ -561,7 +561,7 @@ namespace Log_Parser_App.Services
                 message.Equals("error", StringComparison.Ordinal))
             {
                 logger.LogDebug("Exact match of message with word Error: '{0}'", message);
-                return "ERROR";
+                return "Error";
             }
             
             if (message.Equals("Warning", StringComparison.Ordinal) || 
@@ -569,7 +569,7 @@ namespace Log_Parser_App.Services
                 message.Equals("warning", StringComparison.Ordinal))
             {
                 logger.LogDebug("Exact match of message with word Warning: '{0}'", message);
-                return "WARNING";
+                return "Warning";
             }
             
             // Normalize original level for comparison
@@ -578,16 +578,16 @@ namespace Log_Parser_App.Services
             // Check standard log levels
             if (normalizedLevel == "ERROR" || normalizedLevel == "ERR")
             {
-                return "ERROR";
+                return "Error";
             }
             
             if (normalizedLevel == "WARNING" || normalizedLevel == "WARN")
             {
-                return "WARNING";
+                return "Warning";
             }
             
             // Other levels remain as they are
-            return normalizedLevel == "DEBUG" || normalizedLevel == "TRACE" ? normalizedLevel : "INFO";
+            return normalizedLevel == "DEBUG" || normalizedLevel == "TRACE" ? normalizedLevel : "Information";
         }
 
         private string ExtractValueFromCondition(string wherePart, string fieldName)
@@ -640,7 +640,7 @@ namespace Log_Parser_App.Services
             
             // Filter entries with ERROR level
             var filteredEntries = logEntries.Where(e => 
-                e.Level.Trim().ToUpperInvariant() == "ERROR").ToList();
+                e.Level.Trim().ToUpperInvariant() == "Error").ToList();
             
             logger.LogInformation("Found {Count} ERROR entries", filteredEntries.Count);
             
@@ -654,7 +654,7 @@ namespace Log_Parser_App.Services
                 DateTime timestamp = DateTime.Now;
                 var message = line;
                 const string source = "System";
-                var level = "INFO";
+                var level = "Information";
                 
                 var dateMatch = MyRegex8().Match(line);
                 if (dateMatch.Success)
@@ -670,13 +670,13 @@ namespace Log_Parser_App.Services
                     line.Contains("Exception:") || 
                     Regex.IsMatch(line, @"\bError\b|\bERROR\b|\berror\b"))
                 {
-                    level = "ERROR";
+                    level = "Error";
                     logger.LogDebug("Found error indicator in message: {Message}", 
                         line[..Math.Min(50, line.Length)]);
                 }
                 else if (MyRegex7().IsMatch(line))
                 {
-                    level = "WARNING";
+                    level = "Warning";
                 }
                 
                 // Переопределение уровня на основе ключевых слов в сообщении (без учета регистра)
@@ -684,15 +684,15 @@ namespace Log_Parser_App.Services
                 {
                     if (message.Contains("failed", StringComparison.OrdinalIgnoreCase))
                     {
-                        level = "ERROR";
+                        level = "Error";
                     }
                     else if (message.Contains("successful", StringComparison.OrdinalIgnoreCase))
                     {
-                        level = "INFO";
+                        level = "Information";
                     }
                     else if (message.Contains("skipped", StringComparison.OrdinalIgnoreCase) || message.Contains("skip", StringComparison.OrdinalIgnoreCase))
                     {
-                        level = "WARNING";
+                        level = "Warning";
                     }
                 }
 
@@ -771,7 +771,7 @@ namespace Log_Parser_App.Services
                 return new LogEntry
                 {
                     Timestamp = timestamp,
-                    Level = isError ? "ERROR" : (isWarning ? "WARNING" : "INFO"),
+                    Level = isError ? "Error" : (isWarning ? "Warning" : "Information"),
                     Source = source,
                     Message = line,
                     RawData = line,
@@ -876,15 +876,15 @@ namespace Log_Parser_App.Services
                         
                             if (line.Contains("successfully"))
                             {
-                                currentPackage.Level = "INFO";
+                                currentPackage.Level = "Information";
                             }
                             else if (line.Contains("failed") || line.Contains("error"))
                             {
-                                currentPackage.Level = "ERROR";
+                                currentPackage.Level = "Error";
                             }
                             else if (line.Contains("warning"))
                             {
-                                currentPackage.Level = "WARNING";
+                                currentPackage.Level = "Warning";
                             }
                         
                             currentPackage.Message += Environment.NewLine + line;
@@ -902,7 +902,7 @@ namespace Log_Parser_App.Services
                                     line.Contains("Exception:") || 
                                     Regex.IsMatch(line, @"\bError\b|\bERROR\b|\berror\b"))
                                 {
-                                    entry.Level = "ERROR";
+                                    entry.Level = "Error";
                                 }
                             
                                 var packageEntry = new PackageLogEntry
