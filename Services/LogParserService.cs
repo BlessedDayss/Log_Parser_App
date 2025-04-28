@@ -765,13 +765,33 @@ namespace Log_Parser_App.Services
                 bool isError = MyRegex1().IsMatch(line);
                 bool isWarning = MyRegex2().IsMatch(line);
                 
+                string level = isError ? "Error" : (isWarning ? "Warning" : "Information");
+                string message = line; // Используем всю строку как сообщение для поиска ключей
+                
+                // Переопределение уровня на основе ключевых слов в сообщении (без учета регистра)
+                if (!string.IsNullOrEmpty(message))
+                {
+                    if (message.Contains("failed", StringComparison.OrdinalIgnoreCase))
+                    {
+                        level = "Error";
+                    }
+                    else if (message.Contains("successful", StringComparison.OrdinalIgnoreCase))
+                    {
+                        level = "Information";
+                    }
+                    else if (message.Contains("skipped", StringComparison.OrdinalIgnoreCase) || message.Contains("skip", StringComparison.OrdinalIgnoreCase))
+                    {
+                        level = "Warning";
+                    }
+                }
+                
                 logger.LogDebug("ConfigUpdate log: IsError={IsError}, IsWarning={IsWarning}, Source={Source}", 
                     isError, isWarning, source);
                 
                 return new LogEntry
                 {
                     Timestamp = timestamp,
-                    Level = isError ? "Error" : (isWarning ? "Warning" : "Information"),
+                    Level = level,
                     Source = source,
                     Message = line,
                     RawData = line,
