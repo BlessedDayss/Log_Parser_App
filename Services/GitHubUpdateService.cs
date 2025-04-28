@@ -240,7 +240,12 @@ namespace Log_Parser_App.Services
                 
                 // Загружаем файл с отображением прогресса
                 using var response = await _httpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead);
-                response.EnsureSuccessStatusCode();
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError($"Failed to download update: {response.StatusCode}");
+                    throw new HttpRequestException($"Response status code does not indicate success: {response.StatusCode}");
+                }
                 
                 var totalBytes = response.Content.Headers.ContentLength ?? -1L;
                 using var stream = await response.Content.ReadAsStreamAsync();

@@ -324,8 +324,10 @@
                     <TabControl Grid.Column="0" SelectedIndex="{Binding MainView.SelectedTabIndex}">
                         <TabItem Header="All entries">
                             <StackPanel>
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
-                                    <Button Content="+ Add Filter" Classes="add-button" Command="{Binding AddFilterCriterionCommand}" Padding="10,4" FontSize="12" MinWidth="0" MinHeight="0" Margin="8,0,0,0" />
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10" Margin="8,0,0,8">
+                                    <Button Content="+ Add Filter" Classes="add-button" Command="{Binding AddFilterCriterionCommand}" Padding="10,4" FontSize="12" MinWidth="0" MinHeight="0" Margin="0" />
+                                    <Button Content="✔️ Apply Filters" Classes="apply-filters-button" Command="{Binding ApplyFiltersCommand}" Padding="10,4" FontSize="12" Margin="0" />
+                                    <Button Content="🔄 Reset Filters" Classes="reset-filters-button" Command="{Binding ResetFiltersCommand}" Padding="10,4" FontSize="12" Margin="0" />
                                 </StackPanel>
                                 <ItemsControl ItemsSource="{Binding FilterCriteria}">
                                     <ItemsControl.ItemsPanel>
@@ -368,10 +370,6 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Spacing="10">
-                                    <Button Content="✔️ Apply Filters" Classes="apply-filters-button" Command="{Binding ApplyFiltersCommand}" Padding="16,8" Margin="0,8,0,0" />
-                                    <Button Content="🔄 Reset Filters" Classes="reset-filters-button" Command="{Binding ResetFiltersCommand}" Padding="16,8" Margin="10,8,0,0" />
-                                </StackPanel>
                                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                     <StackPanel>
                                         <DataGrid ItemsSource="{Binding MainView.FilteredLogEntries}"
