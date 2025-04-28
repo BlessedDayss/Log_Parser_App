@@ -1,4 +1,4 @@
-name: Build, Test, Sonar Scan, Bump Version and Release EXE
+name: Build, Test, SonarCloud Scan, Bump Version, Release EXE
 
 on:
   push:
@@ -28,31 +28,35 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Install SonarScanner
-        run: dotnet tool install --global dotnet-sonarscanner
+      - name: Install SonarScanner and ReportGenerator
+        run: |
+          dotnet tool install --global dotnet-sonarscanner
+          dotnet tool install --global dotnet-reportgenerator-globaltool
 
       - name: Start SonarCloud Analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           dotnet sonarscanner begin `
-          /k:"Log_Parser_App" `
-          /o:"blesseddayss" `
-          /d:sonar.login="${{ secrets.SONAR_TOKEN }}" `
-          /d:sonar.cs.opencover.reportsPaths="coverage/coverage.opencover.xml" `
-          /d:sonar.qualitygate.wait=true
+            /k:"Log_Parser_App" `
+            /o:"blesseddayss" `
+            /d:sonar.login="${{ secrets.SONAR_TOKEN }}" `
+            /d:sonar.cs.opencover.reportsPaths="coverage-report/SonarQube.xml" `
+            /d:sonar.qualitygate.wait=true
 
       - name: Restore dependencies
         run: dotnet restore
 
-      - name: Test with Coverage
+      - name: Run Tests and Collect Coverage
         run: |
           dotnet test --collect:"XPlat Code Coverage" --results-directory ./coverage
 
-      - name: Convert coverage to OpenCover
+      - name: Generate Coverage Report
         run: |
-          $coveragePath = Get-ChildItem -Path ./coverage -Recurse -Filter "coverage.cobertura.xml" | Select-Object -ExpandProperty FullName
-          Move-Item $coveragePath coverage/coverage.opencover.xml
+          reportgenerator `
+            -reports:coverage/**/coverage.cobertura.xml `
+            -targetdir:coverage-report `
+            -reporttypes:SonarQube
 
       - name: Build
         run: dotnet build --configuration Release
