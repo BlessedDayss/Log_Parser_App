@@ -412,6 +412,23 @@ namespace Log_Parser_App.Services
                 level = DetermineLogLevel(level, message);
             }
 
+            // Переопределение уровня на основе ключевых слов в сообщении (без учета регистра)
+            if (!string.IsNullOrEmpty(message))
+            {
+                if (message.Contains("failed", StringComparison.OrdinalIgnoreCase))
+                {
+                    level = "ERROR";
+                }
+                else if (message.Contains("successful", StringComparison.OrdinalIgnoreCase))
+                {
+                    level = "INFO";
+                }
+                else if (message.Contains("skipped", StringComparison.OrdinalIgnoreCase) || message.Contains("skip", StringComparison.OrdinalIgnoreCase))
+                {
+                    level = "WARNING";
+                }
+            }
+
             return new LogEntry
             {
                 Timestamp = timestamp,
@@ -438,6 +455,23 @@ namespace Log_Parser_App.Services
 
             string message = $"Status: {match.Groups[3].Value}, Size: {match.Groups[4].Value}";
             string level = DetermineLogLevel("INFO", message);
+
+            // Переопределение уровня на основе ключевых слов в сообщении (без учета регистра)
+            if (!string.IsNullOrEmpty(message))
+            {
+                if (message.Contains("failed", StringComparison.OrdinalIgnoreCase))
+                {
+                    level = "ERROR";
+                }
+                else if (message.Contains("successful", StringComparison.OrdinalIgnoreCase))
+                {
+                    level = "INFO";
+                }
+                else if (message.Contains("skipped", StringComparison.OrdinalIgnoreCase) || message.Contains("skip", StringComparison.OrdinalIgnoreCase))
+                {
+                    level = "WARNING";
+                }
+            }
 
             return new LogEntry
             {
@@ -472,6 +506,23 @@ namespace Log_Parser_App.Services
 
             // Normalize log level
             level = DetermineLogLevel(level, message);
+
+            // Переопределение уровня на основе ключевых слов в сообщении (без учета регистра)
+            if (!string.IsNullOrEmpty(message))
+            {
+                if (message.Contains("failed", StringComparison.OrdinalIgnoreCase))
+                {
+                    level = "ERROR";
+                }
+                else if (message.Contains("successful", StringComparison.OrdinalIgnoreCase))
+                {
+                    level = "INFO";
+                }
+                else if (message.Contains("skipped", StringComparison.OrdinalIgnoreCase) || message.Contains("skip", StringComparison.OrdinalIgnoreCase))
+                {
+                    level = "WARNING";
+                }
+            }
 
             return new LogEntry
             {
@@ -628,6 +679,23 @@ namespace Log_Parser_App.Services
                     level = "WARNING";
                 }
                 
+                // Переопределение уровня на основе ключевых слов в сообщении (без учета регистра)
+                if (!string.IsNullOrEmpty(message))
+                {
+                    if (message.Contains("failed", StringComparison.OrdinalIgnoreCase))
+                    {
+                        level = "ERROR";
+                    }
+                    else if (message.Contains("successful", StringComparison.OrdinalIgnoreCase))
+                    {
+                        level = "INFO";
+                    }
+                    else if (message.Contains("skipped", StringComparison.OrdinalIgnoreCase) || message.Contains("skip", StringComparison.OrdinalIgnoreCase))
+                    {
+                        level = "WARNING";
+                    }
+                }
+
                 return new LogEntry
                 {
                     Timestamp = timestamp,

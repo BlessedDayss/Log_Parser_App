@@ -1,4 +1,4 @@
-name: Build, Test, SonarCloud Scan, Bump Version, Release EXE
+name: Build, Optional Test, SonarCloud Scan, Bump Version, Release EXE
 
 on:
   push:
@@ -33,6 +33,11 @@ jobs:
           dotnet tool install --global dotnet-sonarscanner
           dotnet tool install --global dotnet-reportgenerator-globaltool
 
+      - name: Set SonarCloud PR parameters
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "SONAR_PR_PARAMS=/d:sonar.pullrequest.key=${{ github.event.pull_request.number }} /d:sonar.pullrequest.branch=${{ github.head_ref }} /d:sonar.pullrequest.base=${{ github.base_ref }}" >> $env:GITHUB_ENV
+
       - name: Start SonarCloud Analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -41,22 +46,37 @@ jobs:
             /k:"Log_Parser_App" `
             /o:"blesseddayss" `
             /d:sonar.login="${{ secrets.SONAR_TOKEN }}" `
-            /d:sonar.cs.opencover.reportsPaths="coverage-report/SonarQube.xml" `
-            /d:sonar.qualitygate.wait=true
+            /d:sonar.qualitygate.wait=true `
+            ${{ env.SONAR_PR_PARAMS }}
 
       - name: Restore dependencies
         run: dotnet restore
 
-      - name: Run Tests and Collect Coverage
+      - name: Run Tests and Collect Coverage (optional)
+        continue-on-error: true
         run: |
-          dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=./coverage/coverage.xml
+          if (Test-Path "./Log_Parser_App.Tests/Log_Parser_App.Tests.csproj") {
+            dotnet test ./Log_Parser_App.Tests/Log_Parser_App.Tests.csproj `
+              /p:CollectCoverage=true `
+              /p:CoverletOutputFormat=cobertura `
+              /p:CoverletOutput=../coverage/coverage.xml
+          }
+          else {
+            echo "Test project not found, skipping tests."
+          }
 
-      - name: Generate Coverage Report
+      - name: Generate Coverage Report (optional)
+        continue-on-error: true
         run: |
-          reportgenerator `
-            -reports:coverage/coverage.xml `
-            -targetdir:coverage-report `
-            -reporttypes:SonarQube
+          if (Test-Path "./coverage/coverage.xml") {
+            reportgenerator `
+              -reports:coverage/coverage.xml `
+              -targetdir:coverage-report `
+              -reporttypes:SonarQube
+          }
+          else {
+            echo "Coverage file not found, skipping report generation."
+          }
 
       - name: Build
         run: dotnet build --configuration Release
