@@ -7,6 +7,9 @@
         xmlns:models1="clr-namespace:Log_Parser_App.Models"
         xmlns:views="clr-namespace:Log_Parser_App.Views"
         xmlns:dataGrid="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.DataGrid"
+        xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
+        xmlns:lvccore="using:LiveChartsCore"
+        xmlns:lvcskt="using:LiveChartsCore.SkiaSharpView"
         mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="750"
         x:Class="Log_Parser_App.Views.MainWindow"
         x:Name="mainWindowInstance"
@@ -14,16 +17,29 @@
         Icon="/Assets/logparserv1.ico"
         Title="LogParser - Log Analyzer"
         MinWidth="950" MinHeight="650"
-        Background="#212224"
+        Background="#181A1F"
         ExtendClientAreaToDecorationsHint="True"><!-- xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia" -->
+
+    <Window.Resources>
+        <!-- Color/Brush Resources -->
+        <SolidColorBrush x:Key="BackgroundBrush" Color="#181A1F" />
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#212329" />
+        <SolidColorBrush x:Key="PrimaryBrush" Color="#3D6CB9" />
+        <SolidColorBrush x:Key="SecondaryBrush" Color="#4F5D75" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#5C80BC" />
+        <SolidColorBrush x:Key="TextBrush" Color="#F0F0F0" />
+        <SolidColorBrush x:Key="ErrorBrush" Color="#E74C3C" />
+        <SolidColorBrush x:Key="WarningBrush" Color="#F39C12" />
+        <SolidColorBrush x:Key="InfoBrush" Color="#3498DB" />
+    </Window.Resources>
 
     <Window.Styles>
         <Style Selector="Button.icon-button">
             <Setter Property="Width" Value="40" />
             <Setter Property="Height" Value="40" />
-            <Setter Property="Background" Value="#2D2E32" />
-            <Setter Property="Foreground" Value="#f0f0f0" />
-            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+            <Setter Property="CornerRadius" Value="10" />
             <Setter Property="Padding" Value="8" />
             <Setter Property="Margin" Value="4" />
             <Setter Property="Transitions">
@@ -34,7 +50,7 @@
                 </Transitions>
             </Setter>
             <Style Selector="^:pointerover">
-                <Setter Property="Background" Value="#3D3E42" />
+                <Setter Property="Background" Value="{StaticResource AccentBrush}" />
                 <Setter Property="Foreground" Value="#ffffff" />
                 <Setter Property="RenderTransform" Value="scale(1.05)" />
             </Style>
@@ -220,6 +236,11 @@
                                 ToolTip.Tip="Load file"
                                 Command="{Binding MainView.LoadFileCommand}">
                             <TextBlock Text="📁" FontSize="18" />
+                        </Button>
+                        <Button Classes="icon-button" 
+                                ToolTip.Tip="Dashboard"
+                                Command="{Binding ToggleDashboardCommand}">
+                            <TextBlock Text="📊" FontSize="18" />
                         </Button>
                     </StackPanel>
                     
@@ -520,6 +541,209 @@
                     </TabControl>
                 </Grid>
             </Border>
+            
+            <!-- Dashboard Panel (отдельный экран) -->
+            <Grid 
+                IsVisible="{Binding IsDashboardVisible}"
+                Grid.Row="2" Grid.Column="0" 
+                Grid.ColumnSpan="2"
+                Background="#222326"
+                ZIndex="100">
+                <Grid RowDefinitions="Auto,*">
+                    <!-- Dashboard Header -->
+                    <Border Grid.Row="0" Background="#262729" Padding="16">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Log Dashboard" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <Button Grid.Column="1" Classes="icon-button" Command="{Binding ToggleDashboardCommand}">
+                                <TextBlock Text="✖" FontSize="16" />
+                            </Button>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- Dashboard Content -->
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="16">
+                             <!-- Статистика логов -->
+                            <Border Background="#2D2F33" CornerRadius="10" Padding="15" Margin="0,0,0,20">
+                              <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,*,*,*" Margin="0">
+                                 <!-- Общее количество логов -->
+                                <Border Grid.Column="0" Grid.Row="0" Background="#272932" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="8" Margin="5" Padding="15">
+                                    <StackPanel>
+                                        <TextBlock Text="Всего логов" FontSize="14" Foreground="#AAAAAA" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="📝" FontSize="22" />
+                                            <TextBlock Text="{Binding MainView.LogStatistics.TotalCount}" FontSize="24" FontWeight="Bold" Foreground="White" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                                 
+                                 <!-- Количество ошибок -->
+                                <Border Grid.Column="1" Grid.Row="0" Background="#272932" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="8" Margin="5" Padding="15">
+                                    <StackPanel>
+                                        <TextBlock Text="Ошибки" FontSize="14" Foreground="#AAAAAA" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="❌" FontSize="22" />
+                                            <TextBlock Text="{Binding MainView.LogStatistics.ErrorCount}" FontSize="24" FontWeight="Bold" Foreground="#FF6347" />
+                                            <TextBlock Text="{Binding MainView.LogStatistics.ErrorPercent, StringFormat='{}{0:0.0}%'}" FontSize="14" Foreground="#AAAAAA" VerticalAlignment="Bottom" Margin="5,0,0,3" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                                 
+                                 <!-- Количество предупреждений -->
+                                <Border Grid.Column="2" Grid.Row="0" Background="#272932" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="8" Margin="5" Padding="15">
+                                    <StackPanel>
+                                        <TextBlock Text="Предупреждения" FontSize="14" Foreground="#AAAAAA" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="⚠️" FontSize="22" />
+                                            <TextBlock Text="{Binding MainView.LogStatistics.WarningCount}" FontSize="24" FontWeight="Bold" Foreground="#FFA500" />
+                                            <TextBlock Text="{Binding MainView.LogStatistics.WarningPercent, StringFormat='{}{0:0.0}%'}" FontSize="14" Foreground="#AAAAAA" VerticalAlignment="Bottom" Margin="5,0,0,3" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                                 
+                                 <!-- Количество информационных логов -->
+                                <Border Grid.Column="3" Grid.Row="0" Background="#272932" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="8" Margin="5" Padding="15">
+                                    <StackPanel>
+                                        <TextBlock Text="Информация" FontSize="14" Foreground="#AAAAAA" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="ℹ️" FontSize="22" />
+                                            <TextBlock Text="{Binding MainView.LogStatistics.InfoCount}" FontSize="24" FontWeight="Bold" Foreground="#1E90FF" />
+                                            <TextBlock Text="{Binding MainView.LogStatistics.InfoPercent, StringFormat='{}{0:0.0}%'}" FontSize="14" Foreground="#AAAAAA" VerticalAlignment="Bottom" Margin="5,0,0,3" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                                <!-- Активность по времени дня - плитка с мини-графиком -->
+                                <Border Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" Background="#272932" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="8" Margin="5" Padding="15">
+                                    <StackPanel>
+                                        <TextBlock Text="Активность за день" FontSize="14" Foreground="#AAAAAA" Margin="0,0,0,8" />
+                                        <lvc:CartesianChart
+                                            Series="{Binding MainView.ErrorTrendSeries}"
+                                            XAxes="{Binding MainView.HoursAxis}"
+                                            YAxes="{Binding MainView.CountAxis}"
+                                            TooltipPosition="Top"
+                                            Height="80"
+                                            LegendPosition="Hidden"/>
+                                    </StackPanel>
+                                </Border>
+                                
+                                <!-- Соотношение типов логов - мини плитка -->
+                                <Border Grid.Column="2" Grid.Row="1" Grid.ColumnSpan="2" Background="#272932" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="8" Margin="5" Padding="15">
+                                    <StackPanel>
+                                        <TextBlock Text="Распределение логов" FontSize="14" Foreground="#AAAAAA" Margin="0,0,0,8" />
+                                        <Grid>
+                                            <lvc:PieChart
+                                                Series="{Binding MainView.LogDistributionSeries}"
+                                                Height="80"
+                                                LegendPosition="Hidden"/>
+                                            <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                    Width="40" Height="40" CornerRadius="20" 
+                                                    Background="#272932">
+                                                <TextBlock Text="{Binding MainView.LogStatistics.TotalCount}" 
+                                                        FontSize="14" FontWeight="SemiBold" 
+                                                        HorizontalAlignment="Center" 
+                                                        VerticalAlignment="Center" />
+                                            </Border>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                              </Grid>
+                            </Border>
+                             
+                            <!-- Основные дашборды в две колонки -->
+                            <Grid ColumnDefinitions="*,*" Margin="0,0,0,20">
+                                <!-- Левая колонка -->
+                                <StackPanel Grid.Column="0" Margin="5,0,10,0" Spacing="20">
+                                    <!-- График распределения типов логов -->
+                                    <Border Background="#2D2F33" CornerRadius="10" Padding="15">
+                                        <StackPanel>
+                                            <TextBlock Text="Распределение типов логов" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                            <Viewbox MaxHeight="220">
+                                                <lvc:PieChart
+                                                    Series="{Binding MainView.LogDistributionSeries}"
+                                                    Width="300"
+                                                    Height="300"
+                                                    LegendPosition="Right"
+                                                    TooltipPosition="Right" />
+                                            </Viewbox>
+                                        </StackPanel>
+                                    </Border>
+                                
+                                    <!-- Тепловая карта активности -->
+                                    <Border Background="#2D2F33" CornerRadius="10" Padding="15">
+                                        <StackPanel>
+                                            <TextBlock Text="Тепловая карта активности" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                            <Viewbox MaxHeight="200">
+                                                <lvc:CartesianChart
+                                                    Series="{Binding MainView.TimeHeatmapSeries}"
+                                                    XAxes="{Binding MainView.HoursAxis}"
+                                                    Width="440"
+                                                    Height="200"
+                                                    LegendPosition="Hidden" />
+                                            </Viewbox>
+                                        </StackPanel>
+                                    </Border>
+                                    
+                                    <!-- Распределение логов по источникам -->
+                                    <Border Background="#2D2F33" CornerRadius="10" Padding="15">
+                                        <StackPanel>
+                                            <TextBlock Text="Распределение логов по источникам" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                            <Viewbox MaxHeight="300">
+                                                <lvc:CartesianChart
+                                                    Series="{Binding MainView.SourcesDistributionSeries}"
+                                                    XAxes="{Binding MainView.SourceAxis}"
+                                                    YAxes="{Binding MainView.CountAxis}"
+                                                    Width="440" 
+                                                    Height="300"
+                                                    LegendPosition="Hidden" />
+                                            </Viewbox>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                                
+                                <!-- Правая колонка -->
+                                <StackPanel Grid.Column="1" Margin="10,0,5,0" Spacing="20">
+                                    <!-- График распределения ошибок по времени -->
+                                    <Border Background="#2D2F33" CornerRadius="10" Padding="15">
+                                        <StackPanel>
+                                            <TextBlock Text="Распределение логов по времени" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                            <Viewbox MaxHeight="300">
+                                                <lvc:CartesianChart
+                                                    Series="{Binding MainView.LevelsOverTimeSeries}"
+                                                    XAxes="{Binding MainView.TimeAxis}"
+                                                    YAxes="{Binding MainView.CountAxis}"
+                                                    Width="440"
+                                                    Height="300"
+                                                    TooltipPosition="Top"
+                                                    LegendPosition="Right" />
+                                            </Viewbox>
+                                        </StackPanel>
+                                    </Border>
+                                    
+                                    <!-- График ТОП ошибок -->
+                                    <Border Background="#2D2F33" CornerRadius="10" Padding="15">
+                                        <StackPanel>
+                                            <TextBlock Text="Топ 10 ошибок" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                            <Viewbox MaxHeight="400">
+                                                <lvc:CartesianChart
+                                                    Series="{Binding MainView.TopErrorsSeries}"
+                                                    XAxes="{Binding MainView.ErrorMessageAxis}"
+                                                    YAxes="{Binding MainView.CountAxis}"
+                                                    Width="440"
+                                                    Height="400"
+                                                    LegendPosition="Hidden" />
+                                            </Viewbox>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+                         </StackPanel>
+                     </ScrollViewer>
+                 </Grid>
+            </Grid>
             
             <Panel Grid.Row="2" IsVisible="{Binding MainView.IsLoading}">
                 <Border Background="#55262729" 

@@ -6,16 +6,22 @@ namespace Log_Parser_App.Models
 {
     public class LogStatistics
     {
-        private int TotalEntries { get; set; }
-        private int ErrorCount { get; set; }
-        private int WarningCount { get; set; }
-        private int InfoCount { get; set; }
-        private int OtherCount { get; set; }
+        public int TotalCount { get; set; }
+        public int ErrorCount { get; set; }
+        public int WarningCount { get; set; }
+        public int InfoCount { get; set; }
+        public int OtherCount { get; set; }
         
-        public double ErrorPercentage => TotalEntries > 0 ? Math.Round((double)ErrorCount / TotalEntries * 100, 1) : 0;
-        public double WarningPercentage => TotalEntries > 0 ? Math.Round((double)WarningCount / TotalEntries * 100, 1) : 0;
-        public double InfoPercentage => TotalEntries > 0 ? Math.Round((double)InfoCount / TotalEntries * 100, 1) : 0;
-        public double OtherPercentage => TotalEntries > 0 ? Math.Round((double)OtherCount / TotalEntries * 100, 1) : 0;
+        public double ErrorPercent { get; set; }
+        public double WarningPercent { get; set; }
+        public double InfoPercent { get; set; }
+        public double OtherPercent { get; set; }
+        
+        // Оставляем геттеры для обратной совместимости
+        public double ErrorPercentage => ErrorPercent;
+        public double WarningPercentage => WarningPercent;
+        public double InfoPercentage => InfoPercent;
+        public double OtherPercentage => OtherPercent;
         
         public static LogStatistics FromLogEntries(IEnumerable<LogEntry>? entries)
         {
@@ -23,12 +29,18 @@ namespace Log_Parser_App.Models
             if (entries == null) return stats;
             
             var logEntries = entries.ToList();
-            stats.TotalEntries = logEntries.Count;
+            stats.TotalCount = logEntries.Count;
             
             stats.ErrorCount = logEntries.Count(e => e.Level.Trim().ToUpperInvariant() == "ERROR");
             stats.WarningCount = logEntries.Count(e => e.Level.Trim().ToUpperInvariant() == "WARNING");
             stats.InfoCount = logEntries.Count(e => e.Level.Trim().ToUpperInvariant() == "INFO");
-            stats.OtherCount = stats.TotalEntries - stats.ErrorCount - stats.WarningCount - stats.InfoCount;
+            stats.OtherCount = stats.TotalCount - stats.ErrorCount - stats.WarningCount - stats.InfoCount;
+            
+            // Рассчитываем проценты
+            stats.ErrorPercent = stats.TotalCount > 0 ? Math.Round((double)stats.ErrorCount / stats.TotalCount * 100, 1) : 0;
+            stats.WarningPercent = stats.TotalCount > 0 ? Math.Round((double)stats.WarningCount / stats.TotalCount * 100, 1) : 0;
+            stats.InfoPercent = stats.TotalCount > 0 ? Math.Round((double)stats.InfoCount / stats.TotalCount * 100, 1) : 0;
+            stats.OtherPercent = stats.TotalCount > 0 ? Math.Round((double)stats.OtherCount / stats.TotalCount * 100, 1) : 0;
             
             return stats;
         }

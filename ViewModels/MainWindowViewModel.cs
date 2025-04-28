@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
@@ -32,6 +32,9 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty]
     private UpdateInfo? _availableUpdate;
+
+    [ObservableProperty]
+    private bool _isDashboardVisible;
 
     public Log_Parser_App.ViewModels.MainViewModel MainView => _mainView;
 
@@ -89,6 +92,9 @@ public partial class MainWindowViewModel : ViewModelBase
         
         // Получаем версию приложения
         LoadApplicationVersion();
+        
+        // Инициализируем статус панели дашборда
+        IsDashboardVisible = false;
         
         // Subscribe to MainView's PropertyChanged event to update filter values when log entries change
         _mainView.PropertyChanged += (sender, args) =>
@@ -458,4 +464,11 @@ public partial class MainWindowViewModel : ViewModelBase
 
     // Удаляем required и используем null! для подавления предупреждения компилятора
     public IRelayCommand OpenLogFileCommand { get; } = null!;
+
+    [RelayCommand]
+    private void ToggleDashboard()
+    {
+        IsDashboardVisible = !IsDashboardVisible;
+        _logger.LogInformation("Dashboard visibility toggled to {IsVisible}", IsDashboardVisible);
+    }
 }
