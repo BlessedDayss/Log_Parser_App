@@ -37,7 +37,7 @@ jobs:
         run: |
           dotnet sonarscanner begin `
             /k:"codebless_log_parser_app" `
-            /o:"codebless" `
+            /o:"CodeBless" `
             /d:sonar.login="${{ secrets.SONAR_TOKEN }}" `
             /d:sonar.cs.opencover.reportsPaths="coverage/coverage.opencover.xml" `
             /d:sonar.qualitygate.wait=true
