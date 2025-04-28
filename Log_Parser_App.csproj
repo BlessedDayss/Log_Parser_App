@@ -31,6 +31,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include=".github\workflows\build-bump-sonar-release.yml" />
+      <Content Include=".github\workflows\auto-merge-dev-to-main.yml" />
     </ItemGroup>
 </Project>
