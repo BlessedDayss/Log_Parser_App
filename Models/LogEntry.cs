@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Avalonia.Media;
+using Microsoft.Extensions.Logging;
 
 namespace Log_Parser_App.Models
 {
@@ -22,6 +23,7 @@ namespace Log_Parser_App.Models
             {
                 if (_level != value)
                 {
+                    Logger?.LogTrace("LogEntry (Line {LineNum}): Level changing from '{OldLevel}' to '{NewLevel}'", Timestamp.Ticks, _level, value);
                     _level = value;
                     OnPropertyChanged(); // Уведомляем об изменении Level
                     OnPropertyChanged(nameof(LevelIcon)); // Уведомляем об изменении зависимых свойств
@@ -108,6 +110,9 @@ namespace Log_Parser_App.Models
         private static partial Regex MyRegex();
 
         public event PropertyChangedEventHandler? PropertyChanged;
+
+        [System.Text.Json.Serialization.JsonIgnore] // Не сериализуем логгер
+        public Microsoft.Extensions.Logging.ILogger? Logger { get; set; }
 
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {

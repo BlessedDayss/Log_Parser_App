@@ -46,7 +46,18 @@ namespace Log_Parser_App.Models.Services
                     : release.TagName;
                 
                 var currentVersion = GetCurrentVersion();
+                
+                // Log the versions being compared
+                Debug.WriteLine($"Comparing versions - Current: {currentVersion}, Latest: {latestVersionString}");
+                
+                // Only set IsUpdateAvailable to true if the latest version is greater than current
                 var isUpdateAvailable = CompareVersions(latestVersionString, currentVersion) > 0;
+                
+                // If versions are equal or current is higher, don't suggest update
+                if (!isUpdateAvailable)
+                {
+                    Debug.WriteLine("No update needed: current version is equal or higher than latest");
+                }
                 
                 return new Interfaces.UpdateInfo
                 {
@@ -114,10 +125,22 @@ namespace Log_Parser_App.Models.Services
                 return release.ZipballUrl;
             }
             
+            // First look specifically for .exe files (prioritize them)
             foreach (var asset in release.Assets)
             {
-                if (asset.Name.EndsWith(".zip") || asset.Name.EndsWith(".exe"))
+                if (asset.Name.EndsWith(".exe"))
                 {
+                    Debug.WriteLine($"Found executable for update: {asset.Name}");
+                    return asset.BrowserDownloadUrl;
+                }
+            }
+            
+            // If no .exe found, look for .zip files
+            foreach (var asset in release.Assets)
+            {
+                if (asset.Name.EndsWith(".zip"))
+                {
+                    Debug.WriteLine($"No executable found, using zip file: {asset.Name}");
                     return asset.BrowserDownloadUrl;
                 }
             }
@@ -134,15 +157,50 @@ namespace Log_Parser_App.Models.Services
             
             try
             {
-                var v1 = new Version(version1);
-                var v2 = new Version(version2);
-                return v1.CompareTo(v2);
+                // Normalize versions to ensure 4 components (major.minor.build.revision)
+                string normalizedV1 = NormalizeVersionString(version1);
+                string normalizedV2 = NormalizeVersionString(version2);
+                
+                Debug.WriteLine($"Normalized versions - Current: {normalizedV2}, Latest: {normalizedV1}");
+                
+                var v1 = new Version(normalizedV1);
+                var v2 = new Version(normalizedV2);
+                
+                int result = v1.CompareTo(v2);
+                Debug.WriteLine($"Version comparison result: {result} (>0 means update available)");
+                
+                return result;
             }
-            catch
+            catch (Exception ex)
             {
-                Debug.WriteLine($"Error parsing versions: {version1} or {version2}");
-                return 1;
+                Debug.WriteLine($"Error parsing versions: {version1} or {version2}. Exception: {ex.Message}");
+                return 0; // Don't suggest update if we can't parse versions
             }
+        }
+        
+        // Helper method to normalize version strings to ensure 4 components
+        private static string NormalizeVersionString(string version)
+        {
+            // Remove any 'v' prefix if present
+            if (version.StartsWith("v", StringComparison.OrdinalIgnoreCase))
+            {
+                version = version.Substring(1);
+            }
+            
+            // Split by dots
+            var parts = version.Split('.');
+            
+            // Ensure we have exactly 4 components (major.minor.build.revision)
+            var result = new int[4];
+            for (int i = 0; i < Math.Min(parts.Length, 4); i++)
+            {
+                if (int.TryParse(parts[i], out int value))
+                {
+                    result[i] = value;
+                }
+            }
+            
+            return $"{result[0]}.{result[1]}.{result[2]}.{result[3]}";
         }
     }
     

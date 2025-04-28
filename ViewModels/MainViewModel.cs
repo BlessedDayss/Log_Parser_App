@@ -175,8 +175,6 @@ namespace Log_Parser_App.ViewModels
                     await Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         LogEntries.Clear();
-                        FilteredLogEntries.Clear();
-                        ErrorLogEntries.Clear();
                     });
 
                     var entries = await _logParserService.ParseLogFileAsync(file);
@@ -205,72 +203,55 @@ namespace Log_Parser_App.ViewModels
                     {
                         _logger.LogInformation("Processing {Count} log entries", logEntries.Count());
                         
-                        LogEntries.Clear();
-                        ErrorLogEntries.Clear();
-                        
-                        int errorCount = 0;
-                        int warningCount = 0;
+                        LogEntries.Clear(); // Очищаем основную коллекцию
                         
                         foreach (var entry in logEntries)
                         {
                             LogEntries.Add(entry);
 
-                            switch (entry.Level)
+                            // --- Логика рекомендаций для ошибок (остается здесь, т.к. использует ErrorRecommendationService) ---
+                            if (entry.Level == "ERROR") // Проверяем финальный уровень ПОСЛЕ парсинга
                             {
-                                case "ERROR":
+                                _logger.LogDebug("Processing recommendations for ERROR entry: '{Message}'", entry.Message);
+                                var recommendation = _errorRecommendationService.AnalyzeError(entry.Message);
+                                if (recommendation != null)
                                 {
-                                    _logger.LogDebug("Found ERROR entry: '{Message}'", entry.Message);
-                                
-                                    var recommendation = _errorRecommendationService.AnalyzeError(entry.Message);
-                                    _logger.LogDebug("Recommendation result: {Result}", recommendation != null ? "Found" : "Not found");
-                                
-                                    if (recommendation != null)
-                                    {
-                                        entry.ErrorType = recommendation.ErrorType;
-                                        entry.ErrorDescription = recommendation.Description;
-                                        entry.ErrorRecommendations.Clear();
-                                        entry.ErrorRecommendations.AddRange(recommendation.Recommendations);
-                                    
-                                        _logger.LogDebug("Added recommendations for error: {ErrorType} with {Count} recommendations", 
-                                            entry.ErrorType, entry.ErrorRecommendations.Count);
-                                        _logger.LogDebug("HasRecommendations: {HasRecommendations}", entry.HasRecommendations);
-                                    }
-                                    else
-                                    {
-                                        entry.ErrorType = "UnknownError";
-                                        entry.ErrorDescription = "Unknown error. Recommendations not found.";
-                                        entry.ErrorRecommendations.Add("Check error log for additional information.");
-                                        entry.ErrorRecommendations.Add("Contact documentation or support.");
-                                    
-                                        _logger.LogWarning("No recommendation found for error message: {Message}", entry.Message);
-                                        _logger.LogDebug("Added default recommendations. HasRecommendations: {HasRecommendations}", entry.HasRecommendations);
-                                    }
-                                
-                                    ErrorLogEntries.Add(entry);
-                                    errorCount++;
-                                    break;
+                                    entry.ErrorType = recommendation.ErrorType;
+                                    entry.ErrorDescription = recommendation.Description;
+                                    entry.ErrorRecommendations.Clear();
+                                    entry.ErrorRecommendations.AddRange(recommendation.Recommendations);
                                 }
-                                case "WARNING":
-                                    warningCount++;
-                                    break;
+                                else
+                                {
+                                    entry.ErrorType = "UnknownError";
+                                    entry.ErrorDescription = "Unknown error. Recommendations not found.";
+                                    entry.ErrorRecommendations.Clear(); // Очищаем на случай, если были старые
+                                    entry.ErrorRecommendations.Add("Check error log for additional information.");
+                                    entry.ErrorRecommendations.Add("Contact documentation or support.");
+                                    _logger.LogWarning("No recommendation found for error message: {Message}", entry.Message);
+                                }
+                                _logger.LogDebug("Finished recommendations processing for entry. HasRecommendations: {HasRecommendations}", entry.HasRecommendations);
                             }
+                            // --- Конец логики рекомендаций ---
                         }
                         
-                        OnPropertyChanged(nameof(LogEntries));
+                        OnPropertyChanged(nameof(LogEntries)); // Уведомляем об обновлении основной коллекции
                         
-                        _logger.LogInformation("Added {Count} entries, including {ErrorCount} errors and {WarningCount} warnings", 
-                            LogEntries.Count, errorCount, warningCount);
-                        
+                        _logger.LogInformation("Added {Count} entries to main collection", LogEntries.Count);
+ 
+                        // Фильтрованные записи обновляются после основного списка
                         FilteredLogEntries.Clear();
                         foreach (var entry in LogEntries)
                         {
                             FilteredLogEntries.Add(entry);
                         }
+                        OnPropertyChanged(nameof(FilteredLogEntries)); // Уведомляем об обновлении фильтрованных записей
                     });
                 }));
                 
                 await Dispatcher.UIThread.InvokeAsync(() => {
-                    UpdateLogStatistics(); 
+                    UpdateErrorLogEntries(); // Обновляем коллекцию ошибок ПОСЛЕ добавления всех записей
+                    UpdateLogStatistics(); // Обновляем статистику ПОСЛЕ добавления всех записей
                     StatusMessage = $"Loaded {LogEntries.Count} log entries";
                     SelectedTabIndex = 0;
                 });
@@ -295,6 +276,20 @@ namespace Log_Parser_App.ViewModels
             _logger.LogInformation("Theme changed to: {Theme}", IsDarkTheme ? "Dark" : "Light");
         }
         
+        private void UpdateErrorLogEntries()
+        {
+            ErrorLogEntries.Clear();
+            _logger.LogDebug("Updating ErrorLogEntries. Checking {Count} entries in LogEntries.", LogEntries.Count);
+            var errors = LogEntries.Where(e => e.Level == "ERROR").ToList();
+            foreach (var errorEntry in errors)
+            {
+                _logger.LogTrace("Adding entry to ErrorLogEntries (Line {LineNumber}): Level={Level}", errorEntry.LineNumber, errorEntry.Level);
+                ErrorLogEntries.Add(errorEntry);
+            }
+            _logger.LogInformation("Updated ErrorLogEntries collection with {Count} entries", ErrorLogEntries.Count);
+            OnPropertyChanged(nameof(ErrorLogEntries)); // Уведомляем UI об изменениях
+        }
+        
         private void UpdateLogStatistics()
         {
             if (LogEntries.Count == 0)
@@ -310,10 +305,12 @@ namespace Log_Parser_App.ViewModels
                 return;
             }
             
+            _logger.LogDebug("Updating LogStatistics. Current LogEntries count: {Count}", LogEntries.Count);
             ErrorCount = LogEntries.Count<LogEntry>(e => e.Level == "ERROR");
             WarningCount = LogEntries.Count<LogEntry>(e => e.Level == "WARNING");
             InfoCount = LogEntries.Count<LogEntry>(e => e.Level == "INFO");
             OtherCount = LogEntries.Count - ErrorCount - WarningCount - InfoCount;
+            _logger.LogDebug("Calculated counts - Error: {ErrorCount}, Warning: {WarningCount}, Info: {InfoCount}, Other: {OtherCount}", ErrorCount, WarningCount, InfoCount, OtherCount);
             
             var total = (double)LogEntries.Count;
             ErrorPercent = total > 0 ? Math.Round((ErrorCount / total) * 100, 1) : 0;
