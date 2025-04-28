@@ -16,8 +16,6 @@ namespace Log_Parser_App.Models
         public double WarningPercent { get; set; }
         public double InfoPercent { get; set; }
         public double OtherPercent { get; set; }
-        
-        // Оставляем геттеры для обратной совместимости
         public double ErrorPercentage => ErrorPercent;
         public double WarningPercentage => WarningPercent;
         public double InfoPercentage => InfoPercent;
@@ -35,8 +33,6 @@ namespace Log_Parser_App.Models
             stats.WarningCount = logEntries.Count(e => e.Level.Trim().ToUpperInvariant() == "WARNING");
             stats.InfoCount = logEntries.Count(e => e.Level.Trim().ToUpperInvariant() == "INFO");
             stats.OtherCount = stats.TotalCount - stats.ErrorCount - stats.WarningCount - stats.InfoCount;
-            
-            // Рассчитываем проценты
             stats.ErrorPercent = stats.TotalCount > 0 ? Math.Round((double)stats.ErrorCount / stats.TotalCount * 100, 1) : 0;
             stats.WarningPercent = stats.TotalCount > 0 ? Math.Round((double)stats.WarningCount / stats.TotalCount * 100, 1) : 0;
             stats.InfoPercent = stats.TotalCount > 0 ? Math.Round((double)stats.InfoCount / stats.TotalCount * 100, 1) : 0;
