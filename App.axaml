@@ -1,11 +1,8 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="using:LogParserApp"
-             xmlns:logParserApp="clr-namespace:LogParserApp"
              xmlns:logParserApp1="clr-namespace:Log_Parser_App"
-             x:Class="LogParserApp.App"
+             x:Class="Log_Parser_App.App"
              RequestedThemeVariant="Dark">
-             <!-- "Default" ThemeVariant will inherit OS setting, "Dark" or "Light" to override -->
 
     <Application.DataTemplates>
         <logParserApp1:ViewLocator/>

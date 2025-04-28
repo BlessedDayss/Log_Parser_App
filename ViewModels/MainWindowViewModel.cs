@@ -10,6 +10,7 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Log_Parser_App;
 using Log_Parser_App.Models;
 using Log_Parser_App.Services;
 using Log_Parser_App.ViewModels;
@@ -72,7 +73,7 @@ public partial class MainWindowViewModel : ViewModelBase
         // Пытаемся получить сервис обновлений
         try
         {
-            var serviceProvider = LogParserApp.App.Services;
+            var serviceProvider = App.Services;
             if (serviceProvider != null)
             {
                 _updateService = serviceProvider.GetService(typeof(IUpdateService)) as IUpdateService;

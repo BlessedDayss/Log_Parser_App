@@ -3,7 +3,6 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Reflection;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Diagnostics;
@@ -108,7 +107,7 @@ namespace Log_Parser_App.Models.Services
             await stream.CopyToAsync(fileStream);
         }
         
-        private string GetAssetDownloadUrl(GitHubRelease release)
+        private static string GetAssetDownloadUrl(GitHubRelease release)
         {
             if (release.Assets.Length == 0)
             {
@@ -126,11 +125,11 @@ namespace Log_Parser_App.Models.Services
             return release.ZipballUrl;
         }
         
-        private int CompareVersions(string version1, string? version2)
+        private static int CompareVersions(string version1, string? version2)
         {
             if (string.IsNullOrEmpty(version2))
             {
-                return 1; // новая версия доступна, если текущая версия - null или пустая
+                return 1; 
             }
             
             try
@@ -141,7 +140,6 @@ namespace Log_Parser_App.Models.Services
             }
             catch
             {
-                // в случае ошибки при разборе версии, считаем что новая версия доступна
                 Debug.WriteLine($"Error parsing versions: {version1} or {version2}");
                 return 1;
             }

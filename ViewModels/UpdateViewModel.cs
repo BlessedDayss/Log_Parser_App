@@ -4,7 +4,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Log_Parser_App.Models;
 using Log_Parser_App.Services;
-using LogParserApp.ViewModels;
 using Microsoft.Extensions.Logging;
 
 namespace Log_Parser_App.ViewModels
@@ -32,20 +31,12 @@ namespace Log_Parser_App.ViewModels
         [ObservableProperty]
         private UpdateInfo? _availableUpdate;
         
-        /// <summary>
-        /// Конструктор
-        /// </summary>
-        /// <param name="updateService">Сервис обновлений</param>
-        /// <param name="logger">Логгер</param>
         public UpdateViewModel(IUpdateService updateService, ILogger<UpdateViewModel> logger)
         {
             _updateService = updateService;
             _logger = logger;
         }
         
-        /// <summary>
-        /// Проверяет наличие обновлений при старте приложения
-        /// </summary>
         public async Task CheckForUpdatesOnStartupAsync()
         {
             try
@@ -56,8 +47,6 @@ namespace Log_Parser_App.ViewModels
                 
                 if (AvailableUpdate != null)
                 {
-                    // Здесь можно автоматически скачать и установить обновление
-                    // или показать пользователю диалог с предложением обновиться
                     _logger.LogInformation("Update available: {Version}", AvailableUpdate.Version);
                 }
             }
@@ -67,16 +56,12 @@ namespace Log_Parser_App.ViewModels
             }
         }
         
-        /// <summary>
-        /// Метод для полностью автоматического обновления
-        /// </summary>
         public async Task AutoUpdateAsync()
         {
             try
             {
                 _logger.LogInformation("Starting auto update process");
                 
-                // Проверяем наличие обновлений
                 await CheckForUpdatesAsync();
                 if (AvailableUpdate == null)
                 {
@@ -84,7 +69,6 @@ namespace Log_Parser_App.ViewModels
                     return;
                 }
                 
-                // Скачиваем обновление
                 var filePath = await DownloadUpdateAsync();
                 if (string.IsNullOrEmpty(filePath))
                 {
@@ -92,7 +76,6 @@ namespace Log_Parser_App.ViewModels
                     return;
                 }
                 
-                // Устанавливаем обновление
                 await InstallUpdateAsync(filePath);
             }
             catch (Exception ex)
@@ -203,18 +186,8 @@ namespace Log_Parser_App.ViewModels
             try
             {
                 var result = await _updateService.InstallUpdateAsync(filePath);
-                
-                if (result)
-                {
-                    StatusMessage = "Обновление успешно установлено. Требуется перезапуск приложения.";
-                    
-                    // Здесь можно добавить логику перезапуска приложения
-                    // Environment.Exit(0);
-                }
-                else
-                {
-                    StatusMessage = "Не удалось установить обновление";
-                }
+
+                StatusMessage = result ? "Обновление успешно установлено. Требуется перезапуск приложения." : "Не удалось установить обновление";
             }
             catch (Exception ex)
             {

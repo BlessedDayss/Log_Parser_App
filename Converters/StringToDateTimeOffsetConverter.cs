@@ -15,7 +15,7 @@ namespace Log_Parser_App.Converters
             return null; 
         }
 
-        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {            
             if (value is DateTimeOffset dto)
             {

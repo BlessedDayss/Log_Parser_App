@@ -9,7 +9,7 @@ using UpdateViewModel = Log_Parser_App.ViewModels.UpdateViewModel;
 
 namespace Log_Parser_App;
 
-internal class Program
+internal abstract class Program
 {
 
     [STAThread]
@@ -44,8 +44,8 @@ internal class Program
         services.AddSingleton<IUpdateService>(provider => 
             new GitHubUpdateService(
                 provider.GetRequiredService<ILogger<GitHubUpdateService>>(),
-                "OG", 
-                "RepoName"  
+                "BlessedDayss", 
+                "Log_Parser_App"  
             ));
 
         services.AddSingleton<UpdateViewModel>();

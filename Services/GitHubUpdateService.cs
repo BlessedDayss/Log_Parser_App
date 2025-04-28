@@ -4,12 +4,15 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.Mime;
 using System.Reflection;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Log_Parser_App.Models;
 using Microsoft.Extensions.Logging;
 using System.Text.Json.Serialization;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 
 namespace Log_Parser_App.Services
 {
@@ -64,6 +67,8 @@ namespace Log_Parser_App.Services
                 }
                 
                 var content = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation("GitHub API response: {Content}", content);
+                
                 var releaseInfo = JsonSerializer.Deserialize<GitHubReleaseInfo>(content, 
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 
@@ -72,6 +77,10 @@ namespace Log_Parser_App.Services
                     _logger.LogWarning("Failed to parse GitHub release info");
                     return new UpdateInfo();
                 }
+                
+                // Диагностическая информация о десериализованном объекте
+                _logger.LogInformation("Deserialized ReleaseInfo: Name={Name}, ZipballUrl={ZipballUrl}, TarballUrl={TarballUrl}",
+                    releaseInfo.Name, releaseInfo.ZipballUrl, releaseInfo.TarballUrl);
                 
                 // Пытаемся получить версию из тега
                 if (!Version.TryParse(releaseInfo.TagName.TrimStart('v'), out var latestVersion))
@@ -105,7 +114,41 @@ namespace Log_Parser_App.Services
                 if (string.IsNullOrEmpty(downloadUrl))
                 {
                     _logger.LogWarning("No valid download URL found in release");
-                    return new UpdateInfo();
+                    
+                    // Пробуем извлечь URL напрямую из JSON
+                    try 
+                    {
+                        using var jsonDoc = JsonDocument.Parse(content);
+                        var root = jsonDoc.RootElement;
+                        
+                        if (root.TryGetProperty("zipball_url", out var zipballUrlElement))
+                        {
+                            downloadUrl = zipballUrlElement.GetString();
+                            _logger.LogInformation("Obtained zipball_url directly from JSON: {Url}", downloadUrl);
+                        }
+                        else if (root.TryGetProperty("tarball_url", out var tarballUrlElement))
+                        {
+                            downloadUrl = tarballUrlElement.GetString();
+                            _logger.LogInformation("Obtained tarball_url directly from JSON: {Url}", downloadUrl);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error parsing JSON for direct URL extraction");
+                    }
+                    
+                    // Если URL все еще пустой, используем жестко закодированный URL в качестве запасного варианта
+                    if (string.IsNullOrEmpty(downloadUrl))
+                    {
+                        // Используем стандартный шаблон URL для GitHub releases
+                        downloadUrl = $"https://github.com/{_owner}/{_repo}/archive/refs/tags/v{latestVersion}.zip";
+                        _logger.LogInformation("Using hardcoded fallback URL: {Url}", downloadUrl);
+                    }
+                    
+                    if (string.IsNullOrEmpty(downloadUrl))
+                    {
+                        return new UpdateInfo();
+                    }
                 }
                 
                 var updateInfo = new UpdateInfo
@@ -135,6 +178,15 @@ namespace Log_Parser_App.Services
                 }
                 
                 _logger.LogInformation("New version available: {Version}", updateInfo.Version);
+                
+                // Проверка перед возвратом
+                if (string.IsNullOrEmpty(updateInfo.DownloadUrl))
+                {
+                    _logger.LogWarning("UpdateInfo.DownloadUrl is still empty before return! Using fallback URL.");
+                    updateInfo.DownloadUrl = $"https://github.com/{_owner}/{_repo}/archive/refs/tags/v{latestVersion}.zip";
+                    _logger.LogInformation("Final fallback URL set: {Url}", updateInfo.DownloadUrl);
+                }
+                
                 return updateInfo;
             }
             catch (Exception ex)
@@ -154,7 +206,16 @@ namespace Log_Parser_App.Services
                 if (string.IsNullOrEmpty(updateInfo.DownloadUrl))
                 {
                     _logger.LogError("Download URL is empty in UpdateInfo");
-                    throw new InvalidOperationException("Download URL is empty");
+                    
+                    // Создаем запасной URL
+                    var fallbackUrl = $"https://github.com/{_owner}/{_repo}/archive/refs/tags/v{updateInfo.Version}.zip";
+                    _logger.LogInformation("Using fallback URL for downloading: {Url}", fallbackUrl);
+                    updateInfo.DownloadUrl = fallbackUrl;
+                    
+                    if (string.IsNullOrEmpty(updateInfo.DownloadUrl))
+                    {
+                        throw new InvalidOperationException("Download URL is empty and fallback creation failed");
+                    }
                 }
                 
                 // Проверяем, что URL абсолютный
@@ -218,10 +279,6 @@ namespace Log_Parser_App.Services
             {
                 _logger.LogInformation("Installing update from {FilePath}", updateFilePath);
                 
-                // Здесь должна быть логика установки обновления
-                // Обычно это распаковка ZIP-архива и перезапуск приложения
-                
-                // Пример базовой реализации:
                 // 1. Извлечение архива во временную папку
                 var extractPath = Path.Combine(_tempFolder, "extract");
                 if (Directory.Exists(extractPath))
@@ -231,16 +288,119 @@ namespace Log_Parser_App.Services
                 Directory.CreateDirectory(extractPath);
                 
                 await Task.Run(() => System.IO.Compression.ZipFile.ExtractToDirectory(updateFilePath, extractPath));
-                
-                // 2. Подготовка установщика или скрипта обновления
-                // В реальном приложении здесь должна быть сложная логика
-                // с учетом платформы (Windows, macOS, Linux)
-                
-                // Для примера просто делаем заглушку
                 _logger.LogInformation("Update extracted to {ExtractPath}", extractPath);
                 
-                // 3. Запуск установщика или скрипта обновления
-                // Или замена файлов приложения и его перезапуск
+                // 2. Находим корневую папку внутри распакованного архива
+                // GitHub архивы обычно содержат вложенную папку с именем репозитория и версией
+                var directories = Directory.GetDirectories(extractPath);
+                var sourceDir = directories.Length > 0 ? directories[0] : extractPath;
+                
+                // 3. Определяем целевую директорию приложения
+                var appDir = AppDomain.CurrentDomain.BaseDirectory;
+                _logger.LogInformation("Application directory: {AppDir}", appDir);
+                
+                // 4. Создаем bat/sh скрипт для применения обновления после закрытия приложения
+                var isWindows = OperatingSystem.IsWindows();
+                var isMacOS = OperatingSystem.IsMacOS();
+                var isLinux = OperatingSystem.IsLinux();
+                
+                _logger.LogInformation("Detected platform: Windows={isWindows}, macOS={isMacOS}, Linux={isLinux}", 
+                    isWindows, isMacOS, isLinux);
+                
+                var scriptPath = string.Empty;
+                
+                if (isWindows)
+                {
+                    scriptPath = Path.Combine(_tempFolder, "update.bat");
+                    var script = $@"@echo off
+timeout /t 2 /nobreak > nul
+xcopy ""{sourceDir}\*.*"" ""{appDir}"" /E /Y /I
+start """" ""{Path.Combine(appDir, "Log_Parser_App.exe")}""
+exit";
+                    await File.WriteAllTextAsync(scriptPath, script);
+                }
+                else if (isMacOS || isLinux)
+                {
+                    scriptPath = Path.Combine(_tempFolder, "update.sh");
+                    var logPath = Path.Combine(_tempFolder, "update_log.txt");
+                    var executablePath = Path.Combine(appDir, "Log_Parser_App");
+                    
+                    var script = $@"#!/bin/bash
+# Логирование для отладки
+exec > ""{logPath}"" 2>&1
+echo ""Starting update script at $(date)""
+echo ""Waiting for application to close...""
+sleep 5
+echo ""Copying files from {sourceDir} to {appDir}""
+cp -Rv ""{sourceDir}/"" ""{appDir}""
+echo ""Setting executable permissions""
+chmod +x ""{executablePath}""
+echo ""Launching application""
+open -W ""{executablePath}""
+if [ $? -ne 0 ]; then
+    echo ""Failed to open application with 'open' command, trying direct execution""
+    cd ""{appDir}""
+    ./""{Path.GetFileName(executablePath)}""
+fi
+echo ""Update completed at $(date)""";
+                    
+                    await File.WriteAllTextAsync(scriptPath, script);
+                    _logger.LogInformation("Created update script at {ScriptPath} with content:\n{ScriptContent}", 
+                        scriptPath, script);
+                    
+                    // Даем права на выполнение скрипта
+                    await Task.Run(() => {
+                        var chmod = new System.Diagnostics.Process
+                        {
+                            StartInfo = new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = "chmod",
+                                Arguments = $"+x \"{scriptPath}\"",
+                                UseShellExecute = false,
+                                CreateNoWindow = true
+                            }
+                        };
+                        chmod.Start();
+                        chmod.WaitForExit();
+                        _logger.LogInformation("Set execute permissions on script: {ScriptPath}", scriptPath);
+                    });
+                }
+                else
+                {
+                    _logger.LogError("Unsupported platform for automatic update");
+                    return false;
+                }
+                
+                // 5. Запускаем скрипт обновления и завершаем приложение
+                _logger.LogInformation("Starting update script: {ScriptPath}", scriptPath);
+                
+                var startInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    UseShellExecute = true,
+                    CreateNoWindow = false
+                };
+                
+                if (isWindows)
+                {
+                    startInfo.FileName = scriptPath;
+                }
+                else if (isMacOS || isLinux)
+                {
+                    _logger.LogInformation("Using bash to execute script");
+                    startInfo.FileName = "/bin/bash";
+                    startInfo.Arguments = scriptPath;
+                    startInfo.WorkingDirectory = Path.GetDirectoryName(scriptPath) ?? _tempFolder;
+                }
+                
+                var process = System.Diagnostics.Process.Start(startInfo);
+                _logger.LogInformation("Update process started with ID: {ProcessId}", process?.Id ?? -1);
+                
+                // 6. Запрашиваем завершение приложения
+                _logger.LogInformation("Requesting application shutdown for update installation");
+                if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+                {
+                    desktop.Shutdown();
+                }
                 
                 return true;
             }
@@ -322,6 +482,10 @@ namespace Log_Parser_App.Services
 
         private string GetAssetDownloadUrl(GitHubReleaseInfo release)
         {
+            // Логируем значения URL для проверки
+            _logger.LogInformation("ZipballUrl: {ZipballUrl}", release.ZipballUrl);
+            _logger.LogInformation("TarballUrl: {TarballUrl}", release.TarballUrl);
+            
             // Fallback download URL from GitHub release
             string fallbackUrl = !string.IsNullOrEmpty(release.ZipballUrl) ? release.ZipballUrl : release.TarballUrl;
             
