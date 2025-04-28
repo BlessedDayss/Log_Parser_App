@@ -32,5 +32,6 @@
 
     <ItemGroup>
       <Content Include=".github\workflows\build-bump-sonar-release.yml" />
+      <Content Include=".github\workflows\feature-auto-pr.yml" />
     </ItemGroup>
 </Project>
