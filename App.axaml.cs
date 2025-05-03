@@ -9,7 +9,6 @@ using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using Log_Parser_App.Services;
 using Log_Parser_App.ViewModels;
-using Log_Parser_App.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MainViewModel = Log_Parser_App.ViewModels.MainViewModel;
