@@ -371,7 +371,7 @@ namespace Log_Parser_App.ViewModels
                         Fill = new SolidColorPaint(SKColors.OrangeRed),
                         InnerRadius = 50,
                         MaxRadialColumnWidth = 20,
-                        DataLabelsSize = 14,
+                        // Опускаем настройку размера шрифта меток, чтобы использовались настройки по умолчанию
                         DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue} ({Math.Round((point.StackedValue?.Total ?? 0) == 0 ? 0 : point.Coordinate.PrimaryValue / (point.StackedValue?.Total ?? 1) * 100)}%)",
                         DataLabelsPaint = new SolidColorPaint(SKColors.White),
                         DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Outer
@@ -383,7 +383,7 @@ namespace Log_Parser_App.ViewModels
                         Fill = new SolidColorPaint(SKColors.Orange),
                         InnerRadius = 50,
                         MaxRadialColumnWidth = 20,
-                        DataLabelsSize = 14,
+                        // Опускаем настройку размера шрифта меток, чтобы использовались настройки по умолчанию
                         DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue} ({Math.Round((point.StackedValue?.Total ?? 0) == 0 ? 0 : point.Coordinate.PrimaryValue / (point.StackedValue?.Total ?? 1) * 100)}%)",
                         DataLabelsPaint = new SolidColorPaint(SKColors.White),
                         DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Outer
@@ -395,7 +395,7 @@ namespace Log_Parser_App.ViewModels
                         Fill = new SolidColorPaint(SKColors.DodgerBlue),
                         InnerRadius = 50,
                         MaxRadialColumnWidth = 20,
-                        DataLabelsSize = 14,
+                        // Опускаем настройку размера шрифта меток, чтобы использовались настройки по умолчанию
                         DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue} ({Math.Round((point.StackedValue?.Total ?? 0) == 0 ? 0 : point.Coordinate.PrimaryValue / (point.StackedValue?.Total ?? 1) * 100)}%)",
                         DataLabelsPaint = new SolidColorPaint(SKColors.White),
                         DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Outer
@@ -407,7 +407,7 @@ namespace Log_Parser_App.ViewModels
                         Fill = new SolidColorPaint(SKColors.Gray),
                         InnerRadius = 50,
                         MaxRadialColumnWidth = 20,
-                        DataLabelsSize = 14,
+                        // Опускаем настройку размера шрифта меток, чтобы использовались настройки по умолчанию
                         DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue} ({Math.Round((point.StackedValue?.Total ?? 0) == 0 ? 0 : point.Coordinate.PrimaryValue / (point.StackedValue?.Total ?? 1) * 100)}%)",
                         DataLabelsPaint = new SolidColorPaint(SKColors.White),
                         DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Outer
@@ -556,7 +556,7 @@ namespace Log_Parser_App.ViewModels
                             ),
                             Stroke = new SolidColorPaint(SKColors.OrangeRed.WithAlpha(220), 2),
                             MaxBarWidth = 50,
-                            DataLabelsSize = 12,
+                            // Опускаем настройку размера шрифта меток, чтобы использовались настройки по умолчанию
                             DataLabelsPaint = new SolidColorPaint(SKColors.White),
                             DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Top,
                             DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue}"
@@ -564,7 +564,15 @@ namespace Log_Parser_App.ViewModels
                     };
                     
                     ErrorMessageAxis[0].Labels = labels;
-                    ErrorMessageAxis[0].TextSize = 11;
+                    // Безопасная установка размера текста для оси (проверяем, что TextSize поддерживается)
+                    try {
+                        // Используем безопасное значение для размера текста
+                        ErrorMessageAxis[0].TextSize = 11;
+                    }
+                    catch {
+                        // Игнорируем ошибку при установке свойства
+                        _logger.LogWarning("Не удалось установить размер текста для оси ошибок");
+                    }
                 }
                 else
                 {
@@ -606,7 +614,7 @@ namespace Log_Parser_App.ViewModels
                             Values = new double[] { errorCount, warningCount, infoCount, otherCount },
                             Name = source,
                             Stroke = null,
-                            DataLabelsSize = 10,
+                            // Опускаем настройку размера шрифта меток, чтобы использовались настройки по умолчанию
                             DataLabelsPaint = new SolidColorPaint(SKColors.White),
                             Fill = new SolidColorPaint(colors[i % colors.Length])
                         });
