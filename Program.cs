@@ -12,10 +12,18 @@ namespace Log_Parser_App;
 
 internal abstract class Program
 {
+    // Сохраняем аргументы командной строки для использования в приложении
+    public static string[] StartupArgs { get; private set; } = Array.Empty<string>();
 
     [STAThread]
-    public static void Main(string[] args) => BuildAvaloniaApp()
-        .StartWithClassicDesktopLifetime(args);
+    public static void Main(string[] args)
+    {
+        // Сохраняем аргументы для использования позже
+        StartupArgs = args;
+        
+        BuildAvaloniaApp()
+            .StartWithClassicDesktopLifetime(args);
+    }
 
     private static AppBuilder BuildAvaloniaApp()
     {

@@ -47,7 +47,7 @@ public partial class App : Application
             var logger = services.GetRequiredService<ILogger<MainWindowViewModel>>();
             
             var updateService = services.GetRequiredService<IUpdateService>();
-var mainWindowViewModel = new MainWindowViewModel(logger, mainViewModel, updateService);
+            var mainWindowViewModel = new MainWindowViewModel(logger, mainViewModel, updateService);
             
             MainWindow = new MainWindow
             {
@@ -60,6 +60,20 @@ var mainWindowViewModel = new MainWindowViewModel(logger, mainViewModel, updateS
             if (fileService is FileService fs && MainWindow != null)
             {
                 fs.InitializeTopLevel(MainWindow);
+            }
+            
+            // Регистрируем ассоциации файлов, если приложение запущено в Windows
+            if (OperatingSystem.IsWindows())
+            {
+                var fileAssociationService = services.GetRequiredService<IFileAssociationService>();
+                Task.Run(async () =>
+                {
+                    // Проверяем, зарегистрированы ли уже ассоциации
+                    if (!await fileAssociationService.AreFileAssociationsRegisteredAsync())
+                    {
+                        await fileAssociationService.RegisterFileAssociationsAsync();
+                    }
+                });
             }
             
             var appLogger = services.GetService<ILogger<App>>();
@@ -97,6 +111,9 @@ var mainWindowViewModel = new MainWindowViewModel(logger, mainViewModel, updateS
         services.AddSingleton<ILogParserService, LogParserService>();
         services.AddSingleton<IFileService, FileService>();
         services.AddSingleton<IErrorRecommendationService, ErrorRecommendationService>();
+        
+        // Регистрируем сервис ассоциаций файлов
+        services.AddSingleton<IFileAssociationService, WindowsFileAssociationService>();
         
         services.AddSingleton<IUpdateService, UpdateService>();
         services.AddSingleton<IUpdateService>(provider => 
