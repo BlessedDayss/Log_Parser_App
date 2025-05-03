@@ -45,7 +45,7 @@ namespace Log_Parser_App.ViewModels
                 
                 await CheckForUpdatesAsync();
                 
-                if (AvailableUpdate != null && AvailableUpdate.Version != null && AvailableUpdate.Version != new Version(0, 0, 0))
+                if (IsUpdateValid())
                 {
                     _logger.LogInformation("Update available: {Version}", AvailableUpdate.Version);
                 }
