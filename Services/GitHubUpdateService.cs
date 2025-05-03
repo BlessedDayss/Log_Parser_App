@@ -49,7 +49,7 @@ namespace Log_Parser_App.Services
         }
         
         /// <inheritdoc/>
-        public async Task<UpdateInfo?> CheckForUpdatesAsync()
+        public async Task<UpdateInfo> CheckForUpdatesAsync()
         {
             try
             {
