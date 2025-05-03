@@ -147,6 +147,9 @@ namespace Log_Parser_App.ViewModels
 
             InitializeErrorRecommendationService();
 
+            // Проверяем аргументы командной строки для автоматической загрузки файла
+            CheckCommandLineArgs();
+
             _logger.LogInformation("MainViewModel initialized");
         }
 
@@ -163,6 +166,186 @@ namespace Log_Parser_App.ViewModels
             }
         }
 
+        private void CheckCommandLineArgs()
+        {
+            // Получаем аргументы командной строки из Program
+            var args = Program.StartupArgs;
+            
+            if (args.Length > 0 && !string.IsNullOrEmpty(args[0]))
+            {
+                var filePath = args[0];
+                
+                // Если файл существует, загружаем его с небольшой задержкой
+                // чтобы UI успел инициализироваться
+                if (System.IO.File.Exists(filePath))
+                {
+                    _logger.LogInformation("Запланирована загрузка файла из аргументов командной строки: {FilePath}", filePath);
+                    LastOpenedFilePath = filePath;
+                    
+                    // Делаем небольшую задержку перед загрузкой файла
+                    Task.Delay(500).ContinueWith(async _ => 
+                    {
+                        await Dispatcher.UIThread.InvokeAsync(async () => 
+                        {
+                            await LoadFileAsync(filePath);
+                        });
+                    });
+                }
+            }
+        }
+
+        private async Task LoadFileAsync(string filePath)
+        {
+            try
+            {
+                StatusMessage = $"Opening {Path.GetFileName(filePath)}...";
+                IsLoading = true;
+                FileStatus = Path.GetFileName(filePath);
+
+                // Переключаемся на дашборд
+                IsDashboardVisible = true;
+
+                _logger.LogInformation("PERF: Начало загрузки файла {FilePath}", filePath);
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+
+                // Очищаем коллекции только через UI поток
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    LogEntries.Clear();
+                    FilteredLogEntries.Clear();
+                    ErrorLogEntries.Clear();
+                }, DispatcherPriority.Background);
+
+                // Выполняем парсинг полностью отдельно от UI-потока
+                var entries = await Task.Run(async () => {
+                    try 
+                    {
+                        _logger.LogDebug("PERF: Начало парсинга файла {FilePath}", filePath);
+                        var parseStopwatch = System.Diagnostics.Stopwatch.StartNew();
+                        var logEntries = await _logParserService.ParseLogFileAsync(filePath);
+                        _logger.LogDebug("PERF: Парсинг файла завершен за {ElapsedMs}ms", parseStopwatch.ElapsedMilliseconds);
+                        return logEntries;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Ошибка при парсинге файла {FilePath}", filePath);
+                        throw;
+                    }
+                });
+
+                var logEntries = entries as LogEntry[] ?? entries.ToArray();
+                _logger.LogDebug("PERF: Начало предварительной обработки {Count} записей", logEntries.Length);
+
+                var processedEntries = await Task.Run(() => {
+                    // Преобразуем записи в потоке пула потоков
+                    List<LogEntry> processed = new List<LogEntry>(logEntries.Length);
+                    foreach (var entry in logEntries)
+                    {
+                        try
+                        {
+                            if (!string.IsNullOrEmpty(entry.Message))
+                            {
+                                var lines = entry.Message.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                                var regex = new System.Text.RegularExpressions.Regex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}");
+                                string mainLine = lines.FirstOrDefault(l => !l.TrimStart().StartsWith("at ")) ?? lines[0];
+                                var stackLines = lines.SkipWhile(l => !l.TrimStart().StartsWith("at ")).Where(l => l.TrimStart().StartsWith("at ")).ToList();
+                                entry.Message = mainLine.Trim();
+                                entry.StackTrace = stackLines.Count > 0 ? string.Join("\n", stackLines) : null;
+                            }
+                            entry.OpenFileCommand = ExternalOpenFileCommand;
+                            processed.Add(entry);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Ошибка при обработке записи {LineNumber}", entry.LineNumber);
+                        }
+                    }
+                    return processed;
+                });
+
+                _logger.LogDebug("PERF: Начало обработки рекомендаций для ошибок");
+                
+                // Добавляем рекомендации для ошибок параллельно с загрузкой UI
+                var errorsWithRecommendations = await Task.Run(() => {
+                    var errorEntries = processedEntries.Where(e => e.Level == "ERROR").ToList();
+                    Parallel.ForEach(errorEntries, entry => {
+                        try
+                        {
+                            _logger.LogTrace("Обработка рекомендаций для ошибки: '{Message}'", entry.Message);
+                            var recommendation = _errorRecommendationService.AnalyzeError(entry.Message);
+                            if (recommendation != null)
+                            {
+                                entry.ErrorType = recommendation.ErrorType;
+                                entry.ErrorDescription = recommendation.Description;
+                                entry.ErrorRecommendations.Clear();
+                                entry.ErrorRecommendations.AddRange(recommendation.Recommendations);
+                            }
+                            else
+                            {
+                                entry.ErrorType = "UnknownError";
+                                entry.ErrorDescription = "Unknown error. Recommendations not found.";
+                                entry.ErrorRecommendations.Clear();
+                                entry.ErrorRecommendations.Add("Check error log for additional information.");
+                                entry.ErrorRecommendations.Add("Contact documentation or support.");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Ошибка при обработке рекомендаций для записи {LineNumber}", entry.LineNumber);
+                        }
+                    });
+                    return errorEntries;
+                });
+
+                // Загружаем записи в UI пакетами для предотвращения блокировки
+                const int batchSize = 1000;
+                for (int i = 0; i < processedEntries.Count; i += batchSize)
+                {
+                    var batch = processedEntries.Skip(i).Take(batchSize).ToList();
+                    
+                    await Dispatcher.UIThread.InvokeAsync(() => {
+                        foreach (var entry in batch)
+                        {
+                            LogEntries.Add(entry);
+                            FilteredLogEntries.Add(entry);
+                        }
+                        
+                        // Обновляем статус для пользователя
+                        if (i + batchSize < processedEntries.Count)
+                        {
+                            StatusMessage = $"Loading entries... ({i + batch.Count}/{processedEntries.Count})";
+                        }
+                    }, DispatcherPriority.Background);
+                    
+                    // Делаем небольшую паузу, чтобы UI мог перерисоваться
+                    await Task.Delay(10);
+                }
+
+                // Обновляем UI и статистику после завершения загрузки
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    UpdateErrorLogEntries();
+                    UpdateLogStatistics();
+                    
+                    _logger.LogDebug("PERF: Завершение загрузки данных в UI");
+                    _logger.LogInformation("Загружено {Count} записей логов за {ElapsedMs}ms", LogEntries.Count, sw.ElapsedMilliseconds);
+                    
+                    StatusMessage = $"Loaded {LogEntries.Count} log entries";
+                    SelectedTabIndex = 0;
+                    IsLoading = false;
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка загрузки файла логов");
+                
+                await Dispatcher.UIThread.InvokeAsync(() => {
+                    StatusMessage = $"Error: {ex.Message}";
+                    IsLoading = false;
+                });
+            }
+        }
+
         [RelayCommand]
         private async Task LoadFile()
         {
@@ -171,112 +354,14 @@ namespace Log_Parser_App.ViewModels
                 var file = await _fileService.PickLogFileAsync();
                 if (file == null) return;
                 LastOpenedFilePath = file;
-
-                StatusMessage = $"Opening {Path.GetFileName(file)}...";
-                IsLoading = true;
-                FileStatus = Path.GetFileName(file);
-
-                // Switch to dashboard in UI thread
-                IsDashboardVisible = true;
-
-                // Execute parsing in a separate thread
-                await Task.Run((Func<Task?>)(async () =>
-                {
-                    // Clear collections only through UI thread
-                    await Dispatcher.UIThread.InvokeAsync(() =>
-                    {
-                        LogEntries.Clear();
-                    });
-
-                    var entries = await _logParserService.ParseLogFileAsync(file);
-
-
-                    var logEntries = entries as LogEntry[] ?? entries.ToArray();
-                    foreach (var entry in logEntries)
-                    {
-                        if (!string.IsNullOrEmpty(entry.Message))
-                        {
-                            var lines = entry.Message.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                            var regex = new System.Text.RegularExpressions.Regex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}");
-                            string mainLine = lines.FirstOrDefault(l => !l.TrimStart().StartsWith("at ")) ?? lines[0];
-                            var stackLines = lines.SkipWhile(l => !l.TrimStart().StartsWith("at ")).Where(l => l.TrimStart().StartsWith("at ")).ToList();
-                            entry.Message = mainLine.Trim();
-                            entry.StackTrace = stackLines.Count > 0 ? string.Join("\n", stackLines) : null;
-                        }
-                    }
-
-                    foreach (var entry in logEntries)
-                    {
-                        entry.OpenFileCommand = ExternalOpenFileCommand;
-                    }
-
-                    await Dispatcher.UIThread.InvokeAsync(() =>
-                    {
-                        _logger.LogInformation("Processing {Count} log entries", logEntries.Count());
-
-                        LogEntries.Clear(); // Очищаем основную коллекцию
-
-                        foreach (var entry in logEntries)
-                        {
-                            LogEntries.Add(entry);
-
-                            // --- Логика рекомендаций для ошибок (остается здесь, т.к. использует ErrorRecommendationService) ---
-                            if (entry.Level == "ERROR") // Проверяем финальный уровень ПОСЛЕ парсинга
-                            {
-                                _logger.LogDebug("Processing recommendations for ERROR entry: '{Message}'", entry.Message);
-                                var recommendation = _errorRecommendationService.AnalyzeError(entry.Message);
-                                if (recommendation != null)
-                                {
-                                    entry.ErrorType = recommendation.ErrorType;
-                                    entry.ErrorDescription = recommendation.Description;
-                                    entry.ErrorRecommendations.Clear();
-                                    entry.ErrorRecommendations.AddRange(recommendation.Recommendations);
-                                }
-                                else
-                                {
-                                    entry.ErrorType = "UnknownError";
-                                    entry.ErrorDescription = "Unknown error. Recommendations not found.";
-                                    entry.ErrorRecommendations.Clear(); // Очищаем на случай, если были старые
-                                    entry.ErrorRecommendations.Add("Check error log for additional information.");
-                                    entry.ErrorRecommendations.Add("Contact documentation or support.");
-                                    _logger.LogWarning("No recommendation found for error message: {Message}", entry.Message);
-                                }
-                                _logger.LogDebug("Finished recommendations processing for entry. HasRecommendations: {HasRecommendations}", entry.HasRecommendations);
-                            }
-                            // --- Конец логики рекомендаций ---
-                        }
-
-                        OnPropertyChanged(nameof(LogEntries)); // Уведомляем об обновлении основной коллекции
-
-                        _logger.LogInformation("Added {Count} entries to main collection", LogEntries.Count);
-
-                        // Фильтрованные записи обновляются после основного списка
-                        FilteredLogEntries.Clear();
-                        foreach (var entry in LogEntries)
-                        {
-                            FilteredLogEntries.Add(entry);
-                        }
-                        OnPropertyChanged(nameof(FilteredLogEntries)); // Уведомляем об обновлении фильтрованных записей
-                    });
-                }));
-
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    UpdateErrorLogEntries(); // Обновляем коллекцию ошибок ПОСЛЕ добавления всех записей
-                    UpdateLogStatistics(); // Обновляем статистику ПОСЛЕ добавления всех записей
-                    StatusMessage = $"Loaded {LogEntries.Count} log entries";
-                    SelectedTabIndex = 0;
-                });
-
-                _logger.LogInformation("Loaded {Count} log entries", LogEntries.Count);
+                
+                // Используем наш оптимизированный метод загрузки файла
+                await LoadFileAsync(file);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading log file");
+                _logger.LogError(ex, "Ошибка выбора и загрузки файла логов");
                 StatusMessage = $"Error: {ex.Message}";
-            }
-            finally
-            {
                 IsLoading = false;
             }
         }
@@ -417,110 +502,105 @@ namespace Log_Parser_App.ViewModels
                 : Array.Empty<ISeries>();
 
                 // 2. Logs By Hour - (Line chart)
-                // Group logs by hour for easier analysis
-                var timeGroups = LogEntries
-                    .GroupBy(e => e.Timestamp.Hour)
-                    .OrderBy(g => g.Key)
+                // Группируем логи не по часам, а по фактической дате и времени для более точного отображения
+                var actualTimeGroups = LogEntries
+                    .GroupBy(e => new { Date = e.Timestamp.Date, Hour = e.Timestamp.Hour, Minute = e.Timestamp.Minute / 10 * 10 })
+                    .OrderBy(g => g.Key.Date)
+                    .ThenBy(g => g.Key.Hour)
+                    .ThenBy(g => g.Key.Minute)
                     .ToList();
 
-                // Create full list of hours from 0-23 for consistent display
-                var allHours = Enumerable.Range(0, 24).ToList();
-                var baseDate = DateTime.Today;
+                // Находим минимальное и максимальное время в логах
+                var minTimestamp = LogEntries.Any() ? LogEntries.Min(e => e.Timestamp) : DateTime.Now.AddHours(-1);
+                var maxTimestamp = LogEntries.Any() ? LogEntries.Max(e => e.Timestamp) : DateTime.Now;
 
-                var errorsByHour = new List<DateTimePoint>();
-                var warningsByHour = new List<DateTimePoint>();
-                var infosByHour = new List<DateTimePoint>();
-                var totalByHour = new List<DateTimePoint>();
-
-                // Format hour labels for x-axis - show all hours for better readability
-                List<string> hourLabels = new List<string>();
-                for (int hour = 0; hour < 24; hour += 1) // Changed from every 2 hours to every hour
+                // Если диапазон слишком мал (меньше часа), расширяем его для лучшей визуализации
+                if ((maxTimestamp - minTimestamp).TotalMinutes < 60)
                 {
-                    hourLabels.Add($"{hour:00}:00");
+                    maxTimestamp = minTimestamp.AddHours(1);
                 }
 
-                // Configure hour axis with more detailed options
-                HoursAxis[0] = new Axis 
-                { 
-                    Name = "Time (hours)",
-                    Labels = hourLabels,
-                    NamePaint = new SolidColorPaint(SKColors.LightGray),
-                    LabelsPaint = new SolidColorPaint(SKColors.LightGray),
-                    TextSize = 12,
-                    // Add separators for better readability
-                    SeparatorsPaint = new SolidColorPaint(SKColors.LightSlateGray) { StrokeThickness = 0.5f },
-                    ShowSeparatorLines = true
-                };
+                // Создаем список времен для отображения на оси
+                var timePoints = new List<DateTime>();
+                var tickInterval = DetermineOptimalTimeInterval(minTimestamp, maxTimestamp);
+                var currentTime = new DateTime(minTimestamp.Year, minTimestamp.Month, minTimestamp.Day,
+                                              minTimestamp.Hour, minTimestamp.Minute / tickInterval * tickInterval, 0);
 
-                foreach (var hour in allHours)
+                while (currentTime <= maxTimestamp.AddMinutes(tickInterval))
                 {
-                    var hourTime = baseDate.AddHours(hour);
-                    var group = timeGroups.FirstOrDefault(g => g.Key == hour);
-
-                    int errorCount = group?.Count(e => e.Level == "ERROR") ?? 0;
-                    int warningCount = group?.Count(e => e.Level == "WARNING") ?? 0;
-                    int infoCount = group?.Count(e => e.Level == "INFO") ?? 0;
-                    int totalCount = group?.Count() ?? 0;
-
-                    errorsByHour.Add(new DateTimePoint(hourTime, errorCount));
-                    warningsByHour.Add(new DateTimePoint(hourTime, warningCount));
-                    infosByHour.Add(new DateTimePoint(hourTime, infoCount));
-                    totalByHour.Add(new DateTimePoint(hourTime, totalCount));
+                    timePoints.Add(currentTime);
+                    currentTime = currentTime.AddMinutes(tickInterval);
                 }
 
-                // Enhanced axis configuration
-                CountAxis[0] = new Axis 
-                { 
-                    Name = "Number of entries",
-                    NamePaint = new SolidColorPaint(SKColors.LightGray),
-                    LabelsPaint = new SolidColorPaint(SKColors.LightGray),
-                    TextSize = 12,
-                    MinStep = 1, // Force integer steps
-                    MinLimit = 0,
-                    // Add separators for better grid visibility
-                    SeparatorsPaint = new SolidColorPaint(SKColors.LightSlateGray) { StrokeThickness = 0.5f },
-                    ShowSeparatorLines = true
-                };
+                // Создаем точки данных на основе фактического времени
+                var errorsByTime = new List<DateTimePoint>();
+                var warningsByTime = new List<DateTimePoint>();
+                var infosByTime = new List<DateTimePoint>();
+                var totalByTime = new List<DateTimePoint>();
 
-                TimeAxis[0] = new Axis 
-                { 
-                    Name = "Time (hours)",
+                // Создаем точки для каждого интервала времени
+                foreach (var time in timePoints)
+                {
+                    var endTime = time.AddMinutes(tickInterval);
+                    var entries = LogEntries.Where(e => e.Timestamp >= time && e.Timestamp < endTime).ToList();
+
+                    var errorCount = entries.Count(e => e.Level == "ERROR");
+                    var warningCount = entries.Count(e => e.Level == "WARNING");
+                    var infoCount = entries.Count(e => e.Level == "INFO");
+                    var totalCount = entries.Count;
+
+                    errorsByTime.Add(new DateTimePoint(time, errorCount));
+                    warningsByTime.Add(new DateTimePoint(time, warningCount));
+                    infosByTime.Add(new DateTimePoint(time, infoCount));
+                    totalByTime.Add(new DateTimePoint(time, totalCount));
+                }
+
+                // Форматируем метки времени для оси X
+                List<string> timeLabels = new List<string>();
+                string format = DetermineTimeFormat(minTimestamp, maxTimestamp, tickInterval);
+
+                // Настраиваем ось времени с динамическими метками
+                TimeAxis[0] = new Axis
+                {
+                    Name = "Время",
                     NamePaint = new SolidColorPaint(SKColors.LightGray),
                     LabelsPaint = new SolidColorPaint(SKColors.LightGray),
                     TextSize = 12,
-                    Labeler = value => {
-                        try {
-                            return new DateTime((long)value).ToString("HH:mm");
-                        } catch {
-                            // Fallback if the value is out of range for DateTime
+                    Labeler = value =>
+                    {
+                        try
+                        {
+                            return new DateTime((long)value).ToString(format);
+                        }
+                        catch
+                        {
                             return string.Empty;
                         }
                     },
-                    UnitWidth = TimeSpan.FromHours(1).Ticks,
-                    MinStep = TimeSpan.FromHours(1).Ticks,
-                    // Add separators for better grid visibility
+                    UnitWidth = TimeSpan.FromMinutes(tickInterval).Ticks,
+                    MinStep = TimeSpan.FromMinutes(tickInterval).Ticks,
                     SeparatorsPaint = new SolidColorPaint(SKColors.LightSlateGray) { StrokeThickness = 0.5f },
                     ShowSeparatorLines = true
                 };
 
-                // Enhanced Line Series with better visualization
+                // Улучшенные линейные серии с более информативной визуализацией
                 LevelsOverTimeSeries = new ISeries[]
                 {
                     new LineSeries<DateTimePoint>
                     {
-                        Values = totalByHour,
-                        Name = "All logs",
+                        Values = totalByTime,
+                        Name = "Все логи",
                         Stroke = new SolidColorPaint(SKColors.LightGray, 2),
                         Fill = new SolidColorPaint(SKColors.Gray.WithAlpha(40)),
                         GeometryFill = new SolidColorPaint(SKColors.White),
                         GeometryStroke = new SolidColorPaint(SKColors.Gray, 2),
                         GeometrySize = 8,
-                        LineSmoothness = 0.2, // Less smoothing for more accurate representation
+                        LineSmoothness = 0.2,
                     },
                     new LineSeries<DateTimePoint>
                     {
-                        Values = errorsByHour,
-                        Name = "Errors",
+                        Values = errorsByTime,
+                        Name = "Ошибки",
                         Stroke = new SolidColorPaint(SKColors.Crimson, 3),
                         Fill = new SolidColorPaint(SKColors.Crimson.WithAlpha(40)),
                         GeometryFill = new SolidColorPaint(SKColors.White),
@@ -530,19 +610,19 @@ namespace Log_Parser_App.ViewModels
                     },
                     new LineSeries<DateTimePoint>
                     {
-                        Values = warningsByHour,
-                        Name = "Warnings",
+                        Values = warningsByTime,
+                        Name = "Предупреждения",
                         Stroke = new SolidColorPaint(SKColors.Orange, 3),
                         Fill = new SolidColorPaint(SKColors.Orange.WithAlpha(40)),
                         GeometryFill = new SolidColorPaint(SKColors.White),
                         GeometryStroke = new SolidColorPaint(SKColors.Orange, 2),
-                        GeometrySize = 10, 
+                        GeometrySize = 10,
                         LineSmoothness = 0.2,
                     },
                     new LineSeries<DateTimePoint>
                     {
-                        Values = infosByHour,
-                        Name = "Information",
+                        Values = infosByTime,
+                        Name = "Информация",
                         Stroke = new SolidColorPaint(SKColors.DodgerBlue, 3),
                         Fill = new SolidColorPaint(SKColors.DodgerBlue.WithAlpha(40)),
                         GeometryFill = new SolidColorPaint(SKColors.White),
@@ -553,9 +633,9 @@ namespace Log_Parser_App.ViewModels
                 };
 
                 // 3. Activity Heat Map
-                int maxValue = totalByHour.Any() ? totalByHour.Select(p => (int)p.Value).Max() : 0;
+                int maxValue = totalByTime.Any() ? totalByTime.Select(p => (int)p.Value).Max() : 0;
 
-                var timeHeatData = totalByHour.Select(p => p.Value).ToArray();
+                var timeHeatData = totalByTime.Select(p => p.Value).ToArray();
 
                 TimeHeatmapSeries = new ISeries[]
                 {
@@ -580,7 +660,7 @@ namespace Log_Parser_App.ViewModels
                 };
 
                 // 4. Error Trend by Hour
-                var errorTrend = errorsByHour.Select(p => p.Value).ToArray();
+                var errorTrend = errorsByTime.Select(p => p.Value).ToArray();
 
                 ErrorTrendSeries = errorTrend.Any(v => v > 0) ? new ISeries[]
                 {
@@ -717,6 +797,22 @@ namespace Log_Parser_App.ViewModels
         {
             if (string.IsNullOrEmpty(message)) return string.Empty;
             return message.Length <= maxLength ? message : message.Substring(0, maxLength) + "...";
+        }
+
+        private int DetermineOptimalTimeInterval(DateTime minTimestamp, DateTime maxTimestamp)
+        {
+            var totalMinutes = (maxTimestamp - minTimestamp).TotalMinutes;
+            if (totalMinutes <= 60) return 10; // 10-минутные интервалы для периода менее часа
+            if (totalMinutes <= 180) return 30; // 30-минутные интервалы для периода менее 3 часов
+            if (totalMinutes <= 720) return 60; // 1-часовые интервалы для периода менее 12 часов
+            return 120; // 2-часовые интервалы для более длительных периодов
+        }
+
+        private string DetermineTimeFormat(DateTime minTimestamp, DateTime maxTimestamp, int tickInterval)
+        {
+            if ((maxTimestamp - minTimestamp).TotalDays > 1)
+                return "dd.MM HH:mm"; // Включаем день для многодневных логов
+            return "HH:mm"; // Только время для однодневных логов
         }
 
         [RelayCommand]
