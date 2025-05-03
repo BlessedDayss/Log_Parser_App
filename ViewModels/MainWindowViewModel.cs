@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Windows.Input;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -16,7 +17,7 @@ using Log_Parser_App.Services;
 using Log_Parser_App.ViewModels;
 using Microsoft.Extensions.Logging;
 
-namespace LogParserApp.ViewModels;
+namespace Log_Parser_App.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
@@ -52,10 +53,10 @@ public partial class MainWindowViewModel : ViewModelBase
     };
     
     // Dictionary to store available values for fields
-    public Dictionary<string, List<string>> AvailableValuesByField { get; } = new Dictionary<string, List<string>>
+    public Dictionary<string, HashSet<string>> AvailableValuesByField { get; } = new Dictionary<string, HashSet<string>>
     {
-        { "Level", new List<string>() },
-        { "Source", new List<string>() }
+        { "Level", new HashSet<string>() },
+        { "Source", new HashSet<string>() }
     };
 
     public MainWindowViewModel()
@@ -63,153 +64,97 @@ public partial class MainWindowViewModel : ViewModelBase
         // Design-time constructor
         _logger = null!; 
         _mainView = new Log_Parser_App.ViewModels.MainViewModel(null!, null!, null!, null!); // Provide dummy services for design time
+        _updateService = null!;
         AppVersion = "v0.0.1-design";
         // Add a design-time filter criterion for the previewer
         FilterCriteria.Add(new FilterCriterion { SelectedField = "Level", SelectedOperator = "Equals", Value = "ERROR" });
+        CheckForUpdatesAsyncCommand = new RelayCommand(async () => await Task.CompletedTask);
+        AddFilterCriterionCommand = new RelayCommand(() => {});
     }
     
-    public MainWindowViewModel(ILogger<MainWindowViewModel> logger, Log_Parser_App.ViewModels.MainViewModel mainView)
+    public MainWindowViewModel(ILogger<MainWindowViewModel> logger, Log_Parser_App.ViewModels.MainViewModel mainView, IUpdateService updateService)
     {
         _logger = logger;
         _mainView = mainView;
-        
-        // Пытаемся получить сервис обновлений
-        try
-        {
-            var serviceProvider = App.Services;
-            if (serviceProvider != null)
-            {
-                _updateService = serviceProvider.GetService(typeof(IUpdateService)) as IUpdateService;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to get update service");
-        }
-        
-        OpenLogFileCommand = new RelayCommand<LogEntry?>(OpenLogFile);
-        _mainView.ExternalOpenFileCommand = OpenLogFileCommand;
+        _updateService = updateService;
         
         // Получаем версию приложения
         LoadApplicationVersion();
         
+        CheckForUpdatesAsyncCommand = new RelayCommand(async () => await ExecuteCheckForUpdatesAsync());
+        AddFilterCriterionCommand = new RelayCommand(ExecuteAddFilterCriterion);
+        
         // Инициализируем статус панели дашборда
         IsDashboardVisible = false;
         
-        // Subscribe to MainView's PropertyChanged event to update filter values when log entries change
-        _mainView.PropertyChanged += (sender, args) =>
-        {
-            if (args.PropertyName == nameof(_mainView.LogEntries))
-            {
-                PopulateAvailableFilterValues();
-            }
-        };
+        // Инициализируем фильтры
+        FilterCriteria = new ObservableCollection<FilterCriterion>();
+        AvailableValuesByField = new Dictionary<string, HashSet<string>>();
         
         // Проверяем обновления при запуске
-        CheckForUpdatesCommand.Execute(null);
+        CheckForUpdatesAsyncCommand.Execute(null);
         
         _logger.LogInformation("MainWindowViewModel initialized");
     }
     
     private void LoadApplicationVersion()
     {
-        try
-        {
-            var assembly = Assembly.GetExecutingAssembly();
-            var version = assembly.GetName().Version;
-            AppVersion = $"v{version?.Major ?? 0}.{version?.Minor ?? 0}.{version?.Build ?? 0}";
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to load application version");
-            AppVersion = "v?.?.?";
-        }
+        var assembly = Assembly.GetExecutingAssembly();
+        var version = assembly.GetName().Version;
+        AppVersion = version != null ? $"v{version.Major}.{version.Minor}.{version.Build}" : "Unknown";
     }
-    
-    [RelayCommand]
-    private async Task CheckForUpdates()
+
+    public ICommand CheckForUpdatesAsyncCommand { get; }
+
+    private async Task ExecuteCheckForUpdatesAsync()
     {
-        if (_updateService == null)
-        {
-            _logger.LogWarning("Update service is not available");
-            return;
-        }
-        
         try
         {
-            _logger.LogInformation("Checking for updates");
-            AvailableUpdate = await _updateService.CheckForUpdatesAsync();
-            
-            if (AvailableUpdate != null && AvailableUpdate.Version != null && AvailableUpdate.Version != new Version(0, 0, 0))
+            var updateInfo = _updateService == null ? null : await _updateService.CheckForUpdatesAsync();
+            if (updateInfo != null)
             {
+                AvailableUpdate = updateInfo;
                 IsUpdateAvailable = true;
-                _logger.LogInformation("Update available: {Version}", AvailableUpdate.Version);
+                _logger.LogInformation($"Update available: {updateInfo.Version}");
             }
             else
             {
                 IsUpdateAvailable = false;
-                _logger.LogInformation("No updates available");
-                // Ensure we don't keep an old update object around
-                AvailableUpdate = null;
+                _logger.LogInformation("Application is up to date");
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to check for updates");
+            _logger.LogError(ex, "Error checking for updates");
             IsUpdateAvailable = false;
         }
     }
-    
-    [RelayCommand]
-    private async Task InstallUpdate()
+
+    private async Task InstallUpdateCommand()
     {
-        if (_updateService == null || AvailableUpdate == null)
-        {
-            _logger.LogWarning("Update service or update info is not available");
-            return;
-        }
-        
         try
         {
-            _logger.LogInformation("Starting update installation");
-            
-            // Загружаем обновление
-            var progress = new Progress<int>(percent =>
+            var updateInfo = _updateService == null ? null : await _updateService.CheckForUpdatesAsync();
+            if (updateInfo != null)
             {
-                _mainView.StatusMessage = $"Загрузка обновления... {percent}%";
-            });
-            
-            var filePath = await _updateService.DownloadUpdateAsync(AvailableUpdate, progress);
-            
-            if (string.IsNullOrEmpty(filePath))
-            {
-                _logger.LogWarning("Download failed");
-                _mainView.StatusMessage = "Не удалось загрузить обновление";
-                return;
-            }
-            
-            // Устанавливаем обновление
-            _mainView.StatusMessage = "Установка обновления...";
-            var result = await _updateService.InstallUpdateAsync(filePath);
-            
-            if (result)
-            {
-                _mainView.StatusMessage = "Обновление успешно установлено. Требуется перезапуск приложения.";
-                
-                // TODO: Добавить логику перезапуска приложения
-                // Environment.Exit(0);
+                AvailableUpdate = updateInfo;
+                IsUpdateAvailable = true;
+                _logger.LogInformation($"Update available: {updateInfo.Version}");
             }
             else
             {
-                _mainView.StatusMessage = "Не удалось установить обновление";
+                IsUpdateAvailable = false;
+                _logger.LogInformation("Application is up to date");
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to install update");
-            _mainView.StatusMessage = $"Ошибка установки: {ex.Message}";
+            _logger.LogError(ex, "Error checking for updates");
+            IsUpdateAvailable = false;
         }
     }
+
+
     
     // Method to populate available values for filter fields based on log entries
     private void PopulateAvailableFilterValues()
@@ -234,7 +179,7 @@ public partial class MainWindowViewModel : ViewModelBase
             .Where(l => !string.IsNullOrEmpty(l))
             .Distinct()
             .OrderBy(l => l)
-            .ToList();
+            .ToHashSet();
         AvailableValuesByField["Level"] = levels;
         _logger.LogDebug("Found {Count} unique levels: {Levels}", levels.Count, string.Join(", ", levels));
         
@@ -244,7 +189,7 @@ public partial class MainWindowViewModel : ViewModelBase
             .Where(s => !string.IsNullOrEmpty(s))
             .Distinct()
             .OrderBy(s => s)
-            .ToList();
+            .ToHashSet();
         AvailableValuesByField["Source"] = sources;
         _logger.LogDebug("Found {Count} unique sources", sources.Count);
         
@@ -252,8 +197,10 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(AvailableValuesByField));
     }
 
-    [RelayCommand]
-    private void AddFilterCriterion()
+    public ICommand AddFilterCriterionCommand { get; }
+
+    // Команда для переключения видимости дашборда
+    private void ExecuteAddFilterCriterion()
     {
         var newCriterion = new FilterCriterion
         {
@@ -266,7 +213,7 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void RemoveFilterCriterion(FilterCriterion? criterion) // Make parameter nullable
+    private void RemoveFilterCriterionCommand(FilterCriterion? criterion) // Make parameter nullable
     {
         if (criterion != null)
         {
@@ -280,7 +227,7 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task ApplyFilterCriterion(FilterCriterion? criterion)
+    private async Task ApplyFilterCriterionCommand(FilterCriterion? criterion)
     {
         if (criterion == null)
         {
@@ -594,10 +541,9 @@ public partial class MainWindowViewModel : ViewModelBase
     // Удаляем required и используем null! для подавления предупреждения компилятора
     public IRelayCommand OpenLogFileCommand { get; } = null!;
 
-    [RelayCommand]
-    private void ToggleDashboard()
+    public ICommand ToggleDashboardVisibilityCommand => new RelayCommand(() =>
     {
+        _logger.LogInformation($"Toggling dashboard visibility. Current state: {IsDashboardVisible}");
         IsDashboardVisible = !IsDashboardVisible;
-        _logger.LogInformation("Dashboard visibility toggled to {IsVisible}", IsDashboardVisible);
-    }
+    });
 }
