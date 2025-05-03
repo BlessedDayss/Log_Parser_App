@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Styling;
-using LogParserApp.ViewModels;
+using Log_Parser_App.ViewModels;
 using System;
 using NLog;
 using System.IO;

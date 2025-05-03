@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using Avalonia;
+using Log_Parser_App;
 using Log_Parser_App.Services;
-using LogParserApp;
+// Removed LogParserApp reference
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MainViewModel = Log_Parser_App.ViewModels.MainViewModel;

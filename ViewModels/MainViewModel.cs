@@ -186,7 +186,7 @@ namespace Log_Parser_App.ViewModels
                 IsDashboardVisible = true;
                 
                 // Execute parsing in a separate thread
-                await Task.Run((Func<Task?>)(async () =>
+                await Task.Run(async () =>
                 {
                     // Clear collections only through UI thread
                     await Dispatcher.UIThread.InvokeAsync(() =>
@@ -200,45 +200,46 @@ namespace Log_Parser_App.ViewModels
                     {
                         totalLines = File.ReadAllLines(file).Length;
                         TotalLinesInFile = totalLines;
-                        _logger.LogInformation("Total lines in file: {TotalLines}", totalLines);
+                        _logger.LogInformation($"Total lines in file: {totalLines}");
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "Failed to count total lines in file");
+                        _logger.LogError(ex, "Error counting lines");
+                        totalLines = 0;
                     }
 
-                    var entries = await _logParserService.ParseLogFileAsync(file);
-                    
-                    
-                    var logEntries = entries as LogEntry[] ?? entries.ToArray();
-                    LoadedLinesCount = logEntries.Length;
-                    _logger.LogInformation("Loaded {LoadedLines} log entries out of {TotalLines} lines", LoadedLinesCount, TotalLinesInFile);
-                    
-                    foreach (var entry in logEntries)
+                    // Parse all lines
+                    var parsedEntries = await _logParserService.ParseLogFileAsync(file);
+                    var logEntriesList = parsedEntries.ToList();
+
+                    // Если количество загруженных строк меньше общего количества, добавляем недостающие
+                    if (logEntriesList.Count < totalLines)
                     {
-                        if (!string.IsNullOrEmpty(entry.Message))
-                        {
-                            var lines = entry.Message.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                            var regex = new System.Text.RegularExpressions.Regex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}");
-                            string mainLine = lines.FirstOrDefault(l => !l.TrimStart().StartsWith("at ")) ?? lines[0];
-                            var stackLines = lines.SkipWhile(l => !l.TrimStart().StartsWith("at ")).Where(l => l.TrimStart().StartsWith("at ")).ToList();
-                            entry.Message = mainLine.Trim();
-                            entry.StackTrace = stackLines.Count > 0 ? string.Join("\n", stackLines) : null;
-                        }
+                        var unprocessedLines = File.ReadAllLines(file)
+                            .Skip(logEntriesList.Count)
+                            .Select((line, index) => new LogEntry
+                            {
+                                Timestamp = DateTime.MinValue,
+                                Level = "UNPROCESSED",
+                                Source = "Unknown",
+                                Message = line,
+                                LineNumber = logEntriesList.Count + index + 1,
+                                FilePath = file
+                            }).ToList();
+                        
+                        logEntriesList.AddRange(unprocessedLines);
                     }
                     
-                    foreach (var entry in logEntries)
-                    {
-                        entry.OpenFileCommand = ExternalOpenFileCommand;
-                    }
+                    _logger.LogInformation("Loaded {LoadedLines} entries out of {TotalLines} total lines", logEntriesList.Count, totalLines);
                     
+                    // Update UI thread
                     await Dispatcher.UIThread.InvokeAsync(() =>
                     {
-                        _logger.LogInformation("Processing {Count} log entries", logEntries.Count());
+                        _logger.LogInformation($"Starting to add {logEntriesList.Count} entries to LogEntries");
                         
-                        LogEntries.Clear(); // Очищаем основную коллекцию
+                        LogEntries.Clear(); // Очищаем существующие записи
                         
-                        foreach (var entry in logEntries)
+                        foreach (var entry in logEntriesList)
                         {
                             LogEntries.Add(entry);
 
@@ -251,53 +252,31 @@ namespace Log_Parser_App.ViewModels
                                 {
                                     entry.ErrorType = recommendation.ErrorType;
                                     entry.ErrorDescription = recommendation.Description;
-                                    entry.ErrorRecommendations.Clear();
-                                    entry.ErrorRecommendations.AddRange(recommendation.Recommendations);
                                 }
-                                else
-                                {
-                                    entry.ErrorType = "UnknownError";
-                                    entry.ErrorDescription = "Unknown error. Recommendations not found.";
-                                    entry.ErrorRecommendations.Clear(); // Очищаем на случай, если были старые
-                                    entry.ErrorRecommendations.Add("Check error log for additional information.");
-                                    entry.ErrorRecommendations.Add("Contact documentation or support.");
-                                    _logger.LogWarning("No recommendation found for error message: {Message}", entry.Message);
-                                }
-                                _logger.LogDebug("Finished recommendations processing for entry. HasRecommendations: {HasRecommendations}", entry.HasRecommendations);
                             }
-                            // --- Конец логики рекомендаций ---
                         }
+
+                        _logger.LogInformation($"Loaded {LogEntries.Count} entries out of {totalLines} total lines");
+                        StatusMessage = $"Loaded {LogEntries.Count} entries";
+                        IsLoading = false;
                         
-                        OnPropertyChanged(nameof(LogEntries)); // Уведомляем об обновлении основной коллекции
-                        
-                        _logger.LogInformation("Added {Count} entries to main collection", LogEntries.Count);
- 
-                        // Фильтрованные записи обновляются после основного списка
+                        // Обновляем FilteredLogEntries
                         FilteredLogEntries.Clear();
                         foreach (var entry in LogEntries)
                         {
                             FilteredLogEntries.Add(entry);
                         }
-                        OnPropertyChanged(nameof(FilteredLogEntries)); // Уведомляем об обновлении фильтрованных записей
+                        _logger.LogInformation($"Updated FilteredLogEntries with {FilteredLogEntries.Count} entries");
                     });
-                }));
-                
-                await Dispatcher.UIThread.InvokeAsync(() => {
-                    UpdateErrorLogEntries(); // Обновляем коллекцию ошибок ПОСЛЕ добавления всех записей
-                    UpdateLogStatistics(); // Обновляем статистику ПОСЛЕ добавления всех записей
-                    StatusMessage = $"Загружено {LogEntries.Count} записей ({LoadedLinesCount} строк из {TotalLinesInFile})";
-                    SelectedTabIndex = 0;
+
+                    // Process log entries
+                    await ProcessLogEntries();
                 });
-                
-                _logger.LogInformation("Loaded {Count} log entries", LogEntries.Count);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading log file");
                 StatusMessage = $"Error: {ex.Message}";
-            }
-            finally
-            {
                 IsLoading = false;
             }
         }
@@ -649,6 +628,35 @@ namespace Log_Parser_App.ViewModels
             }
         }
         
+        private async Task ProcessLogEntries()
+        {
+            try
+            {
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    _logger.LogInformation($"Processing log entries. Total entries: {LogEntries.Count}");
+                    
+                    // Очистка FilteredLogEntries
+                    FilteredLogEntries.Clear();
+                    foreach (var entry in LogEntries)
+                    {
+                        FilteredLogEntries.Add(entry);
+                    }
+                    
+                    UpdateErrorLogEntries();
+                    UpdateLogStatistics();
+                    UpdateCharts();
+                    SelectedTabIndex = 0;
+                    
+                    _logger.LogInformation($"Processed log entries. Filtered entries: {FilteredLogEntries.Count}");
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing log entries");
+            }
+        }
+
         private string TruncateMessage(string message, int maxLength)
         {
             if (string.IsNullOrEmpty(message)) return string.Empty;

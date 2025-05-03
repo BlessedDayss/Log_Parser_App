@@ -9,7 +9,7 @@ using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using Log_Parser_App.Services;
 using Log_Parser_App.ViewModels;
-using LogParserApp.ViewModels;
+using Log_Parser_App.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MainViewModel = Log_Parser_App.ViewModels.MainViewModel;
@@ -47,7 +47,8 @@ public partial class App : Application
             var mainViewModel = services.GetRequiredService<MainViewModel>();
             var logger = services.GetRequiredService<ILogger<MainWindowViewModel>>();
             
-            var mainWindowViewModel = new MainWindowViewModel(logger, mainViewModel);
+            var updateService = services.GetRequiredService<IUpdateService>();
+var mainWindowViewModel = new MainWindowViewModel(logger, mainViewModel, updateService);
             
             MainWindow = new MainWindow
             {
@@ -98,6 +99,7 @@ public partial class App : Application
         services.AddSingleton<IFileService, FileService>();
         services.AddSingleton<IErrorRecommendationService, ErrorRecommendationService>();
         
+        services.AddSingleton<IUpdateService, UpdateService>();
         services.AddSingleton<IUpdateService>(provider => 
             new GitHubUpdateService(
                 provider.GetRequiredService<ILogger<GitHubUpdateService>>(),
