@@ -1,7 +1,10 @@
+#pragma warning disable CS0103 // The name 'InitializeComponent' does not exist in the current context
+
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
-using LogParserApp.ViewModels;
+using Log_Parser_App.ViewModels;
 using System;
 using NLog;
 using System.IO;
@@ -14,7 +17,8 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
-        InitializeComponent();
+        // Manual alternative to InitializeComponent
+        AvaloniaXamlLoader.Load(this);
 
         // Логирование запуска окна
         logger.Info("MainWindow запущен.");

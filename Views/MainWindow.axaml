@@ -1,12 +1,15 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:LogParserApp.ViewModels"
+        xmlns:vm="using:Log_Parser_App.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:converters="clr-namespace:Log_Parser_App.Converters"
         xmlns:models1="clr-namespace:Log_Parser_App.Models"
         xmlns:views="clr-namespace:Log_Parser_App.Views"
         xmlns:dataGrid="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.DataGrid"
+        xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
+        xmlns:lvccore="using:LiveChartsCore"
+        xmlns:lvcskt="using:LiveChartsCore.SkiaSharpView"
         mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="750"
         x:Class="Log_Parser_App.Views.MainWindow"
         x:Name="mainWindowInstance"
@@ -14,16 +17,33 @@
         Icon="/Assets/logparserv1.ico"
         Title="LogParser - Log Analyzer"
         MinWidth="950" MinHeight="650"
-        Background="#212224"
-        ExtendClientAreaToDecorationsHint="True"><!-- xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia" -->
+        Background="#1A1C21"
+        ExtendClientAreaToDecorationsHint="True">
+
+    <Window.Resources>
+        <!-- Converters -->
+        <converters:BoolToBrushConverter x:Key="BoolToBrushConverter" />
+        
+        <!-- Color/Brush Resources -->
+        <SolidColorBrush x:Key="BackgroundBrush" Color="#1A1C21" />
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#22252D" />
+        <SolidColorBrush x:Key="PrimaryBrush" Color="#4E72C8" />
+        <SolidColorBrush x:Key="SecondaryBrush" Color="#5D6B8E" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#5C80BC" />
+        <SolidColorBrush x:Key="TextBrush" Color="#F5F5F7" />
+        <SolidColorBrush x:Key="ErrorBrush" Color="#E74C3C" />
+        <SolidColorBrush x:Key="WarningBrush" Color="#F39C12" />
+        <SolidColorBrush x:Key="InfoBrush" Color="#3498DB" />
+        <SolidColorBrush x:Key="SuccessBrush" Color="#2ECC71" />
+    </Window.Resources>
 
     <Window.Styles>
         <Style Selector="Button.icon-button">
             <Setter Property="Width" Value="40" />
             <Setter Property="Height" Value="40" />
-            <Setter Property="Background" Value="#2D2E32" />
-            <Setter Property="Foreground" Value="#f0f0f0" />
-            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+            <Setter Property="CornerRadius" Value="10" />
             <Setter Property="Padding" Value="8" />
             <Setter Property="Margin" Value="4" />
             <Setter Property="Transitions">
@@ -34,7 +54,7 @@
                 </Transitions>
             </Setter>
             <Style Selector="^:pointerover">
-                <Setter Property="Background" Value="#3D3E42" />
+                <Setter Property="Background" Value="{StaticResource AccentBrush}" />
                 <Setter Property="Foreground" Value="#ffffff" />
                 <Setter Property="RenderTransform" Value="scale(1.05)" />
             </Style>
@@ -65,54 +85,43 @@
         </Style>
         
         <Style Selector="Border.card">
-            <Setter Property="Background" Value="#2D2E32" />
+            <Setter Property="Background" Value="#22252D" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="BoxShadow" Value="0 2 10 0 #15000000" />
-            <Setter Property="Margin" Value="8" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="BoxShadow" Value="0 4 16 0 #15000000" />
+            <Setter Property="Margin" Value="10" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BoxShadowsTransition Property="BoxShadow" Duration="0.2" />
+                    <ThicknessTransition Property="Margin" Duration="0.2" />
+                </Transitions>
+            </Setter>
         </Style>
         
-        <Style Selector="TabControl">
-            <Setter Property="Padding" Value="8" />
-            <Setter Property="Background" Value="Transparent" />
-        </Style>
-        
-        <Style Selector="TabItem">
-            <Setter Property="Padding" Value="16 8" />
-            <Setter Property="FontSize" Value="14" />
-            <Setter Property="Foreground" Value="#AAAAAA" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Margin" Value="0 0 4 0" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Style Selector="^:selected">
-                <Setter Property="Foreground" Value="#FFFFFF" />
-                <Setter Property="FontWeight" Value="SemiBold" />
-            </Style>
-        </Style>
-        
-        <Style Selector="TextBox">
-            <Setter Property="Background" Value="#2D2E32" />
-            <Setter Property="Foreground" Value="#E0E0E0" />
-            <Setter Property="BorderBrush" Value="#404146" />
-            <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Padding" Value="12 8" />
+        <Style Selector="Border.card:pointerover">
+            <Setter Property="BoxShadow" Value="0 6 20 0 #20000000" />
+            <Setter Property="Margin" Value="8 6 12 14" />
         </Style>
         
         <Style Selector="Button">
-            <Setter Property="Background" Value="#4e72c8" />
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
             <Setter Property="Foreground" Value="White" />
-            <Setter Property="Padding" Value="16 8" />
+            <Setter Property="Padding" Value="16 10" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="FontWeight" Value="SemiBold" />
-        </Style>
-        
-        <Style Selector="ComboBox">
-            <Setter Property="Background" Value="#2D2E32" />
-            <Setter Property="Foreground" Value="#E0E0E0" />
-            <Setter Property="BorderBrush" Value="#404146" />
-            <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Padding" Value="12 8" />
-            <Setter Property="Margin" Value="0 0 4 0" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0.15" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0.15" />
+                </Transitions>
+            </Setter>
+            <Style Selector="^:pointerover">
+                <Setter Property="Background" Value="#5A80D3" />
+                <Setter Property="RenderTransform" Value="scale(1.02)" />
+            </Style>
+            <Style Selector="^:pressed">
+                <Setter Property="RenderTransform" Value="scale(0.98)" />
+            </Style>
         </Style>
         
         <Style Selector="Button.remove-button">
@@ -192,6 +201,30 @@
         <Style Selector="Button.reset-filters-button:pointerover">
             <Setter Property="Background" Value="#8d98a6" />
         </Style>
+        
+        <Style Selector="Button.apply-button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#A0A0A0" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0.15"/>
+                    <BrushTransition Property="Foreground" Duration="0.15"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        
+        <Style Selector="Button.apply-button:pointerover">
+            <Setter Property="Background" Value="#36544E" />
+            <Setter Property="Foreground" Value="#5BF15B" />
+        </Style>
     </Window.Styles>
 
     <Panel>
@@ -221,6 +254,11 @@
                                 Command="{Binding MainView.LoadFileCommand}">
                             <TextBlock Text="📁" FontSize="18" />
                         </Button>
+                        <Button Classes="icon-button" 
+                                ToolTip.Tip="Dashboard"
+                                Command="{Binding ToggleDashboardVisibilityCommand}">
+                            <TextBlock Text="📊" FontSize="18" />
+                        </Button>
                     </StackPanel>
                     
                     <TextBlock Grid.Column="1" 
@@ -232,8 +270,8 @@
                     
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
                         <Button Classes="icon-button"
-                                ToolTip.Tip="Проверить обновления"
-                                Command="{Binding CheckForUpdatesCommand}">
+                                ToolTip.Tip="Check for updates"
+                                Command="{Binding CheckForUpdatesAsyncCommand}">
                             <TextBlock Text="🔄" FontSize="18" />
                         </Button>
                         
@@ -242,11 +280,11 @@
                                 Padding="8,4" 
                                 IsVisible="{Binding IsUpdateAvailable}">
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <TextBlock Text="Доступно обновление!" 
+                                <TextBlock Text="Update available!" 
                                            Foreground="White" 
                                            VerticalAlignment="Center" 
                                            FontSize="12" />
-                                <Button Content="Установить" 
+                                <Button Content="Install" 
                                         Padding="8,2" 
                                         FontSize="12"
                                         Background="#4CAF50"
@@ -256,9 +294,7 @@
                         
                         <TextBlock Text="{Binding AppVersion}" 
                                    VerticalAlignment="Center" 
-                                   HorizontalAlignment="Right"
                                    Foreground="#AAAAAA"
-                                   Margin="16,0,0,0"
                                    FontSize="12" />
                     </StackPanel>
                 </Grid>
@@ -272,6 +308,26 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
+                    
+                    <!-- Update Block -->
+                    <Border Grid.Column="3" Background="#382626" CornerRadius="8" Padding="16" Margin="8" 
+                            IsVisible="{Binding IsUpdateAvailable}">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="Update available" 
+                                       FontWeight="Bold" 
+                                       Foreground="White" 
+                                       HorizontalAlignment="Center" />
+                            <TextBlock Text="{Binding AvailableUpdate.Version, StringFormat='Version: {0}'}" 
+                                       Foreground="#AAAAAA" 
+                                       HorizontalAlignment="Center" />
+                            <Button Content="Install" 
+                                    Command="{Binding InstallUpdateCommand}"
+                                    Background="#4CAF50"
+                                    Foreground="White"
+                                    Padding="10,5"
+                                    HorizontalAlignment="Stretch" />
+                        </StackPanel>
+                    </Border>
                     <Border Grid.Column="0" Margin="4" Padding="16,12" Background="#382626" CornerRadius="6">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal">
@@ -339,7 +395,7 @@
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="models1:FilterCriterion">
                                             <Border Background="#2D2E32" CornerRadius="6" Padding="12 8">
-                                                <Grid ColumnDefinitions="Auto,Auto,*,Auto" VerticalAlignment="Center">
+                                                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" VerticalAlignment="Center">
                                                     <ComboBox Grid.Column="0"
                                                               ItemsSource="{Binding ParentViewModel.AvailableFields}"
                                                               SelectedItem="{Binding SelectedField}"
@@ -362,10 +418,16 @@
                                                                 VerticalAlignment="Center"/>
                                                     </Panel>
                                                     <Button Grid.Column="3"
-                                                            Content="Remove"
+                                                            Content="✓"
+                                                            Command="{Binding ParentViewModel.ApplyFilterCriterionCommand}"
+                                                            CommandParameter="{Binding}"
+                                                            Classes="apply-button"
+                                                            Margin="0,0,5,0"/>
+                                                    <Button Grid.Column="4"
+                                                            Content="✕"
                                                             Command="{Binding ParentViewModel.RemoveFilterCriterionCommand}"
                                                             CommandParameter="{Binding}"
-                                                            Classes="danger"/>
+                                                            Classes="remove-button"/>
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>
@@ -403,7 +465,7 @@
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellTemplate>
                                             </DataGridTemplateColumn>
-                                            <DataGridTemplateColumn Header="Рекомендации" Width="350">
+                                            <DataGridTemplateColumn Header="Recommendations" Width="350">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate x:DataType="models1:LogEntry">
                                                         <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="200" IsVisible="{Binding HasRecommendations}">
@@ -478,7 +540,7 @@
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellTemplate>
                                             </DataGridTemplateColumn>
-                                            <DataGridTemplateColumn Header="Рекомендации" Width="350">
+                                            <DataGridTemplateColumn Header="Recommendations" Width="350">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate x:DataType="models1:LogEntry">
                                                         <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="200" IsVisible="{Binding HasRecommendations}">
@@ -520,6 +582,226 @@
                     </TabControl>
                 </Grid>
             </Border>
+            
+            <!-- Dashboard Panel -->
+            <Grid 
+                IsVisible="{Binding IsDashboardVisible}"
+                Grid.Row="2" Grid.Column="0" 
+                Grid.ColumnSpan="2"
+                Background="#222326"
+                ZIndex="100">
+                <Grid RowDefinitions="Auto,*">
+                    <!-- Dashboard Header -->
+                    <Border Grid.Row="0" Background="#262729" Padding="16">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Log Analysis Dashboard" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <Button Grid.Column="1" Classes="icon-button" Command="{Binding ToggleDashboardVisibilityCommand}" ToolTip.Tip="Close Dashboard">
+                                <TextBlock Text="✖" FontSize="16" />
+                            </Button>
+                            <Button Grid.Column="2" Classes="icon-button" Command="{Binding MainView.LoadFileCommand}" ToolTip.Tip="Load New File">
+                                <TextBlock Text="📂" FontSize="16" />
+                            </Button>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- Dashboard Content -->
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="16">
+                             <!-- Log Statistics -->
+                            <Border Background="#2D2F33" CornerRadius="10" Padding="15" Margin="0,0,0,20">
+                              <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,*,*,*" Margin="0">
+                                 <!-- Total logs -->
+                                <Border Grid.Column="0" Grid.Row="0" Background="#272932" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="8" Margin="5" Padding="15">
+                                    <StackPanel>
+                                        <TextBlock Text="Total Logs" FontSize="14" Foreground="#AAAAAA" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="📝" FontSize="22" />
+                                            <TextBlock Text="{Binding MainView.LogStatistics.TotalCount}" FontSize="24" FontWeight="Bold" Foreground="White" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                                 
+                                 <!-- Errors count -->
+                                <Border Grid.Column="1" Grid.Row="0" Background="#272932" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="8" Margin="5" Padding="15">
+                                    <StackPanel>
+                                        <TextBlock Text="Errors" FontSize="14" Foreground="#AAAAAA" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="❌" FontSize="22" />
+                                            <TextBlock Text="{Binding MainView.LogStatistics.ErrorCount}" FontSize="24" FontWeight="Bold" Foreground="#FF6347" />
+                                            <TextBlock Text="{Binding MainView.LogStatistics.ErrorPercent, StringFormat='{}{0:0.0}%'}" FontSize="14" Foreground="#AAAAAA" VerticalAlignment="Bottom" Margin="5,0,0,3" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                                 
+                                 <!-- Warnings count -->
+                                <Border Grid.Column="2" Grid.Row="0" Background="#272932" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="8" Margin="5" Padding="15">
+                                    <StackPanel>
+                                        <TextBlock Text="Warnings" FontSize="14" Foreground="#AAAAAA" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="⚠️" FontSize="22" />
+                                            <TextBlock Text="{Binding MainView.LogStatistics.WarningCount}" FontSize="24" FontWeight="Bold" Foreground="#FFA500" />
+                                            <TextBlock Text="{Binding MainView.LogStatistics.WarningPercent, StringFormat='{}{0:0.0}%'}" FontSize="14" Foreground="#AAAAAA" VerticalAlignment="Bottom" Margin="5,0,0,3" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                                 
+                                 <!-- Info logs count -->
+                                <Border Grid.Column="3" Grid.Row="0" Background="#272932" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="8" Margin="5" Padding="15">
+                                    <StackPanel>
+                                        <TextBlock Text="Information" FontSize="14" Foreground="#AAAAAA" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="ℹ️" FontSize="22" />
+                                            <TextBlock Text="{Binding MainView.LogStatistics.InfoCount}" FontSize="24" FontWeight="Bold" Foreground="#1E90FF" />
+                                            <TextBlock Text="{Binding MainView.LogStatistics.InfoPercent, StringFormat='{}{0:0.0}%'}" FontSize="14" Foreground="#AAAAAA" VerticalAlignment="Bottom" Margin="5,0,0,3" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                                <!-- Daily Activity - mini chart tile -->
+                                <Border Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" Background="#272932" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="8" Margin="5" Padding="15">
+                                    <StackPanel>
+                                        <TextBlock Text="Daily Activity" FontSize="14" Foreground="#AAAAAA" Margin="0,0,0,8" />
+                                        <lvc:CartesianChart
+                                            Series="{Binding MainView.ErrorTrendSeries}"
+                                            XAxes="{Binding MainView.HoursAxis}"
+                                            YAxes="{Binding MainView.CountAxis}"
+                                            TooltipPosition="Top"
+                                            Height="80"
+                                            LegendPosition="Hidden"/>
+                                    </StackPanel>
+                                </Border>
+                                
+                                <!-- Log Distribution - mini chart tile -->
+                                <Border Grid.Column="2" Grid.Row="1" Grid.ColumnSpan="2" Background="#272932" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="8" Margin="5" Padding="15">
+                                    <StackPanel>
+                                        <TextBlock Text="Log Distribution" FontSize="14" Foreground="#AAAAAA" Margin="0,0,0,8" />
+                                        <Grid>
+                                            <lvc:PieChart
+                                                Series="{Binding MainView.LogDistributionSeries}"
+                                                Height="80"
+                                                LegendPosition="Hidden"/>
+                                            <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                    Width="40" Height="40" CornerRadius="20" 
+                                                    Background="#272932">
+                                                <TextBlock Text="{Binding MainView.LogStatistics.TotalCount}" 
+                                                        FontSize="14" FontWeight="SemiBold" 
+                                                        HorizontalAlignment="Center" 
+                                                        VerticalAlignment="Center" />
+                                            </Border>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                              </Grid>
+                            </Border>
+                             
+                            <!-- Main dashboards in two columns -->
+                            <Grid ColumnDefinitions="*,*" Margin="0,0,0,20">
+                                <!-- Left column -->
+                                <StackPanel Grid.Column="0" Margin="5,0,10,0" Spacing="20">
+                                    <!-- Log Type Distribution Chart -->
+                                    <Border Background="#2D2F33" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="10" Padding="15">
+                                        <StackPanel>
+                                            <TextBlock Text="Log Type Distribution" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                            <Viewbox MaxHeight="220">
+                                                <lvc:PieChart
+                                                    Series="{Binding MainView.LogDistributionSeries}"
+                                                    Width="300"
+                                                    Height="300"
+                                                    LegendPosition="Right"
+                                                    TooltipPosition="Right" />
+                                            </Viewbox>
+                                        </StackPanel>
+                                    </Border>
+                                
+                                    <!-- Activity Heat Map -->
+                                    <Border Background="#2D2F33" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="10" Padding="15">
+                                        <StackPanel>
+                                            <TextBlock Text="Activity Heat Map" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                            <Viewbox MaxHeight="200">
+                                                <lvc:CartesianChart
+                                                    Series="{Binding MainView.TimeHeatmapSeries}"
+                                                    XAxes="{Binding MainView.HoursAxis}"
+                                                    Width="440"
+                                                    Height="200"
+                                                    LegendPosition="Hidden" />
+                                            </Viewbox>
+                                        </StackPanel>
+                                    </Border>
+                                    
+                                    <!-- Log Sources Distribution -->
+                                    <Border Background="#2D2F33" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="10" Padding="15">
+                                        <StackPanel>
+                                            <TextBlock Text="Log Source Distribution" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                            <Viewbox MaxHeight="300">
+                                                <lvc:CartesianChart
+                                                    Series="{Binding MainView.SourcesDistributionSeries}"
+                                                    XAxes="{Binding MainView.SourceAxis}"
+                                                    YAxes="{Binding MainView.CountAxis}"
+                                                    Width="440" 
+                                                    Height="300"
+                                                    LegendPosition="Hidden" />
+                                            </Viewbox>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                                
+                                <!-- Right column -->
+                                <StackPanel Grid.Column="1" Margin="10,0,5,0" Spacing="20">
+                                    <!-- Logs By Time Chart -->
+                                    <Border Background="#2D2F33" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="10" Padding="15">
+                                        <StackPanel>
+                                            <Grid Margin="0,0,0,10">
+                                                <TextBlock Text="Logs By Time" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Left" />
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                                                    <Border Background="#494A52" CornerRadius="4" Padding="6,2">
+                                                        <TextBlock Text="Zoom: Mouse Wheel" FontSize="12" Foreground="#AAAAAA" />
+                                                    </Border>
+                                                    <Border Background="#494A52" CornerRadius="4" Padding="6,2">
+                                                        <TextBlock Text="Pan: Click &amp; Drag" FontSize="12" Foreground="#AAAAAA" />
+                                                    </Border>
+                                                </StackPanel>
+                                            </Grid>
+                                            <Viewbox MaxHeight="300">
+                                                <lvc:CartesianChart
+                                                    Series="{Binding MainView.LevelsOverTimeSeries}"
+                                                    XAxes="{Binding MainView.TimeAxis}"
+                                                    YAxes="{Binding MainView.CountAxis}"
+                                                    Width="540"
+                                                    Height="300"
+                                                    TooltipPosition="Top"
+                                                    LegendPosition="Right"
+                                                    AnimationsSpeed="00:00:00.700"
+                                                    ZoomMode="X" />
+                                            </Viewbox>
+                                        </StackPanel>
+                                    </Border>
+                                    
+                                    <!-- Top Errors Chart -->
+                                    <Border Background="#2D2F33" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="10" Padding="15">
+                                        <StackPanel>
+                                            <TextBlock Text="Top 10 Error Messages" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                            <Viewbox MaxHeight="400">
+                                                <lvc:CartesianChart
+                                                    Series="{Binding MainView.TopErrorsSeries}"
+                                                    XAxes="{Binding MainView.ErrorMessageAxis}"
+                                                    YAxes="{Binding MainView.CountAxis}"
+                                                    Width="440"
+                                                    Height="400"
+                                                    LegendPosition="Hidden" />
+                                            </Viewbox>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+                         </StackPanel>
+                     </ScrollViewer>
+                 </Grid>
+            </Grid>
             
             <Panel Grid.Row="2" IsVisible="{Binding MainView.IsLoading}">
                 <Border Background="#55262729" 

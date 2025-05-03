@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Log_Parser_App.ViewModels;
-using LogParserApp.ViewModels;
 
 namespace Log_Parser_App.Models
 {
@@ -46,7 +45,7 @@ namespace Log_Parser_App.Models
         
         public List<string>? AvailableValues =>
             SelectedField != null && ParentViewModel?.AvailableValuesByField.ContainsKey(SelectedField) == true
-                ? ParentViewModel.AvailableValuesByField[SelectedField]
+                ? new List<string>(ParentViewModel.AvailableValuesByField[SelectedField])
                 : null;
                 
         public bool ShowValueComboBox =>
