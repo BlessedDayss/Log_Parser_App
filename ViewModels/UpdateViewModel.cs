@@ -36,6 +36,11 @@ namespace Log_Parser_App.ViewModels
             _updateService = updateService;
             _logger = logger;
         }
+
+        private bool IsUpdateValid()
+        {
+            return AvailableUpdate != null && AvailableUpdate.Version != null && AvailableUpdate.Version > new Version(0, 0, 0);
+        }
         
         public async Task CheckForUpdatesOnStartupAsync()
         {
