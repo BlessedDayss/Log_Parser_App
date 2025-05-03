@@ -26,7 +26,13 @@ namespace Log_Parser_App.ViewModels
         private readonly IErrorRecommendationService _errorRecommendationService;
         
         [ObservableProperty]
-        private string _statusMessage = "Ready to work";
+        private string _statusMessage = "Готов к работе";
+        
+        [ObservableProperty]
+        private int _totalLinesInFile = 0;
+        
+        [ObservableProperty]
+        private int _loadedLinesCount = 0;
         
         [ObservableProperty]
         private bool _isLoading;
@@ -188,10 +194,26 @@ namespace Log_Parser_App.ViewModels
                         LogEntries.Clear();
                     });
 
+                    // Count total lines in the file
+                    int totalLines = 0;
+                    try 
+                    {
+                        totalLines = File.ReadAllLines(file).Length;
+                        TotalLinesInFile = totalLines;
+                        _logger.LogInformation("Total lines in file: {TotalLines}", totalLines);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to count total lines in file");
+                    }
+
                     var entries = await _logParserService.ParseLogFileAsync(file);
                     
                     
                     var logEntries = entries as LogEntry[] ?? entries.ToArray();
+                    LoadedLinesCount = logEntries.Length;
+                    _logger.LogInformation("Loaded {LoadedLines} log entries out of {TotalLines} lines", LoadedLinesCount, TotalLinesInFile);
+                    
                     foreach (var entry in logEntries)
                     {
                         if (!string.IsNullOrEmpty(entry.Message))
@@ -263,7 +285,7 @@ namespace Log_Parser_App.ViewModels
                 await Dispatcher.UIThread.InvokeAsync(() => {
                     UpdateErrorLogEntries(); // Обновляем коллекцию ошибок ПОСЛЕ добавления всех записей
                     UpdateLogStatistics(); // Обновляем статистику ПОСЛЕ добавления всех записей
-                    StatusMessage = $"Loaded {LogEntries.Count} log entries";
+                    StatusMessage = $"Загружено {LogEntries.Count} записей ({LoadedLinesCount} строк из {TotalLinesInFile})";
                     SelectedTabIndex = 0;
                 });
                 
@@ -492,9 +514,9 @@ namespace Log_Parser_App.ViewModels
                 };
                 
                 // 3. Heatmap распределения логов по времени
-                int maxValue = totalByHour.Any() ? totalByHour.Select(p => (int)p.Value).Max() : 0;
+                int maxValue = totalByHour.Any() ? totalByHour.Select(p => (int)(p.Value ?? 0)).Max() : 0;
                 
-                var timeHeatData = totalByHour.Select(p => p.Value).ToArray();
+                var timeHeatData = totalByHour.Select(p => p.Value ?? 0).ToArray();
                 
                 TimeHeatmapSeries = new ISeries[]
                 {
@@ -733,4 +755,4 @@ namespace Log_Parser_App.ViewModels
             }
         }
     }
-} 
+}

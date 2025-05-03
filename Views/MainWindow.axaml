@@ -17,20 +17,21 @@
         Icon="/Assets/logparserv1.ico"
         Title="LogParser - Log Analyzer"
         MinWidth="950" MinHeight="650"
-        Background="#181A1F"
+        Background="#1A1C21"
         ExtendClientAreaToDecorationsHint="True"><!-- xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia" -->
 
     <Window.Resources>
         <!-- Color/Brush Resources -->
-        <SolidColorBrush x:Key="BackgroundBrush" Color="#181A1F" />
-        <SolidColorBrush x:Key="SurfaceBrush" Color="#212329" />
-        <SolidColorBrush x:Key="PrimaryBrush" Color="#3D6CB9" />
-        <SolidColorBrush x:Key="SecondaryBrush" Color="#4F5D75" />
+        <SolidColorBrush x:Key="BackgroundBrush" Color="#1A1C21" />
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#22252D" />
+        <SolidColorBrush x:Key="PrimaryBrush" Color="#4E72C8" />
+        <SolidColorBrush x:Key="SecondaryBrush" Color="#5D6B8E" />
         <SolidColorBrush x:Key="AccentBrush" Color="#5C80BC" />
-        <SolidColorBrush x:Key="TextBrush" Color="#F0F0F0" />
+        <SolidColorBrush x:Key="TextBrush" Color="#F5F5F7" />
         <SolidColorBrush x:Key="ErrorBrush" Color="#E74C3C" />
         <SolidColorBrush x:Key="WarningBrush" Color="#F39C12" />
         <SolidColorBrush x:Key="InfoBrush" Color="#3498DB" />
+        <SolidColorBrush x:Key="SuccessBrush" Color="#2ECC71" />
     </Window.Resources>
 
     <Window.Styles>
@@ -81,54 +82,43 @@
         </Style>
         
         <Style Selector="Border.card">
-            <Setter Property="Background" Value="#2D2E32" />
+            <Setter Property="Background" Value="#22252D" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="BoxShadow" Value="0 2 10 0 #15000000" />
-            <Setter Property="Margin" Value="8" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="BoxShadow" Value="0 4 16 0 #15000000" />
+            <Setter Property="Margin" Value="10" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BoxShadowsTransition Property="BoxShadow" Duration="0.2" />
+                    <ThicknessTransition Property="Margin" Duration="0.2" />
+                </Transitions>
+            </Setter>
         </Style>
         
-        <Style Selector="TabControl">
-            <Setter Property="Padding" Value="8" />
-            <Setter Property="Background" Value="Transparent" />
-        </Style>
-        
-        <Style Selector="TabItem">
-            <Setter Property="Padding" Value="16 8" />
-            <Setter Property="FontSize" Value="14" />
-            <Setter Property="Foreground" Value="#AAAAAA" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Margin" Value="0 0 4 0" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Style Selector="^:selected">
-                <Setter Property="Foreground" Value="#FFFFFF" />
-                <Setter Property="FontWeight" Value="SemiBold" />
-            </Style>
-        </Style>
-        
-        <Style Selector="TextBox">
-            <Setter Property="Background" Value="#2D2E32" />
-            <Setter Property="Foreground" Value="#E0E0E0" />
-            <Setter Property="BorderBrush" Value="#404146" />
-            <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Padding" Value="12 8" />
+        <Style Selector="Border.card:pointerover">
+            <Setter Property="BoxShadow" Value="0 6 20 0 #20000000" />
+            <Setter Property="Margin" Value="8 6 12 14" />
         </Style>
         
         <Style Selector="Button">
-            <Setter Property="Background" Value="#4e72c8" />
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
             <Setter Property="Foreground" Value="White" />
-            <Setter Property="Padding" Value="16 8" />
+            <Setter Property="Padding" Value="16 10" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="FontWeight" Value="SemiBold" />
-        </Style>
-        
-        <Style Selector="ComboBox">
-            <Setter Property="Background" Value="#2D2E32" />
-            <Setter Property="Foreground" Value="#E0E0E0" />
-            <Setter Property="BorderBrush" Value="#404146" />
-            <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Padding" Value="12 8" />
-            <Setter Property="Margin" Value="0 0 4 0" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0.15" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0.15" />
+                </Transitions>
+            </Setter>
+            <Style Selector="^:pointerover">
+                <Setter Property="Background" Value="#5A80D3" />
+                <Setter Property="RenderTransform" Value="scale(1.02)" />
+            </Style>
+            <Style Selector="^:pressed">
+                <Setter Property="RenderTransform" Value="scale(0.98)" />
+            </Style>
         </Style>
         
         <Style Selector="Button.remove-button">
@@ -207,6 +197,30 @@
         
         <Style Selector="Button.reset-filters-button:pointerover">
             <Setter Property="Background" Value="#8d98a6" />
+        </Style>
+        
+        <Style Selector="Button.apply-button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#A0A0A0" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0.15"/>
+                    <BrushTransition Property="Foreground" Duration="0.15"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        
+        <Style Selector="Button.apply-button:pointerover">
+            <Setter Property="Background" Value="#36544E" />
+            <Setter Property="Foreground" Value="#5BF15B" />
         </Style>
     </Window.Styles>
 
@@ -360,7 +374,7 @@
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="models1:FilterCriterion">
                                             <Border Background="#2D2E32" CornerRadius="6" Padding="12 8">
-                                                <Grid ColumnDefinitions="Auto,Auto,*,Auto" VerticalAlignment="Center">
+                                                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" VerticalAlignment="Center">
                                                     <ComboBox Grid.Column="0"
                                                               ItemsSource="{Binding ParentViewModel.AvailableFields}"
                                                               SelectedItem="{Binding SelectedField}"
@@ -383,10 +397,16 @@
                                                                 VerticalAlignment="Center"/>
                                                     </Panel>
                                                     <Button Grid.Column="3"
-                                                            Content="Remove"
+                                                            Content="✓"
+                                                            Command="{Binding ParentViewModel.ApplyFilterCriterionCommand}"
+                                                            CommandParameter="{Binding}"
+                                                            Classes="apply-button"
+                                                            Margin="0,0,5,0"/>
+                                                    <Button Grid.Column="4"
+                                                            Content="✕"
                                                             Command="{Binding ParentViewModel.RemoveFilterCriterionCommand}"
                                                             CommandParameter="{Binding}"
-                                                            Classes="danger"/>
+                                                            Classes="remove-button"/>
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>

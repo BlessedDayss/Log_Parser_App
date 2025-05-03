@@ -66,10 +66,32 @@ namespace Log_Parser_App.Services
                         {
                             logEntries.Add(entry);
                         }
+                        else
+                        {
+                            // If parsing fails, create a basic log entry with the raw line
+                            logEntries.Add(new LogEntry
+                            {
+                                Timestamp = DateTime.MinValue,
+                                Level = "UNKNOWN",
+                                Source = "Unknown",
+                                Message = line,
+                                LineNumber = lineCount,
+                                FilePath = filePath
+                            });
+                        }
                     }
                     catch (Exception ex)
                     {
-                        logger.LogWarning(ex, "Error parsing log line {LineNumber}: {Line}", lineCount, line);
+                        // If parsing completely fails, create a basic log entry with error information
+                        logEntries.Add(new LogEntry
+                        {
+                            Timestamp = DateTime.MinValue,
+                            Level = "PARSE_ERROR",
+                            Source = "LogParser",
+                            Message = $"Failed to parse line: {line}. Error: {ex.Message}",
+                            LineNumber = lineCount,
+                            FilePath = filePath
+                        });
                     }
                     
                     if (lineCount % 50000 == 0)

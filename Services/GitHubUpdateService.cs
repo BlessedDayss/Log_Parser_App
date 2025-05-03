@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Net.Mime;
 using System.Reflection;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -50,121 +49,83 @@ namespace Log_Parser_App.Services
         }
         
         /// <inheritdoc/>
-        public async Task<UpdateInfo> CheckForUpdatesAsync()
+        public async Task<UpdateInfo?> CheckForUpdatesAsync()
         {
             try
             {
                 _logger.LogInformation("Checking for updates from GitHub...");
                 
-                // Получаем информацию о последнем релизе
+                // First, verify we can access the GitHub repository and get the latest release
+                var testResult = await TestGitHubConnectionAsync();
+                if (!testResult.Success)
+                {
+                    _logger.LogWarning("GitHub connection test failed: {Message}", testResult.Message);
+                    return null;
+                }
+                
+                _logger.LogInformation("GitHub connection test successful. Latest release: {Tag}", testResult.TagName);
+                
+                // Get the current version
+                var currentVersion = GetCurrentVersion();
+                _logger.LogInformation("Current application version: {Version}", currentVersion);
+                
+                // Parse the version from the tag name
+                string versionString = testResult.TagName.TrimStart('v');
+                if (!Version.TryParse(versionString, out var latestVersion))
+                {
+                    _logger.LogWarning("Failed to parse version from tag name: {TagName}", testResult.TagName);
+                    return null;
+                }
+                
+                _logger.LogInformation("Latest version: {Version}", latestVersion);
+                
+                // Compare versions
+                bool updateAvailable = latestVersion > currentVersion;
+                _logger.LogInformation("Update available: {Available} (Current: {Current}, Latest: {Latest})",
+                    updateAvailable, currentVersion, latestVersion);
+                
+                if (!updateAvailable)
+                {
+                    _logger.LogInformation("Application is up to date");
+                    return null;
+                }
+                
+                // Get detailed release info
                 var releaseUrl = $"https://api.github.com/repos/{_owner}/{_repo}/releases/latest";
                 var response = await _httpClient.GetAsync(releaseUrl);
                 
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogWarning("Failed to check for updates: {StatusCode}", response.StatusCode);
-                    return new UpdateInfo();
+                    _logger.LogWarning("Failed to get detailed release info: {StatusCode}", response.StatusCode);
+                    return null;
                 }
                 
                 var content = await response.Content.ReadAsStringAsync();
-                _logger.LogInformation("GitHub API response: {Content}", content);
-                
                 var releaseInfo = JsonSerializer.Deserialize<GitHubReleaseInfo>(content, 
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 
                 if (releaseInfo == null)
                 {
                     _logger.LogWarning("Failed to parse GitHub release info");
-                    return new UpdateInfo();
+                    return null;
                 }
                 
-                // Диагностическая информация о десериализованном объекте
-                _logger.LogInformation("Deserialized ReleaseInfo: Name={Name}, ZipballUrl={ZipballUrl}, TarballUrl={TarballUrl}",
-                    releaseInfo.Name, releaseInfo.ZipballUrl, releaseInfo.TarballUrl);
+                // Verify the download URL
+                string downloadUrl = testResult.DownloadUrl;
                 
-                // Пытаемся получить версию из тега
-                if (!Version.TryParse(releaseInfo.TagName.TrimStart('v'), out var latestVersion))
-                {
-                    _logger.LogWarning("Failed to parse version from tag name: {TagName}", releaseInfo.TagName);
-                    return new UpdateInfo();
-                }
-                
-                // For testing purposes, force update even if the current version is up to date.
-                // var currentVersion = GetCurrentVersion();
-                // if (latestVersion <= currentVersion)
-                // {
-                //     _logger.LogInformation("Application is up to date. Current version: {CurrentVersion}, Latest version: {LatestVersion}", 
-                //         currentVersion, latestVersion);
-                //     return new UpdateInfo();
-                // }
-                
-                // Выбираем подходящий ассет для загрузки (обычно это .zip или .exe)
-                var asset = releaseInfo.Assets.FirstOrDefault(a => 
-                    a.Name.EndsWith(".zip") || a.Name.EndsWith(".exe"));
-                
-                if (asset == null)
-                {
-                    _logger.LogWarning("No suitable assets found in release");
-                    return new UpdateInfo();
-                }
-                
-                var downloadUrl = GetAssetDownloadUrl(releaseInfo);
-                _logger.LogInformation("Selected download URL: {Url}", downloadUrl);
-                
-                if (string.IsNullOrEmpty(downloadUrl))
-                {
-                    _logger.LogWarning("No valid download URL found in release");
-                    
-                    // Пробуем извлечь URL напрямую из JSON
-                    try 
-                    {
-                        using var jsonDoc = JsonDocument.Parse(content);
-                        var root = jsonDoc.RootElement;
-                        
-                        if (root.TryGetProperty("zipball_url", out var zipballUrlElement))
-                        {
-                            downloadUrl = zipballUrlElement.GetString();
-                            _logger.LogInformation("Obtained zipball_url directly from JSON: {Url}", downloadUrl);
-                        }
-                        else if (root.TryGetProperty("tarball_url", out var tarballUrlElement))
-                        {
-                            downloadUrl = tarballUrlElement.GetString();
-                            _logger.LogInformation("Obtained tarball_url directly from JSON: {Url}", downloadUrl);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error parsing JSON for direct URL extraction");
-                    }
-                    
-                    // Если URL все еще пустой, используем жестко закодированный URL в качестве запасного варианта
-                    if (string.IsNullOrEmpty(downloadUrl))
-                    {
-                        // Используем стандартный шаблон URL для GitHub releases
-                        downloadUrl = $"https://github.com/{_owner}/{_repo}/archive/refs/tags/v{latestVersion}.zip";
-                        _logger.LogInformation("Using hardcoded fallback URL: {Url}", downloadUrl);
-                    }
-                    
-                    if (string.IsNullOrEmpty(downloadUrl))
-                    {
-                        return new UpdateInfo();
-                    }
-                }
-                
+                // Create the update info
                 var updateInfo = new UpdateInfo
                 {
                     Version = latestVersion,
                     ReleaseName = releaseInfo.Name,
                     ReleaseNotes = releaseInfo.Body,
                     DownloadUrl = downloadUrl,
-                    FileSize = 0, // Размер файла будет неизвестен для zipball
+                    TagName = testResult.TagName,
                     PublishedAt = releaseInfo.PublishedAt,
                     RequiresRestart = true
                 };
                 
-                _logger.LogInformation("Created UpdateInfo with URL: {Url}", updateInfo.DownloadUrl);
-                
-                // Парсим ChangeLog из описания релиза
+                // Parse the changelog from the release notes
                 if (!string.IsNullOrEmpty(releaseInfo.Body))
                 {
                     var lines = releaseInfo.Body.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
@@ -177,73 +138,94 @@ namespace Log_Parser_App.Services
                     }
                 }
                 
-                _logger.LogInformation("New version available: {Version}", updateInfo.Version);
-                
-                // Проверка перед возвратом
-                if (string.IsNullOrEmpty(updateInfo.DownloadUrl))
-                {
-                    _logger.LogWarning("UpdateInfo.DownloadUrl is still empty before return! Using fallback URL.");
-                    updateInfo.DownloadUrl = $"https://github.com/{_owner}/{_repo}/archive/refs/tags/v{latestVersion}.zip";
-                    _logger.LogInformation("Final fallback URL set: {Url}", updateInfo.DownloadUrl);
-                }
+                _logger.LogInformation("Update info created: Version={Version}, URL={Url}",
+                    updateInfo.Version, updateInfo.DownloadUrl);
                 
                 return updateInfo;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error checking for updates");
-                return new UpdateInfo();
+                return null;
             }
         }
         
         /// <inheritdoc/>
         public async Task<string> DownloadUpdateAsync(UpdateInfo updateInfo, IProgress<int>? progressCallback = null)
         {
-            try
+            if (updateInfo == null)
             {
-                _logger.LogInformation("Starting download with URL: {Url}", updateInfo.DownloadUrl);
+                _logger.LogError("UpdateInfo is null");
+                throw new ArgumentNullException(nameof(updateInfo));
+            }
+            
+            _logger.LogInformation("Starting download: Version={Version}, URL={Url}",
+                updateInfo.Version, updateInfo.DownloadUrl);
+            
+            // Validate the download URL
+            if (string.IsNullOrEmpty(updateInfo.DownloadUrl))
+            {
+                _logger.LogError("Download URL is empty");
+                
+                // Verify we can access the GitHub repository and get the latest release
+                var testResult = await TestGitHubConnectionAsync();
+                if (!testResult.Success)
+                {
+                    _logger.LogWarning("GitHub connection test failed: {Message}", testResult.Message);
+                    throw new InvalidOperationException($"Unable to determine download URL: {testResult.Message}");
+                }
+                
+                updateInfo.DownloadUrl = testResult.DownloadUrl;
+                _logger.LogInformation("Using download URL from test: {Url}", updateInfo.DownloadUrl);
                 
                 if (string.IsNullOrEmpty(updateInfo.DownloadUrl))
                 {
-                    _logger.LogError("Download URL is empty in UpdateInfo");
-                    
-                    // Создаем запасной URL
-                    var fallbackUrl = $"https://github.com/{_owner}/{_repo}/archive/refs/tags/v{updateInfo.Version}.zip";
-                    _logger.LogInformation("Using fallback URL for downloading: {Url}", fallbackUrl);
-                    updateInfo.DownloadUrl = fallbackUrl;
-                    
-                    if (string.IsNullOrEmpty(updateInfo.DownloadUrl))
-                    {
-                        throw new InvalidOperationException("Download URL is empty and fallback creation failed");
-                    }
+                    throw new InvalidOperationException("Unable to determine download URL");
                 }
-                
-                // Проверяем, что URL абсолютный
+            }
+            
+            try
+            {
+                // Validate the URL
                 if (!Uri.TryCreate(updateInfo.DownloadUrl, UriKind.Absolute, out var uri))
                 {
-                    _logger.LogError("Invalid download URL format: {Url}", updateInfo.DownloadUrl);
+                    _logger.LogError("Invalid download URL: {Url}", updateInfo.DownloadUrl);
                     throw new InvalidOperationException($"Invalid download URL: {updateInfo.DownloadUrl}");
                 }
                 
-                _logger.LogInformation("Downloading update {Version} from {Url}", 
-                    updateInfo.Version, updateInfo.DownloadUrl);
+                // Test the URL before downloading
+                _logger.LogInformation("Testing download URL: {Url}", updateInfo.DownloadUrl);
+                var testResponse = await _httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, uri));
                 
-                // Создаем уникальное имя файла для загрузки
+                if (!testResponse.IsSuccessStatusCode)
+                {
+                    _logger.LogError("Download URL is not accessible: {StatusCode}", testResponse.StatusCode);
+                    throw new HttpRequestException($"Download URL is not accessible: {testResponse.StatusCode}");
+                }
+                
+                // Create a unique file name for the download
                 var fileName = $"update-{updateInfo.Version}.zip";
+                if (!string.IsNullOrEmpty(updateInfo.TagName))
+                {
+                    fileName = $"update-{updateInfo.TagName.TrimStart('v')}.zip";
+                }
+                
                 var filePath = Path.Combine(_tempFolder, fileName);
                 
-                // Если файл уже существует, удаляем его
+                // Delete the file if it already exists
                 if (File.Exists(filePath))
                 {
+                    _logger.LogInformation("Deleting existing file: {Path}", filePath);
                     File.Delete(filePath);
                 }
                 
-                // Загружаем файл с отображением прогресса
+                // Download the file
+                _logger.LogInformation("Downloading update to: {Path}", filePath);
                 using var response = await _httpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead);
                 
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogError($"Failed to download update: {response.StatusCode}");
+                    _logger.LogError("Failed to download update: {StatusCode}", response.StatusCode);
                     throw new HttpRequestException($"Response status code does not indicate success: {response.StatusCode}");
                 }
                 
@@ -258,6 +240,7 @@ namespace Log_Parser_App.Services
                 while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
                 {
                     await fileStream.WriteAsync(buffer, 0, bytesRead);
+                    
                     totalBytesRead += bytesRead;
                     
                     if (totalBytes > 0 && progressCallback != null)
@@ -267,7 +250,7 @@ namespace Log_Parser_App.Services
                     }
                 }
                 
-                _logger.LogInformation("Download completed: {FilePath}", filePath);
+                _logger.LogInformation("Download completed: {Path}", filePath);
                 return filePath;
             }
             catch (Exception ex)
@@ -420,35 +403,215 @@ echo ""Update completed at $(date)""";
         {
             try
             {
-                var versionFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "VERSION.txt");
-                
-                if (File.Exists(versionFilePath))
-                {
-                    var versionString = File.ReadAllText(versionFilePath).Trim();
-                    if (Version.TryParse(versionString, out var version))
-                    {
-                        _logger.LogInformation("Using version from VERSION.txt: {Version}", version);
-                        return version;
-                    }
-                    
-                    _logger.LogWarning("Failed to parse version from VERSION.txt: {Version}", versionString);
-                }
-                else
-                {
-                    _logger.LogWarning("VERSION.txt file not found at {Path}", versionFilePath);
-                }
-                
-                // Если чтение из файла не удалось, используем версию из сборки
+                // Get version directly from assembly attributes for more reliable version checking
                 var assembly = Assembly.GetExecutingAssembly();
+                
+                // Try to get version from AssemblyInformationalVersionAttribute first
+                var infoVersionAttr = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+                if (infoVersionAttr != null && Version.TryParse(infoVersionAttr.InformationalVersion, out var infoVersion))
+                {
+                    _logger.LogInformation("Using informational version: {Version}", infoVersion);
+                    return infoVersion;
+                }
+                
+                // Then try AssemblyFileVersionAttribute
+                var fileVersionAttr = assembly.GetCustomAttribute<AssemblyFileVersionAttribute>();
+                if (fileVersionAttr != null && Version.TryParse(fileVersionAttr.Version, out var fileVersion))
+                {
+                    _logger.LogInformation("Using file version: {Version}", fileVersion);
+                    return fileVersion;
+                }
+                
+                // Finally fall back to assembly version
                 var assemblyVersion = assembly.GetName().Version;
-                _logger.LogInformation("Using assembly version: {Version}", assemblyVersion);
-                return assemblyVersion ?? new Version(0, 0, 0);
+                if (assemblyVersion != null)
+                {
+                    _logger.LogInformation("Using assembly version: {Version}", assemblyVersion);
+                    return assemblyVersion;
+                }
+                
+                // Hardcoded version as last resort
+                var hardcodedVersion = new Version(0, 1, 6);
+                _logger.LogWarning("Using hardcoded version as fallback: {Version}", hardcodedVersion);
+                return hardcodedVersion;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting current version");
-                return new Version(0, 0, 0);
+                return new Version(0, 1, 6); // Return current version as fallback
             }
+        }
+        
+        /// <summary>
+        /// Tests the connection to GitHub and verifies we can access the latest release
+        /// </summary>
+        /// <returns>Test result with information about the latest release</returns>
+        private async Task<GitHubTestResult> TestGitHubConnectionAsync()
+        {
+            try
+            {
+                _logger.LogInformation("Testing GitHub connection to {Owner}/{Repo}", _owner, _repo);
+                
+                // First, check if the repository exists
+                var repoUrl = $"https://api.github.com/repos/{_owner}/{_repo}";
+                var repoResponse = await _httpClient.GetAsync(repoUrl);
+                
+                if (!repoResponse.IsSuccessStatusCode)
+                {
+                    return new GitHubTestResult 
+                    { 
+                        Success = false, 
+                        Message = $"Repository not found: {repoResponse.StatusCode}" 
+                    };
+                }
+                
+                // Then check if there are any releases
+                var releasesUrl = $"https://api.github.com/repos/{_owner}/{_repo}/releases";
+                var releasesResponse = await _httpClient.GetAsync(releasesUrl);
+                
+                if (!releasesResponse.IsSuccessStatusCode)
+                {
+                    return new GitHubTestResult 
+                    { 
+                        Success = false, 
+                        Message = $"Failed to get releases: {releasesResponse.StatusCode}" 
+                    };
+                }
+                
+                var content = await releasesResponse.Content.ReadAsStringAsync();
+                var releases = JsonSerializer.Deserialize<List<GitHubReleaseInfo>>(content, 
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                
+                if (releases == null || !releases.Any())
+                {
+                    return new GitHubTestResult 
+                    { 
+                        Success = false, 
+                        Message = "No releases found" 
+                    };
+                }
+                
+                // Get the latest release
+                var latestRelease = releases.OrderByDescending(r => r.PublishedAt).First();
+                
+                // Verify the download URL
+                string downloadUrl = "";
+                
+                // First try to find a suitable asset
+                if (latestRelease.Assets != null && latestRelease.Assets.Any())
+                {
+                    var asset = latestRelease.Assets.FirstOrDefault(a => 
+                        a.Name.EndsWith(".zip") || a.Name.EndsWith(".exe"));
+                    
+                    if (asset != null && !string.IsNullOrEmpty(asset.BrowserDownloadUrl))
+                    {
+                        downloadUrl = asset.BrowserDownloadUrl;
+                    }
+                }
+                
+                // If no suitable asset found, use the zipball URL
+                if (string.IsNullOrEmpty(downloadUrl) && !string.IsNullOrEmpty(latestRelease.ZipballUrl))
+                {
+                    downloadUrl = latestRelease.ZipballUrl;
+                }
+                
+                // If still no URL, use the tarball URL
+                if (string.IsNullOrEmpty(downloadUrl) && !string.IsNullOrEmpty(latestRelease.TarballUrl))
+                {
+                    downloadUrl = latestRelease.TarballUrl;
+                }
+                
+                // If still no URL, construct one based on the tag name
+                if (string.IsNullOrEmpty(downloadUrl))
+                {
+                    downloadUrl = $"https://github.com/{_owner}/{_repo}/archive/refs/tags/{latestRelease.TagName}.zip";
+                }
+                
+                // Test the download URL
+                var downloadResponse = await _httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, downloadUrl));
+                
+                if (!downloadResponse.IsSuccessStatusCode)
+                {
+                    return new GitHubTestResult 
+                    { 
+                        Success = false, 
+                        Message = $"Download URL is not accessible: {downloadResponse.StatusCode}" 
+                    };
+                }
+                
+                return new GitHubTestResult 
+                { 
+                    Success = true, 
+                    TagName = latestRelease.TagName,
+                    DownloadUrl = downloadUrl
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error testing GitHub connection");
+                return new GitHubTestResult 
+                { 
+                    Success = false, 
+                    Message = $"Error: {ex.Message}" 
+                };
+            }
+        }
+        
+        /// <summary>
+        /// Result of testing the GitHub connection
+        /// </summary>
+        private class GitHubTestResult
+        {
+            /// <summary>
+            /// Whether the test was successful
+            /// </summary>
+            public bool Success { get; set; }
+            
+            /// <summary>
+            /// Message describing the result
+            /// </summary>
+            public string Message { get; set; } = string.Empty;
+            
+            /// <summary>
+            /// Tag name of the latest release
+            /// </summary>
+            public string TagName { get; set; } = string.Empty;
+            
+            /// <summary>
+            /// Download URL for the latest release
+            /// </summary>
+            public string DownloadUrl { get; set; } = string.Empty;
+        }
+        
+        /// <summary>
+        /// Вспомогательный метод для получения URL для скачивания ассета
+        /// </summary>
+        /// <param name="release">Информация о релизе</param>
+        /// <returns>URL для скачивания ассета</returns>
+        private string GetAssetDownloadUrl(GitHubReleaseInfo release)
+        {
+            // Логируем значения URL для проверки
+            _logger.LogInformation("ZipballUrl: {ZipballUrl}", release.ZipballUrl);
+            _logger.LogInformation("TarballUrl: {TarballUrl}", release.TarballUrl);
+            
+            // Fallback download URL from GitHub release
+            string fallbackUrl = !string.IsNullOrEmpty(release.ZipballUrl) ? release.ZipballUrl : release.TarballUrl;
+            
+            if (release.Assets == null || !release.Assets.Any())
+            {
+                _logger.LogInformation("No assets found in release, using fallback URL: {Url}", fallbackUrl);
+                return fallbackUrl;
+            }
+            
+            var asset = release.Assets.FirstOrDefault(a => a.Name.EndsWith(".zip") || a.Name.EndsWith(".exe"));
+            if (asset != null && !string.IsNullOrEmpty(asset.BrowserDownloadUrl))
+            {
+                _logger.LogInformation("Found suitable asset: {Name} with URL: {Url}", asset.Name, asset.BrowserDownloadUrl);
+                return asset.BrowserDownloadUrl;
+            }
+            
+            _logger.LogInformation("No suitable assets found, using fallback URL: {Url}", fallbackUrl);
+            return fallbackUrl;
         }
         
         // Вспомогательные классы для десериализации JSON ответа от GitHub API
@@ -483,32 +646,6 @@ echo ""Update completed at $(date)""";
             public string ContentType { get; set; } = string.Empty;
             public long Size { get; set; }
             public string BrowserDownloadUrl { get; set; } = string.Empty;
-        }
-
-        private string GetAssetDownloadUrl(GitHubReleaseInfo release)
-        {
-            // Логируем значения URL для проверки
-            _logger.LogInformation("ZipballUrl: {ZipballUrl}", release.ZipballUrl);
-            _logger.LogInformation("TarballUrl: {TarballUrl}", release.TarballUrl);
-            
-            // Fallback download URL from GitHub release
-            string fallbackUrl = !string.IsNullOrEmpty(release.ZipballUrl) ? release.ZipballUrl : release.TarballUrl;
-            
-            if (release.Assets == null || !release.Assets.Any())
-            {
-                _logger.LogInformation("No assets found in release, using fallback URL: {Url}", fallbackUrl);
-                return fallbackUrl;
-            }
-            
-            var asset = release.Assets.FirstOrDefault(a => a.Name.EndsWith(".zip") || a.Name.EndsWith(".exe"));
-            if (asset != null && !string.IsNullOrEmpty(asset.BrowserDownloadUrl))
-            {
-                _logger.LogInformation("Found suitable asset: {Name} with URL: {Url}", asset.Name, asset.BrowserDownloadUrl);
-                return asset.BrowserDownloadUrl;
-            }
-            
-            _logger.LogInformation("No suitable assets found, using fallback URL: {Url}", fallbackUrl);
-            return fallbackUrl;
         }
     }
 } 

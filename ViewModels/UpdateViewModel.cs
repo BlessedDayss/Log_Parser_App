@@ -45,9 +45,14 @@ namespace Log_Parser_App.ViewModels
                 
                 await CheckForUpdatesAsync();
                 
-                if (AvailableUpdate != null)
+                if (AvailableUpdate != null && AvailableUpdate.Version != null && AvailableUpdate.Version != new Version(0, 0, 0))
                 {
                     _logger.LogInformation("Update available: {Version}", AvailableUpdate.Version);
+                }
+                else
+                {
+                    // Ensure we don't keep an old update object around
+                    AvailableUpdate = null;
                 }
             }
             catch (Exception ex)
@@ -103,13 +108,15 @@ namespace Log_Parser_App.ViewModels
             {
                 AvailableUpdate = await _updateService.CheckForUpdatesAsync();
                 
-                if (AvailableUpdate != null)
+                if (AvailableUpdate != null && AvailableUpdate.Version != null && AvailableUpdate.Version != new Version(0, 0, 0))
                 {
                     StatusMessage = $"Доступно обновление: {AvailableUpdate.Version}";
                 }
                 else
                 {
                     StatusMessage = "У вас установлена последняя версия";
+                    // Ensure we don't keep an old update object around
+                    AvailableUpdate = null;
                 }
             }
             catch (Exception ex)

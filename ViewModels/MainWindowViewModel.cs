@@ -115,14 +115,6 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         try
         {
-            var versionFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "VERSION.txt");
-            if (File.Exists(versionFilePath))
-            {
-                var versionString = File.ReadAllText(versionFilePath).Trim();
-                AppVersion = $"v{versionString}";
-                return;
-            }
-            
             var assembly = Assembly.GetExecutingAssembly();
             var version = assembly.GetName().Version;
             AppVersion = $"v{version?.Major ?? 0}.{version?.Minor ?? 0}.{version?.Build ?? 0}";
@@ -148,7 +140,7 @@ public partial class MainWindowViewModel : ViewModelBase
             _logger.LogInformation("Checking for updates");
             AvailableUpdate = await _updateService.CheckForUpdatesAsync();
             
-            if (AvailableUpdate != null)
+            if (AvailableUpdate != null && AvailableUpdate.Version != null && AvailableUpdate.Version != new Version(0, 0, 0))
             {
                 IsUpdateAvailable = true;
                 _logger.LogInformation("Update available: {Version}", AvailableUpdate.Version);
@@ -157,6 +149,8 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 IsUpdateAvailable = false;
                 _logger.LogInformation("No updates available");
+                // Ensure we don't keep an old update object around
+                AvailableUpdate = null;
             }
         }
         catch (Exception ex)
@@ -263,7 +257,9 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         var newCriterion = new FilterCriterion
         {
-            ParentViewModel = this // Set the parent ViewModel reference
+            ParentViewModel = this, // Set the parent ViewModel reference
+            SelectedField = "Level", // Set default field to Level
+            SelectedOperator = "Equals" // Set default operator to Equals
         };
         FilterCriteria.Add(newCriterion);
         _logger.LogInformation("Added new filter criterion.");
@@ -280,6 +276,139 @@ public partial class MainWindowViewModel : ViewModelBase
         else
         {
              _logger.LogWarning("Attempted to remove a null filter criterion.");
+        }
+    }
+
+    [RelayCommand]
+    private async Task ApplyFilterCriterion(FilterCriterion? criterion)
+    {
+        if (criterion == null)
+        {
+            _logger.LogWarning("Attempted to apply a null filter criterion.");
+            return;
+        }
+
+        if (MainView.LogEntries.Count == 0)
+        {
+            MainView.StatusMessage = "No log entries to filter";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(criterion.SelectedField) || 
+            string.IsNullOrWhiteSpace(criterion.SelectedOperator) ||
+            criterion.Value == null)
+        {
+            MainView.StatusMessage = "Please configure the filter criterion completely";
+            return;
+        }
+
+        MainView.StatusMessage = "Applying filter...";
+        MainView.IsLoading = true;
+
+        try
+        {
+            var entriesToFilter = MainView.LogEntries.ToList();
+            
+            await Task.Run(() =>
+            {
+                IEnumerable<LogEntry> filtered = entriesToFilter;
+                
+                if (!string.IsNullOrWhiteSpace(criterion.SelectedField) &&
+                    !string.IsNullOrWhiteSpace(criterion.SelectedOperator) &&
+                    criterion.Value != null)
+                {
+                    filtered = ApplyFilterCriterion(filtered, criterion);
+                }
+                
+                Dispatcher.UIThread.Post(() =>
+                {
+                    MainView.FilteredLogEntries.Clear();
+                    foreach (var entry in filtered)
+                    {
+                        MainView.FilteredLogEntries.Add(entry);
+                    }
+                    MainView.StatusMessage = $"Applied filter. Showing {MainView.FilteredLogEntries.Count} entries.";
+                });
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error applying filter");
+            MainView.StatusMessage = $"Error applying filter: {ex.Message}";
+        }
+        finally
+        {
+            MainView.IsLoading = false;
+        }
+    }
+
+    private IEnumerable<LogEntry> ApplyFilterCriterion(IEnumerable<LogEntry> entries, FilterCriterion criterion)
+    {
+        _logger.LogDebug("Applying filter: {Field} {Operator} '{Value}'", criterion.SelectedField, criterion.SelectedOperator, criterion.Value);
+
+        if (criterion.SelectedField == null || criterion.SelectedOperator == null || criterion.Value == null)
+        {
+            return entries; 
+        }
+             
+        switch (criterion.SelectedField)
+        {
+            case "Level":
+                return criterion.SelectedOperator switch
+                {
+                    "Equals" => entries.Where(e => e.Level.Equals(criterion.Value, StringComparison.OrdinalIgnoreCase)),
+                    "NotEquals" => entries.Where(e => !e.Level.Equals(criterion.Value, StringComparison.OrdinalIgnoreCase)),
+                    "Contains" => entries.Where(e => e.Level.Contains(criterion.Value, StringComparison.OrdinalIgnoreCase)),
+                    _ => entries
+                };
+            case "Source":
+                return criterion.SelectedOperator switch
+                {
+                    "Equals" => entries.Where(e => e.Source?.Equals(criterion.Value, StringComparison.OrdinalIgnoreCase) ?? false),
+                    "NotEquals" => entries.Where(e => !(e.Source?.Equals(criterion.Value, StringComparison.OrdinalIgnoreCase) ?? false)),
+                    "Contains" => entries.Where(e => e.Source?.Contains(criterion.Value, StringComparison.OrdinalIgnoreCase) ?? false),
+                    "StartsWith" => entries.Where(e => e.Source?.StartsWith(criterion.Value, StringComparison.OrdinalIgnoreCase) ?? false),
+                    "EndsWith" => entries.Where(e => e.Source?.EndsWith(criterion.Value, StringComparison.OrdinalIgnoreCase) ?? false),
+                     _ => entries
+                };
+            case "Message": 
+                 return criterion.SelectedOperator switch
+                {
+                    "Equals" => entries.Where(e => e.Message.Equals(criterion.Value, StringComparison.OrdinalIgnoreCase)),
+                    "NotEquals" => entries.Where(e => !e.Message.Equals(criterion.Value, StringComparison.OrdinalIgnoreCase)),
+                    "Contains" => entries.Where(e => e.Message.Contains(criterion.Value, StringComparison.OrdinalIgnoreCase)),
+                    "StartsWith" => entries.Where(e => e.Message.StartsWith(criterion.Value, StringComparison.OrdinalIgnoreCase)),
+                    "EndsWith" => entries.Where(e => e.Message.EndsWith(criterion.Value, StringComparison.OrdinalIgnoreCase)),
+                     _ => entries
+                };
+            case "Timestamp":
+                // Use DateTimeOffset from DatePicker
+                if (DateTimeOffset.TryParse(criterion.Value, out var dateValue))
+                {
+                    // Compare using the Date part of DateTimeOffset for date-only comparisons
+                    // Or use the full DateTimeOffset for exact comparisons if needed
+                    return criterion.SelectedOperator switch
+                    {
+                        "Equals" => entries.Where(e => e.Timestamp.Date == dateValue.Date), // Compare Date part
+                        "NotEquals" => entries.Where(e => e.Timestamp.Date != dateValue.Date),
+                        "GreaterThan" => entries.Where(e => e.Timestamp > dateValue),
+                        "LessThan" => entries.Where(e => e.Timestamp < dateValue),
+                        "GreaterThanOrEqual" => entries.Where(e => e.Timestamp >= dateValue),
+                        "LessThanOrEqual" => entries.Where(e => e.Timestamp <= dateValue),
+                        _ => entries
+                    };
+                }
+                else
+                {
+                    _logger.LogWarning("Could not parse date value for Timestamp filter: {Value}", criterion.Value);
+                    // Optionally return empty if parsing fails and it's a required filter
+                    // return Enumerable.Empty<LogEntry>(); 
+                    return entries; // Or just ignore this filter if parsing fails
+                }
+                 
+            default:
+                _logger.LogWarning("Unsupported field for filtering: {Field}", criterion.SelectedField);
+                return entries;
         }
     }
 
