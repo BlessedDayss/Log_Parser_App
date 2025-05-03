@@ -47,5 +47,10 @@ namespace Log_Parser_App.Models
         /// Требуется ли перезапуск приложения после обновления
         /// </summary>
         public bool RequiresRestart { get; set; } = true;
+        
+        /// <summary>
+        /// Тег релиза в GitHub (например, "v0.1.5")
+        /// </summary>
+        public string TagName { get; set; } = string.Empty;
     }
 } 
