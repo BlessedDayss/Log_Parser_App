@@ -1,0 +1,157 @@
+name: Build, Scan with SonarQube and Publish EXE to GitHub Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    env:
+      SONARQUBE_URL: ${{ secrets.SONARQUBE_URL }}
+      SONARQUBE_TOKEN: ${{ secrets.SONARQUBE_TOKEN }}
+      SONAR_PROJECT_KEY: Log_Parser_App
+      PROJECT_NAME: Log_Parser_App
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build and Publish self-contained EXE
+        run: dotnet publish --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true -o publish/
+
+      - name: Bump version in csproj
+        id: bump
+        run: |
+          $file = './Log_Parser_App.csproj'
+          $content = Get-Content $file
+          $versionLine = Select-String '<Version>(.*)</Version>' -InputObject $content
+          if (-not $versionLine) {
+            $new = '0.1.0'
+            $content = $content -replace '</PropertyGroup>', "  <Version>$new</Version>`n</PropertyGroup>"
+          } else {
+            $current = $versionLine.Matches.Groups[1].Value
+            $parts = $current -split '\.'
+            $parts[2] = ([int]$parts[2] + 1).ToString()
+            $new = "$($parts[0]).$($parts[1]).$($parts[2])"
+            $content = $content -replace "<Version>.*</Version>", "<Version>$new</Version>"
+          }
+          Set-Content -Path $file -Value $content
+          echo "NEW_VERSION=$new" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8
+
+      - name: Commit bumped version
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Log_Parser_App.csproj
+          git commit -m "chore: bump version to v${{ env.NEW_VERSION }}"
+          git push
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: v${{ env.NEW_VERSION }}
+          release_name: Release v${{ env.NEW_VERSION }}
+          body: "Automated release of version v${{ env.NEW_VERSION }}"
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload EXE as release asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./publish/Log_Parser_App.exe
+          asset_name: Log_Parser_App.exe
+          asset_content_type: application/octet-stream
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: '11'
+
+      - name: Download & unzip SonarQube Scanner CLI
+        shell: pwsh
+        run: |
+          Invoke-WebRequest 'https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.9.0.2747-windows.zip' -OutFile 'scanner.zip'
+          Expand-Archive -Path scanner.zip -DestinationPath scanner
+          echo "$PWD/scanner/sonar-scanner-4.9.0.2747-windows/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
+
+      - name: Run SonarQube analysis
+        run: |
+          scanner/sonar-scanner-4.9.0.2747-windows/bin/sonar-scanner.bat `
+            -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY }} `
+            -Dsonar.sources=. `
+            -Dsonar.host.url=${{ env.SONARQUBE_URL }} `
+            -Dsonar.login=${{ env.SONARQUBE_TOKEN }}
+
+      - name: Fetch open SonarQube issues
+        shell: bash
+        run: |
+          curl -u ${{ env.SONARQUBE_TOKEN }}: \
+            -G "${{ env.SONARQUBE_URL }}/api/issues/search" \
+            --data-urlencode "componentKeys=${{ env.SONAR_PROJECT_KEY }}" \
+            --data-urlencode "statuses=OPEN" \
+            -o sonar_issues.json
+
+      - name: Create GitHub Issues and add to Project
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONARQUBE_URL: ${{ env.SONARQUBE_URL }}
+          SONAR_PROJECT_KEY: ${{ env.SONAR_PROJECT_KEY }}
+          PROJECT_NAME: ${{ env.PROJECT_NAME }}
+        run: |
+          jq -c '.issues[]' sonar_issues.json | while read issue; do
+            key=$(echo "$issue" | jq -r .key)
+            message=$(echo "$issue" | jq -r .message)
+            component=$(echo "$issue" | jq -r .component)
+            line=$(echo "$issue" | jq -r .line)
+            severity=$(echo "$issue" | jq -r .severity)
+            rule=$(echo "$issue" | jq -r .rule)
+
+            if [ "$(gh issue list --label sonar-qube --state open --search "$key" --json number --jq 'length')" -gt 0 ]; then
+              continue
+            fi
+
+            BODY=$(cat <<EOF
+**SonarQube Issue [$key]**
+- **Severity**: $severity
+- **Rule**: $rule
+- **Location**: $component:$line
+- **Message**: $message
+
+[View in SonarQube]($SONARQUBE_URL/project/issues?id=$SONAR_PROJECT_KEY&issues=$key)
+EOF
+)
+
+            ISSUE_NUMBER=$(gh issue create \
+              --title "SonarQube: $rule ($key)" \
+              --body "$BODY" \
+              --label sonar-qube,bug \
+              --json number \
+              --jq .number)
+
+            PROJECT_ID=$(gh project view "$PROJECT_NAME" --json id --jq .id)
+            CONTENT_ID=$(gh issue view "$ISSUE_NUMBER" --json id --jq .id)
+            gh project item add --project-id "$PROJECT_ID" --content-id "$CONTENT_ID"
+          done
