@@ -432,14 +432,25 @@ namespace Log_Parser_App.ViewModels
                 var infosByHour = new List<DateTimePoint>();
                 var totalByHour = new List<DateTimePoint>();
 
-                // Format hour labels for x-axis
+                // Format hour labels for x-axis - show all hours for better readability
                 List<string> hourLabels = new List<string>();
-                for (int hour = 0; hour < 24; hour += 2)
+                for (int hour = 0; hour < 24; hour += 1) // Changed from every 2 hours to every hour
                 {
                     hourLabels.Add($"{hour:00}:00");
                 }
-                HoursAxis[0].Labels = hourLabels;
-                HoursAxis[0].Name = "Time (hours)";
+
+                // Configure hour axis with more detailed options
+                HoursAxis[0] = new Axis 
+                { 
+                    Name = "Time (hours)",
+                    Labels = hourLabels,
+                    NamePaint = new SolidColorPaint(SKColors.LightGray),
+                    LabelsPaint = new SolidColorPaint(SKColors.LightGray),
+                    TextSize = 12,
+                    // Add separators for better readability
+                    SeparatorsPaint = new SolidColorPaint(SKColors.LightSlateGray) { StrokeThickness = 0.5f },
+                    ShowSeparatorLines = true
+                };
 
                 foreach (var hour in allHours)
                 {
@@ -457,21 +468,54 @@ namespace Log_Parser_App.ViewModels
                     totalByHour.Add(new DateTimePoint(hourTime, totalCount));
                 }
 
-                // Updated axis labels
-                CountAxis[0].Name = "Number of entries";
-                TimeAxis[0].Name = "Time (hours)";
+                // Enhanced axis configuration
+                CountAxis[0] = new Axis 
+                { 
+                    Name = "Number of entries",
+                    NamePaint = new SolidColorPaint(SKColors.LightGray),
+                    LabelsPaint = new SolidColorPaint(SKColors.LightGray),
+                    TextSize = 12,
+                    MinStep = 1, // Force integer steps
+                    MinLimit = 0,
+                    // Add separators for better grid visibility
+                    SeparatorsPaint = new SolidColorPaint(SKColors.LightSlateGray) { StrokeThickness = 0.5f },
+                    ShowSeparatorLines = true
+                };
 
+                TimeAxis[0] = new Axis 
+                { 
+                    Name = "Time (hours)",
+                    NamePaint = new SolidColorPaint(SKColors.LightGray),
+                    LabelsPaint = new SolidColorPaint(SKColors.LightGray),
+                    TextSize = 12,
+                    Labeler = value => {
+                        try {
+                            return new DateTime((long)value).ToString("HH:mm");
+                        } catch {
+                            // Fallback if the value is out of range for DateTime
+                            return string.Empty;
+                        }
+                    },
+                    UnitWidth = TimeSpan.FromHours(1).Ticks,
+                    MinStep = TimeSpan.FromHours(1).Ticks,
+                    // Add separators for better grid visibility
+                    SeparatorsPaint = new SolidColorPaint(SKColors.LightSlateGray) { StrokeThickness = 0.5f },
+                    ShowSeparatorLines = true
+                };
+
+                // Enhanced Line Series with better visualization
                 LevelsOverTimeSeries = new ISeries[]
                 {
                     new LineSeries<DateTimePoint>
                     {
                         Values = totalByHour,
                         Name = "All logs",
-                        Stroke = new SolidColorPaint(SKColors.Gray, 3),
+                        Stroke = new SolidColorPaint(SKColors.LightGray, 2),
                         Fill = new SolidColorPaint(SKColors.Gray.WithAlpha(40)),
                         GeometryFill = new SolidColorPaint(SKColors.White),
                         GeometryStroke = new SolidColorPaint(SKColors.Gray, 2),
-                        LineSmoothness = 0.5
+                        GeometrySize = 8,
+                        LineSmoothness = 0.2, // Less smoothing for more accurate representation
                     },
                     new LineSeries<DateTimePoint>
                     {
@@ -481,7 +525,8 @@ namespace Log_Parser_App.ViewModels
                         Fill = new SolidColorPaint(SKColors.Crimson.WithAlpha(40)),
                         GeometryFill = new SolidColorPaint(SKColors.White),
                         GeometryStroke = new SolidColorPaint(SKColors.Crimson, 2),
-                        LineSmoothness = 0.5
+                        GeometrySize = 10,
+                        LineSmoothness = 0.2,
                     },
                     new LineSeries<DateTimePoint>
                     {
@@ -491,7 +536,8 @@ namespace Log_Parser_App.ViewModels
                         Fill = new SolidColorPaint(SKColors.Orange.WithAlpha(40)),
                         GeometryFill = new SolidColorPaint(SKColors.White),
                         GeometryStroke = new SolidColorPaint(SKColors.Orange, 2),
-                        LineSmoothness = 0.5
+                        GeometrySize = 10, 
+                        LineSmoothness = 0.2,
                     },
                     new LineSeries<DateTimePoint>
                     {
@@ -501,7 +547,8 @@ namespace Log_Parser_App.ViewModels
                         Fill = new SolidColorPaint(SKColors.DodgerBlue.WithAlpha(40)),
                         GeometryFill = new SolidColorPaint(SKColors.White),
                         GeometryStroke = new SolidColorPaint(SKColors.DodgerBlue, 2),
-                        LineSmoothness = 0.5
+                        GeometrySize = 10,
+                        LineSmoothness = 0.2,
                     }
                 };
 

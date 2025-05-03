@@ -755,16 +755,28 @@
                                     <!-- Logs By Time Chart -->
                                     <Border Background="#2D2F33" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="10" Padding="15">
                                         <StackPanel>
-                                            <TextBlock Text="Logs By Time" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                            <Grid Margin="0,0,0,10">
+                                                <TextBlock Text="Logs By Time" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Left" />
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                                                    <Border Background="#494A52" CornerRadius="4" Padding="6,2">
+                                                        <TextBlock Text="Zoom: Mouse Wheel" FontSize="12" Foreground="#AAAAAA" />
+                                                    </Border>
+                                                    <Border Background="#494A52" CornerRadius="4" Padding="6,2">
+                                                        <TextBlock Text="Pan: Click &amp; Drag" FontSize="12" Foreground="#AAAAAA" />
+                                                    </Border>
+                                                </StackPanel>
+                                            </Grid>
                                             <Viewbox MaxHeight="300">
                                                 <lvc:CartesianChart
                                                     Series="{Binding MainView.LevelsOverTimeSeries}"
                                                     XAxes="{Binding MainView.TimeAxis}"
                                                     YAxes="{Binding MainView.CountAxis}"
-                                                    Width="440"
+                                                    Width="540"
                                                     Height="300"
                                                     TooltipPosition="Top"
-                                                    LegendPosition="Right" />
+                                                    LegendPosition="Right"
+                                                    AnimationsSpeed="00:00:00.700"
+                                                    ZoomMode="X" />
                                             </Viewbox>
                                         </StackPanel>
                                     </Border>
