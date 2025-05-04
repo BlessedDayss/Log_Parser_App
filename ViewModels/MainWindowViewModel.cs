@@ -44,12 +44,12 @@
         [ObservableProperty]
         private ObservableCollection<FilterCriterion> _filterCriteria = new();
 
-        public List<string> AvailableFields { get; } = new List<string> { "Timestamp", "Level", "Source", "Message" };
+        public List<string> AvailableFields { get; } = ["Timestamp", "Level", "Source", "Message"];
         public Dictionary<string, List<string>> OperatorsByFieldType { get; } = new Dictionary<string, List<string>> {
-            { "Timestamp", new List<string> { "Equals", "NotEquals", "GreaterThan", "LessThan", "GreaterThanOrEqual", "LessThanOrEqual" } },
-            { "Level", new List<string> { "Equals", "NotEquals", "Contains" } },
-            { "Source", new List<string> { "Equals", "NotEquals", "Contains", "StartsWith", "EndsWith" } },
-            { "Message", new List<string> { "Equals", "NotEquals", "Contains", "StartsWith", "EndsWith" } }
+            { "Timestamp", ["Equals", "NotEquals", "GreaterThan", "LessThan", "GreaterThanOrEqual", "LessThanOrEqual"] },
+            { "Level", ["Equals", "NotEquals", "Contains"] },
+            { "Source", ["Equals", "NotEquals", "Contains", "StartsWith", "EndsWith"] },
+            { "Message", ["Equals", "NotEquals", "Contains", "StartsWith", "EndsWith"] }
         };
 
         // Dictionary to store available values for fields

@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace Log_Parser_App.Models
 {
     using System.Collections.Generic;
@@ -35,8 +37,10 @@ namespace Log_Parser_App.Models
 
         public MainWindowViewModel? ParentViewModel { get; set; }
 
-        public List<string>? AvailableOperators =>
-            SelectedField != null && ParentViewModel?.OperatorsByFieldType.ContainsKey(SelectedField) == true ? ParentViewModel.OperatorsByFieldType[SelectedField] : null;
+        public IEnumerable<string> AvailableOperators =>
+            ParentViewModel?.OperatorsByFieldType.TryGetValue(SelectedField, out var ops) == true
+                ? ops
+                : Enumerable.Empty<string>();
 
         public List<string>? AvailableFields => ParentViewModel?.AvailableFields;
 
