@@ -36,7 +36,7 @@ namespace Log_Parser_App.Services
 
             var fileInfo = new FileInfo(filePath);
             double fileSizeMb = fileInfo.Length / (1024.0 * 1024.0);
-            logger.LogInformation("File size: {FileSizeMB:F2} MB", fileSizeMb);
+            // Removed file size information logging
 
             string logFormat = await DetectLogFormatAsync(filePath);
             var logEntries = new List<LogEntry>();
@@ -80,7 +80,7 @@ namespace Log_Parser_App.Services
                     }
 
                     if (lineCount % 50000 == 0) {
-                        logger.LogInformation("Processing log file: parsed {LineCount} lines so far ({ElapsedMilliseconds} ms)", lineCount, sw.ElapsedMilliseconds);
+                        logger.LogDebug("Processing log file: parsed {LineCount} lines so far ({ElapsedMilliseconds} ms)", lineCount, sw.ElapsedMilliseconds);
                     }
                 }
             } catch (Exception ex) {
