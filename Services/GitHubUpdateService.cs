@@ -9,19 +9,21 @@ namespace Log_Parser_App.Services
     using System.Reflection;
     using System.Text.Json;
     using System.Threading.Tasks;
+    using Avalonia.Controls.ApplicationLifetimes;
     using Log_Parser_App.Models;
+    using Log_Parser_App.Services.Interfaces;
+    using Log_Parser_App.Services.UpdateStrategies;
     using Microsoft.Extensions.Logging;
     using System.Text.Json.Serialization;
-    using Avalonia.Controls.ApplicationLifetimes;
-
 
     /// <summary>
     /// Сервис обновления приложения через GitHub
     /// </summary>
-    public class GitHubUpdateService : IUpdateService
+    public class GitHubUpdateService : IGitHubConnectionService, IUpdateService
     {
         private readonly ILogger<GitHubUpdateService> _logger;
         private readonly HttpClient _httpClient;
+        private readonly IGitHubUpdateStrategy _updateStrategy;
         private readonly string _owner;
         private readonly string _repo;
         private readonly string _tempFolder;
@@ -30,16 +32,27 @@ namespace Log_Parser_App.Services
         /// Конструктор
         /// </summary>
         /// <param name="logger">Логгер</param>
+        /// <param name="httpClient">HttpClient</param>
+        /// <param name="updateStrategy">Стратегия обновления</param>
         /// <param name="owner">Владелец репозитория</param>
         /// <param name="repo">Название репозитория</param>
-        public GitHubUpdateService(ILogger<GitHubUpdateService> logger, string owner, string repo) {
+        public GitHubUpdateService(
+            ILogger<GitHubUpdateService> logger,
+            HttpClient httpClient,
+            IGitHubUpdateStrategy updateStrategy,
+            string owner,
+            string repo)
+        {
             _logger = logger;
+            _httpClient = httpClient;
+            _updateStrategy = updateStrategy;
             _owner = owner;
             _repo = repo;
 
-            _httpClient = new HttpClient();
             var currentVersion = GetCurrentVersion();
             _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("LogParserApp", currentVersion?.ToString() ?? "unknown"));
+
+            _httpClient.BaseAddress = new Uri("https://api.github.com/");
 
             _tempFolder = Path.Combine(Path.GetTempPath(), "LogParserApp", "Updates");
             Directory.CreateDirectory(_tempFolder);
@@ -48,83 +61,41 @@ namespace Log_Parser_App.Services
         }
 
         /// <inheritdoc/>
-        public async Task<UpdateInfo?> CheckForUpdatesAsync() {
+        public async Task<GitHubConnectionResult> TestConnectionAsync()
+        {
             try {
-                _logger.LogInformation("Checking for updates from GitHub...");
-
-                var testResult = await TestGitHubConnectionAsync();
-                if (!testResult.Success) {
-                    _logger.LogWarning("GitHub connection test failed: {Message}", testResult.Message);
-                    return null!;
-                }
-
-                _logger.LogInformation("GitHub connection test successful. Latest release: {Tag}", testResult.TagName);
-                var currentVersion = GetCurrentVersion();
-                _logger.LogInformation("Current application version: {Version}", currentVersion);
-
-                string versionString = testResult.TagName.TrimStart('v');
-                // Use regex to extract version number more robustly
-                var versionMatch = System.Text.RegularExpressions.Regex.Match(versionString, @"^(\d+\.\d+\.\d+)");
-                if (!versionMatch.Success) {
-                    _logger.LogWarning("Could not extract version from tag: {TagName}", testResult.TagName);
-                    return null;
-                }
-                
-                versionString = versionMatch.Groups[1].Value;
-                if (!Version.TryParse(versionString, out var latestVersion)) {
-                    _logger.LogWarning("Failed to parse version from extracted string: {VersionString}", versionString);
-                    return null;
-                }
-                _logger.LogInformation("Latest version: {Version}", latestVersion);
-                bool updateAvailable = latestVersion > currentVersion;
-                _logger.LogInformation("Update available: {Available} (Current: {Current}, Latest: {Latest})", updateAvailable, currentVersion, latestVersion);
-
-                if (!updateAvailable) {
-                    _logger.LogInformation("Application is up to date");
-                    return null;
-                }
-
-                // Get detailed release info
+                _logger.LogInformation("Testing GitHub connection to {Owner}/{Repo}", _owner, _repo);
                 string releaseUrl = $"https://api.github.com/repos/{_owner}/{_repo}/releases/latest";
                 var response = await _httpClient.GetAsync(releaseUrl);
 
                 if (!response.IsSuccessStatusCode) {
-                    _logger.LogWarning("Failed to get detailed release info: {StatusCode}", response.StatusCode);
-                    return null;
+                    return new GitHubConnectionResult { Success = false, Message = $"Failed to fetch releases: {response.StatusCode}" };
                 }
 
-                string content = await response.Content.ReadAsStringAsync();
-                var releaseInfo = JsonSerializer.Deserialize<GitHubReleaseInfo>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var content = await response.Content.ReadAsStringAsync();
+                var release = System.Text.Json.JsonSerializer.Deserialize<GitHubReleaseInfo>(content, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                if (releaseInfo == null) {
-                    _logger.LogWarning("Failed to parse GitHub release info");
-                    return null;
+                if (release == null) {
+                    return new GitHubConnectionResult { Success = false, Message = "Unable to parse release information" };
                 }
-                string? downloadUrl = testResult.DownloadUrl;
-                var updateInfo = new UpdateInfo {
-                    Version = latestVersion,
-                    ReleaseName = releaseInfo.Name,
-                    ReleaseNotes = releaseInfo.Body,
-                    DownloadUrl = downloadUrl,
-                    TagName = testResult.TagName,
-                    PublishedAt = releaseInfo.PublishedAt,
-                    RequiresRestart = true
+
+                var downloadUrl = GetAssetDownloadUrl(release);
+                return new GitHubConnectionResult {
+                    Success = true,
+                    TagName = release.TagName,
+                    DownloadUrl = downloadUrl
                 };
-
-                if (!string.IsNullOrEmpty(releaseInfo.Body)) {
-                    string[] lines = releaseInfo.Body.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                    foreach (string line in lines) {
-                        if (line.TrimStart().StartsWith("-") || line.TrimStart().StartsWith("*")) {
-                            updateInfo.ChangeLog.Add(line.TrimStart('-', '*', ' '));
-                        }
-                    }
-                }
-                _logger.LogInformation("Update info created: Version={Version}, URL={Url}", updateInfo.Version, updateInfo.DownloadUrl);
-                return updateInfo;
-            } catch (Exception ex) {
-                _logger.LogError(ex, "Error checking for updates");
-                return null;
             }
+            catch (Exception ex) {
+                _logger.LogError(ex, "Error testing GitHub connection");
+                return new GitHubConnectionResult { Success = false, Message = ex.Message };
+            }
+        }
+
+        public async Task<UpdateInfo?> CheckForUpdatesAsync()
+        {
+            var connectionResult = await TestConnectionAsync();
+            return await _updateStrategy.CheckForUpdatesAsync(connectionResult);
         }
 
         /// <inheritdoc/>

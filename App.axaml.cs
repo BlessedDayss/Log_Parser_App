@@ -3,6 +3,7 @@ namespace Log_Parser_App
     using System;
     using System.IO;
     using System.Linq;
+    using System.Net.Http;
     using System.Threading.Tasks;
     using Avalonia;
     using Avalonia.Controls;
@@ -10,8 +11,12 @@ namespace Log_Parser_App
     using Avalonia.Data.Core.Plugins;
     using Avalonia.Markup.Xaml;
     using Log_Parser_App.Services;
+    using Log_Parser_App.Services.Interfaces;
+    using Log_Parser_App.Services.UpdateStrategies;
+    using Log_Parser_App.Services.VersionParsers;
     using Log_Parser_App.ViewModels;
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Http;
     using Microsoft.Extensions.Logging;
     using MainViewModel = Log_Parser_App.ViewModels.MainViewModel;
     using MainWindow = Log_Parser_App.Views.MainWindow;
@@ -85,6 +90,8 @@ namespace Log_Parser_App
                 builder.SetMinimumLevel(LogLevel.Debug);
             });
 
+            services.AddHttpClient();
+
             RegisterServices(services);
 
             RegisterViewModels(services);
@@ -96,7 +103,21 @@ namespace Log_Parser_App
             services.AddSingleton<IErrorRecommendationService, ErrorRecommendationService>();
             services.AddSingleton<IFileAssociationService, WindowsFileAssociationService>();
             services.AddSingleton<IUpdateService, UpdateService>();
-            services.AddSingleton<IUpdateService>(provider => new GitHubUpdateService(provider.GetRequiredService<ILogger<GitHubUpdateService>>(), "BlessedDayss", "Log_Parser_App"));
+            services.AddSingleton<IVersionParser, GitHubVersionParser>();
+            services.AddSingleton<IGitHubUpdateStrategy>(provider => new DefaultGitHubUpdateStrategy(
+                provider.GetRequiredService<HttpClient>(),
+                provider.GetRequiredService<ILogger<DefaultGitHubUpdateStrategy>>(),
+                provider.GetRequiredService<IVersionParser>(),
+                "BlessedDayss",
+                "Log_Parser_App"
+            ));
+            services.AddSingleton<IUpdateService>(provider => new GitHubUpdateService(
+                provider.GetRequiredService<ILogger<GitHubUpdateService>>(),
+                provider.GetRequiredService<HttpClient>(),
+                provider.GetRequiredService<IGitHubUpdateStrategy>(),
+                "BlessedDayss",
+                "Log_Parser_App"
+            ));
             services.AddSingleton<UpdateViewModel>();
         }
 
