@@ -1,162 +1,111 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Reflection;
-using System.Threading.Tasks;
-using Microsoft.Win32;
-
-namespace Log_Parser_App.Services;
-
-public class WindowsFileAssociationService : IFileAssociationService
+namespace Log_Parser_App.Services
 {
-    private readonly List<string> _supportedExtensions = new() { ".log", ".txt", ".log.txt", ".json" };
-    private const string ProgId = "LogParserApp";
-    private const string FileTypeDescription = "Log File";
-    private const string AppName = "Log Parser App";
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.IO;
+    using System.Threading.Tasks;
+    using Microsoft.Win32;
 
-    public async Task RegisterFileAssociationsAsync()
+
+    public class WindowsFileAssociationService : IFileAssociationService
     {
-        if (!OperatingSystem.IsWindows())
-        {
-            return; // Работает только в Windows
-        }
+        private readonly List<string> _supportedExtensions = [
+            ".log", ".txt", ".log.txt", ".json"
+        ];
 
-        await Task.Run(() =>
-        {
-            try
-            {
-                string executablePath = Process.GetCurrentProcess().MainModule?.FileName ?? "";
-                if (string.IsNullOrEmpty(executablePath))
-                {
-                    return;
-                }
+        private const string ProgId = "LogParserApp";
+        private const string FileTypeDescription = "Log File";
+        private const string AppName = "Log Parser App";
 
-                // Определяем путь к иконке
-                string iconPath = GetIconPath(executablePath);
+        public async Task RegisterFileAssociationsAsync() {
+            if (!OperatingSystem.IsWindows()) {
+                return;
+            }
 
-                // Регистрируем ProgID
-                using (var key = Registry.CurrentUser.CreateSubKey($@"Software\Classes\{ProgId}"))
-                {
-                    key?.SetValue("", FileTypeDescription);
-                    key?.SetValue("FriendlyTypeName", FileTypeDescription);
-                    
-                    // Иконка приложения
-                    using (var iconKey = key?.CreateSubKey("DefaultIcon"))
-                    {
-                        iconKey?.SetValue("", iconPath);
+            await Task.Run(() => {
+                try {
+                    string executablePath = Process.GetCurrentProcess().MainModule?.FileName ?? "";
+                    if (string.IsNullOrEmpty(executablePath)) {
+                        return;
                     }
-
-                    // Команда открытия
-                    using (var commandKey = key?.CreateSubKey(@"shell\open\command"))
-                    {
-                        commandKey?.SetValue("", $"\"{executablePath}\" \"%1\"");
-                    }
-                }
-
-                // Регистрируем расширения файлов
-                foreach (var extension in _supportedExtensions)
-                {
-                    using (var extensionKey = Registry.CurrentUser.CreateSubKey($@"Software\Classes\{extension}"))
-                    {
-                        // Добавляем в OpenWithProgIds
-                        using (var openWithKey = extensionKey?.CreateSubKey("OpenWithProgids"))
-                        {
-                            openWithKey?.SetValue(ProgId, new byte[0], RegistryValueKind.None);
+                    string iconPath = GetIconPath(executablePath);
+                    using (var key = Registry.CurrentUser.CreateSubKey($@"Software\Classes\{ProgId}")) {
+                        key?.SetValue("", FileTypeDescription);
+                        key?.SetValue("FriendlyTypeName", FileTypeDescription);
+                        using (var iconKey = key?.CreateSubKey("DefaultIcon")) {
+                            iconKey?.SetValue("", iconPath);
+                        }
+                        using (var commandKey = key?.CreateSubKey(@"shell\open\command")) {
+                            commandKey?.SetValue("", $"\"{executablePath}\" \"%1\"");
                         }
                     }
-                }
 
-                // Регистрируем приложение в списке приложений для открытия файлов
-                string fileName = Path.GetFileName(executablePath);
-                using (var appKey = Registry.CurrentUser.CreateSubKey($@"Software\Classes\Applications\{fileName}"))
-                {
-                    appKey?.SetValue("FriendlyAppName", AppName);
-                    
-                    using (var openWithKey = appKey?.CreateSubKey("shell\\open\\command"))
-                    {
-                        openWithKey?.SetValue("", $"\"{executablePath}\" \"%1\"");
+                    foreach (string extension in _supportedExtensions) {
+                        using var extensionKey = Registry.CurrentUser.CreateSubKey($@"Software\Classes\{extension}");
+                        using var openWithKey = extensionKey?.CreateSubKey("OpenWithProgids");
+                        openWithKey?.SetValue(ProgId, new byte[0], RegistryValueKind.None);
                     }
+                    string fileName = Path.GetFileName(executablePath);
+                    using (var appKey = Registry.CurrentUser.CreateSubKey($@"Software\Classes\Applications\{fileName}")) {
+                        appKey?.SetValue("FriendlyAppName", AppName);
 
-                    // Добавляем иконку
-                    using (var iconKey = appKey?.CreateSubKey("DefaultIcon"))
-                    {
-                        iconKey?.SetValue("", iconPath);
-                    }
+                        using (var openWithKey = appKey?.CreateSubKey("shell\\open\\command")) {
+                            openWithKey?.SetValue("", $"\"{executablePath}\" \"%1\"");
+                        }
+                        using (var iconKey = appKey?.CreateSubKey("DefaultIcon")) {
+                            iconKey?.SetValue("", iconPath);
+                        }
 
-                    // Регистрируем поддерживаемые типы файлов
-                    using (var supportedTypesKey = appKey?.CreateSubKey("SupportedTypes"))
-                    {
-                        foreach (var extension in _supportedExtensions)
-                        {
-                            supportedTypesKey?.SetValue(extension, "");
+                        // Регистрируем поддерживаемые типы файлов
+                        using (var supportedTypesKey = appKey?.CreateSubKey("SupportedTypes")) {
+                            foreach (string extension in _supportedExtensions) {
+                                supportedTypesKey?.SetValue(extension, "");
+                            }
                         }
                     }
+                } catch (Exception ex) {
+                    Debug.WriteLine($"Ошибка при регистрации ассоциаций файлов: {ex.Message}");
                 }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Ошибка при регистрации ассоциаций файлов: {ex.Message}");
-            }
-        });
-    }
-
-    public async Task<bool> AreFileAssociationsRegisteredAsync()
-    {
-        if (!OperatingSystem.IsWindows())
-        {
-            return false;
+            });
         }
 
-        return await Task.Run(() =>
-        {
-            try
-            {
-                // Проверяем регистрацию ProgID
-                using (var key = Registry.CurrentUser.OpenSubKey($@"Software\Classes\{ProgId}"))
-                {
-                    return key != null;
-                }
-            }
-            catch
-            {
+        public async Task<bool> AreFileAssociationsRegisteredAsync() {
+            if (!OperatingSystem.IsWindows()) {
                 return false;
             }
-        });
-    }
 
-    private string GetIconPath(string executablePath)
-    {
-        try
-        {
-            // Попытка найти иконки
-            string exeDir = Path.GetDirectoryName(executablePath) ?? "";
-            string assetsDir = Path.Combine(exeDir, "Assets");
-            
-            // Возможные пути к иконкам
-            string[] possibleIcons = new[] {
-                Path.Combine(assetsDir, "log-parser-icon.ico"),
-                Path.Combine(assetsDir, "logparserv1.ico"),
-                Path.Combine(assetsDir, "parser-logo.ico"),
-                Path.Combine(exeDir, "log-parser-icon.ico"),
-                Path.Combine(exeDir, "parser-logo.ico")
-            };
-
-            foreach (var iconPath in possibleIcons)
-            {
-                if (File.Exists(iconPath))
-                {
-                    return iconPath;
+            return await Task.Run(() => {
+                try {
+                    using var key = Registry.CurrentUser.OpenSubKey($@"Software\Classes\{ProgId}");
+                    return key != null;
+                } catch {
+                    return false;
                 }
-            }
-
-            // Если иконка не найдена, используем сам исполняемый файл
-            return $"{executablePath},0";
+            });
         }
-        catch
-        {
-            // В случае ошибки используем исполняемый файл
-            return $"{executablePath},0";
+
+        private static string GetIconPath(string executablePath) {
+            try {
+                string exeDir = Path.GetDirectoryName(executablePath) ?? "";
+                string assetsDir = Path.Combine(exeDir, "Assets");
+                string[] possibleIcons = [
+                    Path.Combine(assetsDir, "log-parser-icon.ico"),
+                    Path.Combine(assetsDir, "logparserv1.ico"),
+                    Path.Combine(assetsDir, "parser-logo.ico"),
+                    Path.Combine(exeDir, "log-parser-icon.ico"),
+                    Path.Combine(exeDir, "parser-logo.ico")
+                ];
+
+                foreach (string iconPath in possibleIcons) {
+                    if (File.Exists(iconPath)) {
+                        return iconPath;
+                    }
+                }
+                return $"{executablePath},0";
+            } catch {
+                return $"{executablePath},0";
+            }
         }
     }
 }

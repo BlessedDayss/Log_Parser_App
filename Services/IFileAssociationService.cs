@@ -1,16 +1,11 @@
-using System.Threading.Tasks;
-
-namespace Log_Parser_App.Services;
-
-public interface IFileAssociationService
+namespace Log_Parser_App.Services
 {
-    /// <summary>
-    /// Регистрирует ассоциации файлов для текущего приложения
-    /// </summary>
-    Task RegisterFileAssociationsAsync();
-    
-    /// <summary>
-    /// Проверяет, зарегистрированы ли ассоциации файлов
-    /// </summary>
-    Task<bool> AreFileAssociationsRegisteredAsync();
+    using System.Threading.Tasks;
+
+    public interface IFileAssociationService
+    {
+
+        Task RegisterFileAssociationsAsync();
+        Task<bool> AreFileAssociationsRegisteredAsync();
+    }
 }

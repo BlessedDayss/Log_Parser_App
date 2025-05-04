@@ -1,3 +1,5 @@
+namespace Log_Parser_App.Models
+{
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -5,8 +7,7 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 
-namespace Log_Parser_App.Models
-{
+
     public abstract class ErrorRecommendation
     {
         private static readonly ILogger Logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<ErrorRecommendation>();

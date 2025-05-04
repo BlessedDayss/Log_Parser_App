@@ -1,14 +1,15 @@
-using System.Threading.Tasks;
-
 namespace Log_Parser_App.Models.Interfaces
 {
+    using System.Threading.Tasks;
+
+
     public interface IUpdateService
     {
         string? GetCurrentVersion();
         Task<UpdateInfo> CheckForUpdatesAsync();
         Task<bool> UpdateApplicationAsync(string downloadUrl);
     }
-    
+
     public class UpdateInfo
     {
         public bool IsUpdateAvailable { get; set; }
@@ -17,4 +18,4 @@ namespace Log_Parser_App.Models.Interfaces
         public string DownloadUrl { get; set; } = string.Empty;
         public string ReleaseDate { get; set; } = string.Empty;
     }
-} 
+}

@@ -24,28 +24,35 @@ jobs:
   build-test-analyze:
     runs-on: windows-latest
     timeout-minutes: 30
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: actions/cache@v4
+      - name: Cache NuGet & dotnet-tools
+        uses: actions/cache@v4
         with:
           path: |
             ~/.nuget/packages
             ~/.dotnet/tools/.store
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
 
-      - uses: actions/setup-dotnet@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+          cache: true
 
-      - run: |
+      - name: Install global tools
+        run: |
           dotnet tool install --global dotnet-sonarscanner
           dotnet tool install --global gitversion.tool
         shell: pwsh
 
-      - id: version
+      - name: Calculate version
+        id: version
         run: |
           dotnet gitversion /showvariable FullSemVer | ForEach-Object {
             echo "FULL_SEM_VER=$_" >> $Env:GITHUB_OUTPUT
@@ -72,15 +79,18 @@ jobs:
           }
           dotnet sonarscanner begin @args
 
-      - run: dotnet restore
+      - name: Restore
+        run: dotnet restore
         shell: pwsh
 
-      - run: dotnet build -c Release --no-restore
+      - name: Build
+        run: dotnet build -c Release --no-restore
+        shell: pwsh
         continue-on-error: true
-        shell: pwsh
 
-      - continue-on-error: true
+      - name: Test (with coverage)
         shell: pwsh
+        continue-on-error: true
         run: |
           if (Test-Path "./Log_Parser_App.Tests/Log_Parser_App.Tests.csproj") {
             dotnet test ./Log_Parser_App.Tests/Log_Parser_App.Tests.csproj `
@@ -93,14 +103,15 @@ jobs:
       - name: Sonar end
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          dotnet sonarscanner end /d:sonar.login=$Env:SONAR_TOKEN
+        run: dotnet sonarscanner end /d:sonar.login=$Env:SONAR_TOKEN
         shell: pwsh
 
-      - run: dotnet publish ./Log_Parser_App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish/
+      - name: Publish self-contained EXE
+        run: dotnet publish ./Log_Parser_App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish/
         shell: pwsh
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
         with:
           name: publish_artifact
           path: publish/
@@ -108,62 +119,128 @@ jobs:
   sonar-issues:
     needs: build-test-analyze
     runs-on: ubuntu-latest
+
     steps:
-      - id: sonar
+      - name: Download Sonar issues JSON
+        id: sonar
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           curl -s -H "Authorization: Bearer $SONAR_TOKEN" \
             "https://sonarcloud.io/api/issues/search?componentKeys=${{ env.SONAR_PROJ }}&organization=${{ env.SONAR_ORG }}&statuses=OPEN&types=BUG,VULNERABILITY,CODE_SMELL&ps=500" \
             -o sonar.json
-          echo "count=$(jq '.issues|length' sonar.json)" >> $GITHUB_OUTPUT
+          echo "count=$(jq '.issues|length' sonar.json)" >> "$GITHUB_OUTPUT"
 
-      - if: steps.sonar.outputs.count != '0'
+      - name: Create/sync GitHub issues from SonarCloud
+        if: steps.sonar.outputs.count != '0'
         uses: actions/github-script@v7
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || github.token }}
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ env.GH_TOKEN }}
           script: |
             const fs = require('fs');
-            const { issues } = JSON.parse(fs.readFileSync('sonar.json'));
-            if (!issues.length) return;
+
+            // Load and parse SonarCloud issues
+            const sonarData = JSON.parse(fs.readFileSync('sonar.json'));
+            const sonarIssues = sonarData.issues || [];
+            if (!sonarIssues.length) {
+              console.log('No SonarCloud issues found.');
+              return;
+            }
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // Debug: Log the first issue to inspect its structure
+            console.log('First SonarCloud issue:', JSON.stringify(sonarIssues[0], null, 2));
+
+            // Fetch all open issues with the 'sonar-cloud' label
+            const existingIssues = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${owner}/${repo} label:sonar-cloud state:open`,
+              per_page: 100
+            });
+
+            const existingKeys = new Set(
+              existingIssues.data.items
+                .map(i => /\(([^)]+)\)\s*$/.exec(i.title)?.[1])
+                .filter(Boolean)
+            );
+
+            // Optionally find Project V2 ID from organization
             let projectId;
             if (process.env.PROJECT_NAME) {
-              const r = await github.graphql(`
-                query($login:String!){
-                  user(login:$login){
-                    projectsV2(first:100){nodes{id,title}}
+              const query = `
+                query($org: String!) {
+                  organization(login: $org) {
+                    projectsV2(first: 100) {
+                      nodes {
+                        id
+                        title
+                      }
+                    }
                   }
-                }`, { login: context.actor });
-              projectId = r.user.projectsV2.nodes.find(p => p.title === process.env.PROJECT_NAME)?.id;
-            }
-            for (const i of issues) {
-              const key = i.key;
-              const title = `SonarCloud: ${i.rule} (${key})`;
-              const dupe = await github.rest.search.issuesAndPullRequests({
-                q: `repo:${context.repo.owner}/${context.repo.repo} "${key}" in:title label:sonar-cloud state:open`
-              });
-              if (dupe.data.total_count) continue;
-              const body = `
-                **SonarCloud Issue [${key}]**
-                - **Severity**: ${i.severity}
-                - **Rule**: ${i.rule}
-                - **Location**: ${i.component.replace('${{ env.SONAR_PROJ }}:', '')}:${i.line}
-                - **Message**: ${i.message}
-
-                [View in SonarCloud](https://sonarcloud.io/project/issues?id=${{ env.SONAR_PROJ }}&issues=${key}&organization=${{ env.SONAR_ORG }})
+                }
               `;
+              const variables = { org: process.env.SONAR_ORG };
+              const result = await github.graphql(query, variables);
+              projectId = result.organization?.projectsV2?.nodes?.find(
+                p => p.title === process.env.PROJECT_NAME
+              )?.id;
+              console.log('Project ID:', projectId || 'Not found');
+            }
+
+            // Create new issues
+            for (const issue of sonarIssues) {
+              const key = issue.key || 'unknown';
+              if (existingKeys.has(key)) {
+                console.log(`Issue ${key} already exists, skipping.`);
+                continue;
+              }
+
+              // Safely access issue properties with fallbacks
+              const severity = issue.severity || 'UNKNOWN';
+              const rule = issue.rule || 'unknown-rule';
+              const component = (issue.component || 'unknown-component').replace(process.env.SONAR_PROJ + ':', '');
+              const line = issue.line || 'unknown-line';
+              const message = issue.message || 'No message provided';
+
+              const title = `SonarCloud: ${rule} (${key})`;
+              const body = [
+                `**SonarCloud Issue [${key}]**`,
+                `- **Severity**: ${severity}`,
+                `- **Rule**: ${rule}`,
+                `- **Location**: ${component}:${line}`,
+                `- **Message**: ${message}`,
+                '',
+                `[View in SonarCloud](https://sonarcloud.io/project/issues?id=${process.env.SONAR_PROJ}&issues=${key}&organization=${process.env.SONAR_ORG})`
+              ].join('\n');
+
+              console.log(`Creating issue: ${title}`);
+
               const { data: created } = await github.rest.issues.create({
-                ...context.repo,
+                owner,
+                repo,
                 title,
                 body,
-                labels: ['sonar-cloud', i.severity.toLowerCase()]
+                labels: ['sonar-cloud', severity.toLowerCase()]
               });
+
               if (projectId) {
-                await github.graphql(`
-                  mutation($project:ID!,$content:ID!){
-                    addProjectV2ItemById(input:{projectId:$project,contentId:$content}){item{id}}
-                  }`,
-                  { project: projectId, content: created.node_id }
-                ).catch(()=>{});
+                const mutation = `
+                  mutation($projectId: ID!, $contentId: ID!) {
+                    addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
+                      item {
+                        id
+                      }
+                    }
+                  }
+                `;
+                await github.graphql(mutation, {
+                  projectId: projectId,
+                  contentId: created.node_id
+                }).catch(err => {
+                  console.log(`Failed to add issue ${key} to project:`, err.message);
+                });
               }
             }
