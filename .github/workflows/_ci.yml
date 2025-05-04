@@ -44,6 +44,7 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
           cache: true
+          cache-dependency-path: '**/*.csproj'
 
       - name: Install global tools
         run: |
