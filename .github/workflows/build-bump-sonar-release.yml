@@ -1,201 +1,278 @@
-name: Build, Optional Test, SonarCloud Scan, Bump Version, Release EXE
+name: Build, Test, SonarCloud Scan, Bump Version, Release EXE
 
 on:
   push:
+    branches: [ main ]
   pull_request:
+    branches: [ main ]
 
 permissions:
   contents: write
-  issues: write
   pull-requests: write
+  issues: write
   checks: write
 
 jobs:
-  build:
+  build_and_analyze:
     runs-on: windows-latest
+    outputs:
+      new_version: ${{ steps.bump.outputs.NEW_VERSION }}
+      artifact_name: publish_artifact
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
-      - uses: actions/setup-dotnet@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
-      - run: |
+      - name: Install SonarScanner and ReportGenerator
+        run: |
           dotnet tool install --global dotnet-sonarscanner
           dotnet tool install --global dotnet-reportgenerator-globaltool
+        shell: pwsh
 
-      - if: github.event_name == 'pull_request'
+      - name: Set SonarCloud PR parameters
+        if: github.event_name == 'pull_request'
         run: |
           echo "SONAR_PR_PARAMS=/d:sonar.pullrequest.key=${{ github.event.pull_request.number }} /d:sonar.pullrequest.branch=${{ github.head_ref }} /d:sonar.pullrequest.base=${{ github.base_ref }}" >> $env:GITHUB_ENV
+        shell: pwsh
 
-      - env:
+      - name: Begin SonarCloud Scan
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          dotnet sonarscanner begin \
-            /k:"Log_Parser_App" \
-            /o:"blesseddayss" \
-            /d:sonar.login="${{ secrets.SONAR_TOKEN }}" \
-            /d:sonar.qualitygate.wait=true \
+          dotnet sonarscanner begin `
+            /k:"Log_Parser_App" `
+            /o:"blesseddayss" `
+            /d:sonar.login="${{ secrets.SONAR_TOKEN }}" `
+            /d:sonar.host.url="https://sonarcloud.io" `
+            /d:sonar.cs.opencover.reportsPaths="coverage/coverage.opencover.xml" `
+            /d:sonar.qualitygate.wait=true `
             ${{ env.SONAR_PR_PARAMS }}
+        shell: pwsh
 
-      - run: dotnet restore
+      - name: Restore dependencies
+        run: dotnet restore
 
-      - continue-on-error: true
+      - name: Build project
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Run Tests and Collect Coverage
         run: |
           if (Test-Path "./Log_Parser_App.Tests/Log_Parser_App.Tests.csproj") {
-            dotnet test ./Log_Parser_App.Tests/Log_Parser_App.Tests.csproj \
-              /p:CollectCoverage=true \
-              /p:CoverletOutputFormat=cobertura \
-              /p:CoverletOutput=../coverage/coverage.xml
+            dotnet test ./Log_Parser_App.Tests/Log_Parser_App.Tests.csproj --no-build --configuration Release `
+              /p:CollectCoverage=true `
+              /p:CoverletOutputFormat=opencover `
+              /p:CoverletOutput=./coverage/coverage.opencover.xml
           } else {
-            echo "Test project not found, skipping tests."
+            Write-Host "Test project not found. Skipping tests."
           }
+        shell: pwsh
 
-      - continue-on-error: true
-        run: |
-          if (Test-Path "./coverage/coverage.xml") {
-            reportgenerator \
-              -reports:coverage/coverage.xml \
-              -targetdir:coverage-report \
-              -reporttypes:SonarQube
-          } else {
-            echo "Coverage file not found, skipping report generation."
-          }
-
-      - run: dotnet build --configuration Release
-
-      - continue-on-error: true
+      - name: End SonarCloud Scan
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: dotnet sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
+        shell: pwsh
 
-      - run: dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish/
-
-  release:
-    runs-on: windows-latest
-    env:
-      SONARQUBE_URL: ${{ secrets.SONARQUBE_URL }}
-      SONARQUBE_TOKEN: ${{ secrets.SONARQUBE_TOKEN }}
-      SONAR_PROJECT_KEY: Log_Parser_App
-      PROJECT_NAME: Log_Parser_App
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-
-      - run: dotnet restore
-
-      - run: dotnet publish --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true -o publish/
-
-      - id: bump
+      - name: Bump version
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        id: bump
         run: |
-          $file = './Log_Parser_App.csproj'
-          $content = Get-Content $file
-          $versionLine = Select-String '<Version>(.*)</Version>' -InputObject $content
+          $file = './Log_Parser_App/Log_Parser_App.csproj'
+          $content = Get-Content $file -Raw
+          $versionLine = Select-String -InputObject $content -Pattern '<Version>(.*)</Version>'
           if (-not $versionLine) {
+            Write-Host "Version tag not found, initializing."
             $new = '0.1.0'
             $content = $content -replace '</PropertyGroup>', "  <Version>$new</Version>`n</PropertyGroup>"
           } else {
             $current = $versionLine.Matches.Groups[1].Value
+            Write-Host "Current version: $current"
             $parts = $current -split '\.'
-            $parts[2] = ([int]$parts[2] + 1).ToString()
-            $new = "$($parts[0]).$($parts[1]).$($parts[2])"
+            if ($parts.Length -ge 3) {
+              $parts[2] = ([int]$parts[2] + 1).ToString()
+              $new = "$($parts[0]).$($parts[1]).$($parts[2])"
+            } else {
+              Write-Host "Version format unexpected ($current), initializing to 0.1.0"
+              $new = '0.1.0'
+            }
+            Write-Host "New version: $new"
             $content = $content -replace "<Version>.*</Version>", "<Version>$new</Version>"
           }
-          Set-Content -Path $file -Value $content
-          echo "NEW_VERSION=$new" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8
+          Set-Content -Path $file -Value $content -Encoding UTF8
+          echo "::set-output name=NEW_VERSION::$new"
+        shell: pwsh
 
-      - run: |
+      - name: Commit and push version bump
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && steps.bump.outputs.NEW_VERSION != ''
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Log_Parser_App.csproj
-          git commit -m "chore: bump version to v${{ env.NEW_VERSION }}"
+          git add './Log_Parser_App/Log_Parser_App.csproj'
+          git commit -m "chore: bump version to v${{ steps.bump.outputs.NEW_VERSION }}"
           git push
+        shell: pwsh
 
-      - id: create_release
-        uses: actions/create-release@v1
+      - name: Publish application
+        run: dotnet publish ./Log_Parser_App/Log_Parser_App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish/
+        shell: pwsh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: v${{ env.NEW_VERSION }}
-          release_name: Release v${{ env.NEW_VERSION }}
-          body: "Automated release of version v${{ env.NEW_VERSION }}"
-          draft: false
-          prerelease: false
+          name: ${{ job.outputs.artifact_name }}
+          path: publish/
+
+      - name: Install GitHub CLI
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          winget install --id GitHub.cli -e --source winget
+          echo "C:\Program Files\GitHub CLI" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        shell: pwsh
+
+      - name: Create GitHub Issues from SonarCloud Analysis (Main Branch Only)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_PROJECT_KEY: Log_Parser_App
+          SONAR_ORG_KEY: blesseddayss
+          GITHUB_PROJECT_NAME: Log_Parser_App
+        shell: pwsh
+        run: |
+          $projectId = ""
+          try {
+            $projectJson = gh project view "$env:GITHUB_PROJECT_NAME" --json id --jq .id
+            if ($LASTEXITCODE -eq 0 -and $projectJson) {
+              $projectId = $projectJson.Trim()
+              Write-Host "Found GitHub Project ID: $projectId"
+            } else {
+              Write-Host "GitHub Project '$env:GITHUB_PROJECT_NAME' not found or gh command failed."
+            }
+          } catch {
+            Write-Host "Error getting GitHub Project ID: $($_.Exception.Message)"
+          }
+
+          $apiUrl = "https://sonarcloud.io/api/issues/search?componentKeys=$env:SONAR_PROJECT_KEY&organization=$env:SONAR_ORG_KEY&statuses=OPEN&types=BUG,VULNERABILITY,CODE_SMELL"
+          Write-Host "Fetching issues from: $apiUrl"
+
+          try {
+             $response = Invoke-RestMethod -Uri $apiUrl -Headers @{ "Authorization" = "Bearer $env:SONAR_TOKEN" } -Method Get
+          } catch {
+             Write-Error "Failed to fetch issues from SonarCloud: $($_.Exception.Message)"
+             exit 1
+          }
+
+          if ($null -eq $response.issues -or $response.issues.Count -eq 0) {
+            Write-Host "No open issues found in SonarCloud for project $env:SONAR_PROJECT_KEY."
+            exit 0
+          }
+
+          Write-Host "Found $($response.issues.Count) open issues in SonarCloud."
+
+          foreach ($issue in $response.issues) {
+            $key = $issue.key
+            $severity = $issue.severity
+            $rule = $issue.rule
+            $component = $issue.component -replace "$($env:SONAR_PROJECT_KEY):", ""
+            $line = $issue.line
+            $message = $issue.message
+            $sonarIssueUrl = "https://sonarcloud.io/project/issues?id=$env:SONAR_PROJECT_KEY&issues=$key&organization=$env:SONAR_ORG_KEY"
+
+            Write-Host "Checking for existing GitHub issue for Sonar key: $key"
+            $existingIssue = gh issue list --label "sonar-cloud" --state open --search "in:title $key" --json number --limit 1
+            if ($existingIssue -ne "[]") {
+              Write-Host "GitHub Issue already exists for Sonar key: $key. Skipping."
+              continue
+            }
+
+            $body = @"
+          **SonarCloud Issue [$key]**
+          - **Severity**: $severity
+          - **Rule**: $rule
+          - **Location**: `$component`:`$line`
+          - **Message**: $message
+
+          [View in SonarCloud]($sonarIssueUrl)
+          "@
+
+            $title = "SonarCloud: $rule ($key)"
+            Write-Host "Creating GitHub Issue: $title"
+            $createArgs = @(
+                'issue', 'create',
+                '--title', $title,
+                '--body', $body,
+                '--label', 'sonar-cloud',
+                '--label', $severity.ToLower()
+            )
+
+            try {
+               $issueResultJson = gh $createArgs --json number,url --jq '.'
+               $issueResult = $issueResultJson | ConvertFrom-Json
+               $issueNumber = $issueResult.number
+               $issueUrl = $issueResult.url
+               Write-Host "Successfully created GitHub Issue #$issueNumber : $issueUrl"
+
+               if ($projectId) {
+                 Write-Host "Adding Issue #$issueNumber to GitHub Project $env:GITHUB_PROJECT_NAME (ID: $projectId)"
+                 $contentId = gh issue view $issueNumber --json id --jq .id
+                 if ($contentId) {
+                   gh project item-add $projectId --owner "@me" --content-id $contentId
+                   if ($LASTEXITCODE -eq 0) {
+                     Write-Host "Successfully added issue to project."
+                   } else {
+                     Write-Warning "Failed to add issue #$issueNumber to project $env:GITHUB_PROJECT_NAME."
+                   }
+                 } else {
+                   Write-Warning "Failed to get content ID for issue #$issueNumber."
+                 }
+               }
+
+            } catch {
+               Write-Error "Failed to create GitHub Issue for Sonar key $key: $($_.Exception.Message)"
+            }
+            Start-Sleep -Seconds 2
+          }
+
+  release:
+    runs-on: windows-latest
+    needs: build_and_analyze
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.build_and_analyze.outputs.new_version != ''
+    steps:
+      - name: Download application artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build_and_analyze.outputs.artifact_name }}
+          path: ./publish
+
+      - name: Display structure of downloaded files
+        run: Get-ChildItem -Recurse ./publish
+        shell: pwsh
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ needs.build_and_analyze.outputs.new_version }}
+          release_name: Release v${{ needs.build_and_analyze.outputs.new_version }}
+          body: "Automated release of version v${{ needs.build_and_analyze.outputs.new_version }}"
+          draft: false
+          prerelease: false
 
-      - uses: actions/upload-release-asset@v1
+      - name: Upload Release Asset (EXE)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./publish/Log_Parser_App.exe
-          asset_name: Log_Parser_App.exe
-          asset_content_type: application/octet-stream
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: actions/setup-java@v3
-        with:
-          distribution: temurin
-          java-version: '11'
-
-      - shell: pwsh
-        run: |
-          Invoke-WebRequest 'https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.9.0.2747-windows.zip' -OutFile 'scanner.zip'
-          Expand-Archive -Path scanner.zip -DestinationPath scanner
-          echo "$PWD/scanner/sonar-scanner-4.9.0.2747-windows/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
-
-      - run: |
-          scanner/sonar-scanner-4.9.0.2747-windows/bin/sonar-scanner.bat \
-            -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY }} \
-            -Dsonar.sources=. \
-            -Dsonar.host.url=${{ env.SONARQUBE_URL }} \
-            -Dsonar.login=${{ env.SONARQUBE_TOKEN }}
-
-      - shell: bash
-        run: |
-          curl -u ${{ env.SONARQUBE_TOKEN }}: \
-            -G "${{ env.SONARQUBE_URL }}/api/issues/search" \
-            --data-urlencode "componentKeys=${{ env.SONAR_PROJECT_KEY }}" \
-            --data-urlencode "statuses=OPEN" \
-            -o sonar_issues.json
-
-      - shell: bash
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONARQUBE_URL: ${{ env.SONARQUBE_URL }}
-          SONAR_PROJECT_KEY: ${{ env.SONAR_PROJECT_KEY }}
-          PROJECT_NAME: ${{ env.PROJECT_NAME }}
-        run: |
-          jq -c '.issues[]' sonar_issues.json | while read issue; do
-            key=$(echo "$issue" | jq -r .key)
-            message=$(echo "$issue" | jq -r .message)
-            component=$(echo "$issue" | jq -r .component)
-            line=$(echo "$issue" | jq -r .line)
-            severity=$(echo "$issue" | jq -r .severity)
-            rule=$(echo "$issue" | jq -r .rule)
-            if [ "$(gh issue list --label sonar-qube --state open --search "$key" --json number --jq 'length')" -gt 0 ]; then
-              continue
-            fi
-            BODY=$(cat <<EOF
-  **SonarQube Issue [$key]**
-- **Severity**: $severity
-- **Rule**: $rule
-- **Location**: $component:$line
-- **Message**: $message
-  
-  [View in SonarQube]($SONARQUBE_URL/project/issues?id=$SONAR_PROJECT_KEY&issues=$key)
-  EOF
-  )
-  ISSUE_NUMBER=$(gh issue create \
---title "SonarQube: $rule ($key)" \
-  --body "$BODY" \
-  --label sonar-qube,bug \
-  --json number \
-  --jq .number)
-  PROJECT_ID=$(gh project view "$PROJECT_NAME" --json id --jq .id)
-  CONTENT_ID=$(gh issue view "$ISSUE_NUMBER" --json id --jq .id)
-  gh project item add --project-id "$PROJECT_ID" --content-id "$CONTENT_ID"
-  done
+          asset_name: Log_Parser_App_v${{ needs.build_and_analyze.outputs.new_version }}.exe
+          asset_content_type: application/vnd.microsoft.portable-executable
