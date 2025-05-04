@@ -754,10 +754,10 @@
                                                     InitialRotation="0"
                                                     MaxAngle="360">
                                                     <lvc:PieChart.LegendTextPaint>
-                                                        <lvcskia:SolidColorPaint Color="White" />
+                                                        <lvcskia:SolidColorPaint Color="#FFFFFFFF" />
                                                     </lvc:PieChart.LegendTextPaint>
                                                     <lvc:PieChart.LegendBackgroundPaint>
-                                                        <lvcskia:SolidColorPaint Color="#333333" />
+                                                        <lvcskia:SolidColorPaint Color="#FF333333" />
                                                     </lvc:PieChart.LegendBackgroundPaint>
                                                 </lvc:PieChart>
                                             </Viewbox>
