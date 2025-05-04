@@ -17,7 +17,7 @@ concurrency:
 env:
   DOTNET_VERSION: 8.0.x
   SONAR_ORG: blesseddayss
-  SONAR_PROJ: Log_Parser_App
+  SONAR_PROJ: BlessedDayss_Log_Parser_App
   PROJECT_NAME: Log_Parser_App
 
 jobs:
