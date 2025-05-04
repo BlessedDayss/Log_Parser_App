@@ -50,7 +50,9 @@ jobs:
 
     - id: version
       run: |
-        dotnet gitversion /output json /showvariable FullSemVer >> $Env:GITHUB_OUTPUT
+        dotnet gitversion /showvariable FullSemVer | ForEach-Object {
+          echo "FULL_SEM_VER=$_" >> $Env:GITHUB_OUTPUT
+        }
       shell: pwsh
 
     # -------------------------- SonarCloud (PowerShell script) -----------------
