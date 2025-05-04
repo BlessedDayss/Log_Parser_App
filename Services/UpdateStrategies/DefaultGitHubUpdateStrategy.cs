@@ -70,27 +70,16 @@ namespace Log_Parser_App.Services.UpdateStrategies
             string releaseUrl = $"https://api.github.com/repos/{_owner}/{_repo}/releases/latest";
             
             var request = new HttpRequestMessage(HttpMethod.Get, releaseUrl);
-            request.Headers.UserAgent.ParseAdd("Log_Parser_App");
-            
-            string token = GitHubTokenService.GetGitHubToken();
-            if (!string.IsNullOrEmpty(token))
-            {
-                // Безопасная установка заголовка авторизации
-                request.Headers.TryAddWithoutValidation("Authorization", $"token {token}");
-                _logger.LogInformation("GitHub token added for authentication. Token type: {TokenType}", 
-                    token.StartsWith("ghp_") ? "Classic PAT" : "Fine-grained PAT");
-            }
-            else
-            {
-                _logger.LogWarning("No valid GitHub token found. Update checks will be limited.");
-                _logger.LogInformation("To enable full update checks, set a GitHub Personal Access Token in the GITHUB_TOKEN environment variable.");
-            }
+            request.Headers.UserAgent.ParseAdd("Log_Parser_App/1.0");
+            request.Headers.Accept.ParseAdd("application/vnd.github.v3+json");
 
             var response = await _httpClient.SendAsync(request);
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Failed to get detailed release info: {StatusCode} - {Reason}", response.StatusCode, await response.Content.ReadAsStringAsync());
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("Failed to get detailed release info: {StatusCode}, Error: {ErrorContent}", 
+                    response.StatusCode, errorContent);
                 return null;
             }
 

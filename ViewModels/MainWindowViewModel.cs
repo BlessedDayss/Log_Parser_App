@@ -1,4 +1,4 @@
-﻿namespace Log_Parser_App.ViewModels
+namespace Log_Parser_App.ViewModels
 {
     using System;
     using System.Collections.Generic;
