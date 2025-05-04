@@ -80,7 +80,7 @@ namespace Log_Parser_App.Services
                     }
 
                     if (lineCount % 50000 == 0) {
-                        logger.LogInformation("Processing log file: parsed {Count} lines so far ({ElapsedMs} ms)", lineCount, sw.ElapsedMilliseconds);
+                        logger.LogInformation("Processing log file: parsed {LineCount} lines so far ({ElapsedMilliseconds} ms)", lineCount, sw.ElapsedMilliseconds);
                     }
                 }
             } catch (Exception ex) {
@@ -723,7 +723,7 @@ namespace Log_Parser_App.Services
                         }
 
                     if (lineCount % 50000 == 0) {
-                        logger.LogInformation("Processing package log file: parsed {Count} lines so far ({ElapsedMs} ms)", lineCount, sw.ElapsedMilliseconds);
+                        logger.LogInformation("Processing package log file: parsed {LineCount} lines so far ({ElapsedMilliseconds} ms)", lineCount, sw.ElapsedMilliseconds);
                     }
                 }
 
