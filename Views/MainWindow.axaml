@@ -725,7 +725,7 @@
                                             LegendPosition="Hidden"/>
                                         <Border HorizontalAlignment="Center" VerticalAlignment="Center"
                                                 Width="40" Height="40" CornerRadius="20" 
-                                                Background="#FF272932">
+                                                Background="{StaticResource SurfaceBrush}">
                                             <TextBlock Text="{Binding MainView.LogStatistics.TotalCount}" 
                                                     FontSize="14" FontWeight="SemiBold" 
                                                     HorizontalAlignment="Center" 

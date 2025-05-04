@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: 8.0.x
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          cache: true
+
+      - name: GitVersion
+        id: ver
+        shell: pwsh
+        run: |
+          dotnet tool install --global gitversion.tool
+          dotnet gitversion /showvariable FullSemVer | ForEach-Object {
+            echo "FULL_SEM_VER=$_" >> $Env:GITHUB_OUTPUT
+          }
+
+      - run: dotnet publish ./Log_Parser_App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish/
+        shell: pwsh
+
+      - id: rel
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.ver.outputs.FULL_SEM_VER }}
+          release_name: Release v${{ steps.ver.outputs.FULL_SEM_VER }}
+          body: "Automated release of version v${{ steps.ver.outputs.FULL_SEM_VER }}"
+          draft: false
+          prerelease: false
+
+      - uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.rel.outputs.upload_url }}
+          asset_path: ./publish/Log_Parser_App.exe
+          asset_name: Log_Parser_App_v${{ steps.ver.outputs.FULL_SEM_VER }}.exe
+          asset_content_type: application/vnd.microsoft.portable-executable
