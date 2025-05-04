@@ -43,13 +43,14 @@ jobs:
       shell: pwsh
       run: |
         dotnet tool install --global dotnet-sonarscanner
-        dotnet tool install --global gitversion.tool
+        dotnet tool install --global GitVersion.Tool
 
     - name: Calculate version
       id: version
       shell: pwsh
       run: |
-        $ver = gitversion /showvariable FullSemVer
+        $ver = dotnet gitversion /showvariable FullSemVer
+        if (-not $ver) { throw "GitVersion failed to execute" }
         "FULL_SEM_VER=$ver" >> $Env:GITHUB_OUTPUT
 
     - name: SonarCloud – begin analysis
