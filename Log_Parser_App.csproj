@@ -34,7 +34,6 @@
     </ItemGroup>
     <ItemGroup>
       <Content Include=".github\workflows\_ci.yml" />
-      <Content Include=".github\workflows\build-bump-sonar-release.yml" />
       <Content Include=".github\workflows\_release.yml" />
     </ItemGroup>
 </Project>
