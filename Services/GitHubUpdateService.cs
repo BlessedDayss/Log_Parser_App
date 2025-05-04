@@ -38,7 +38,8 @@ namespace Log_Parser_App.Services
             _repo = repo;
 
             _httpClient = new HttpClient();
-            _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("LogParserApp", GetCurrentVersion().ToString()));
+            var currentVersion = GetCurrentVersion();
+            _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("LogParserApp", currentVersion?.ToString() ?? "unknown"));
 
             _tempFolder = Path.Combine(Path.GetTempPath(), "LogParserApp", "Updates");
             Directory.CreateDirectory(_tempFolder);

@@ -492,26 +492,28 @@ namespace Log_Parser_App.ViewModels
                     }
                 };
 
-                // 3. Heatmap распределения логов по времени
-                int maxValue = totalByHour.Any() ? totalByHour.Select(p => (int)p.Value).Max() : 0;
-
-                var timeHeatData = totalByHour.Select(p => p.Value).ToArray();
-
-                TimeHeatmapSeries = new ISeries[]
+                if (totalByHour.Count != 0)
                 {
+                    var values = totalByHour.Select(p => (int)p.Value!).ToList();
+                }
+
+                var timeHeatData = totalByHour.Select(p => Convert.ToDouble(p.Value)).DefaultIfEmpty(0).ToArray();
+
+                TimeHeatmapSeries =
+                [
                     new ColumnSeries<double>
                     {
                         Values = timeHeatData,
                         Name = "Активность",
                         Fill = new LinearGradientPaint(
-                            new[] { new SKColor(100, 149, 237, 100), new SKColor(65, 105, 225) },
+                            [new SKColor(100, 149, 237, 100), new SKColor(65, 105, 225)],
                             new SKPoint(0, 0),
                             new SKPoint(0, 1)
                         ),
                         Stroke = null,
                         MaxBarWidth = double.MaxValue
                     }
-                };
+                ];
 
                 // 4. Тренд ошибок по часам
                 var errorTrend = errorsByHour.Select(p => p.Value).ToArray();
@@ -530,7 +532,6 @@ namespace Log_Parser_App.ViewModels
                     }
                 } : Array.Empty<ISeries>();
 
-                // 5. ТОП ошибок (гистограмма)
                 var topErrors = LogEntries
                     .Where(e => e.Level == "ERROR")
                     .GroupBy(e => e.Message)

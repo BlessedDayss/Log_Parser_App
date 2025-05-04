@@ -38,7 +38,7 @@ namespace Log_Parser_App.Models
         public MainWindowViewModel? ParentViewModel { get; set; }
 
         public IEnumerable<string> AvailableOperators =>
-            ParentViewModel?.OperatorsByFieldType.TryGetValue(SelectedField, out var ops) == true
+            ParentViewModel?.OperatorsByFieldType != null && ParentViewModel.OperatorsByFieldType.TryGetValue(SelectedField ?? string.Empty, out var ops)
                 ? ops
                 : Enumerable.Empty<string>();
 
