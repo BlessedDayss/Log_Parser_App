@@ -292,10 +292,20 @@
                             </StackPanel>
                         </Border>
                         
-                        <TextBlock Text="{Binding AppVersion}" 
+                        <!-- Улучшенное отображение версии в верхней панели -->
+                        <StackPanel Orientation="Horizontal" 
+                                    VerticalAlignment="Center" 
+                                    Margin="8,0,0,0">
+                            <TextBlock Text="🏷️" 
+                                   FontSize="16" 
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,4,0"/>
+                            <TextBlock Text="{Binding AppVersion}" 
                                    VerticalAlignment="Center" 
                                    Foreground="#AAAAAA"
-                                   FontSize="12" />
+                                   FontSize="14"
+                                   FontWeight="Medium" />
+                        </StackPanel>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -843,13 +853,22 @@
                                Margin="16,0,0,0"
                                FontSize="13" />
                     
-                    <TextBlock Grid.Column="1" 
-                               Text="{Binding AppVersion}" 
-                               VerticalAlignment="Center" 
-                               HorizontalAlignment="Right"
-                               Foreground="#777777"
-                               Margin="16,0,16,0"
-                               FontSize="12" />
+                    <!-- Улучшенное отображение версии приложения -->
+                    <StackPanel Grid.Column="1" 
+                              Orientation="Horizontal"
+                              VerticalAlignment="Center" 
+                              HorizontalAlignment="Right"
+                              Margin="16,0,16,0">
+                        <TextBlock Text="🏷️" 
+                                   FontSize="16" 
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,4,0"/>
+                        <TextBlock Text="{Binding AppVersion}" 
+                                   VerticalAlignment="Center" 
+                                   Foreground="#777777"
+                                   FontSize="14" 
+                                   FontWeight="Medium"/>
+                    </StackPanel>
                 </Grid>
             </Border>
         </Grid>

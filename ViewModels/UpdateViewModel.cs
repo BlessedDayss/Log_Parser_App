@@ -113,7 +113,7 @@ namespace Log_Parser_App.ViewModels
             {
                 AvailableUpdate = await _updateService.CheckForUpdatesAsync();
                 
-                if (AvailableUpdate != null && AvailableUpdate.Version != null && AvailableUpdate.Version != DefaultVersion)
+                if (AvailableUpdate != null && AvailableUpdate.Version != new Version(0, 0, 0))
                 {
                     StatusMessage = $"Доступно обновление: {AvailableUpdate.Version}";
                 }
