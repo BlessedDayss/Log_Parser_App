@@ -62,8 +62,16 @@ namespace Log_Parser_App.Services
                 _logger.LogInformation("Current application version: {Version}", currentVersion);
 
                 string versionString = testResult.TagName.TrimStart('v');
+                // Use regex to extract version number more robustly
+                var versionMatch = System.Text.RegularExpressions.Regex.Match(versionString, @"^(\d+\.\d+\.\d+)");
+                if (!versionMatch.Success) {
+                    _logger.LogWarning("Could not extract version from tag: {TagName}", testResult.TagName);
+                    return null;
+                }
+                
+                versionString = versionMatch.Groups[1].Value;
                 if (!Version.TryParse(versionString, out var latestVersion)) {
-                    _logger.LogWarning("Failed to parse version from tag name: {TagName}", testResult.TagName);
+                    _logger.LogWarning("Failed to parse version from extracted string: {VersionString}", versionString);
                     return null;
                 }
                 _logger.LogInformation("Latest version: {Version}", latestVersion);
