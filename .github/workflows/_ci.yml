@@ -50,7 +50,7 @@ jobs:
 
       - id: version
         run: |
-          gitversion /output json /showvariable FullSemVer >> $GITHUB_OUTPUT
+          dotnet gitversion /output json /showvariable FullSemVer >> $GITHUB_OUTPUT
 
       - name: Begin SonarCloud scan
         env:
