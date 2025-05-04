@@ -82,7 +82,7 @@ jobs:
         shell: pwsh
         run: dotnet sonarscanner end /d:sonar.login="$Env:SONAR_TOKEN"
       
-      # ---------- bump version (только push в main) ----------
+      # ---------- bump version (only push to main) ----------
       - name: Bump version in csproj
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         id: bump

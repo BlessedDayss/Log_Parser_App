@@ -28,7 +28,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           title: 'Auto Merge: dev → main'
           body: |
-            Этот Pull Request автоматически создан после одобрения PR #${{ github.event.pull_request.number }} в ветке dev.
+            This Pull Request was automatically created after PR #${{ github.event.pull_request.number }} was approved in the dev branch.
           base: main
           head: dev
           draft: false
