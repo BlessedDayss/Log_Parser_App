@@ -3,20 +3,15 @@
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
-    using System.Globalization;
     using System.Windows.Input;
-    using System.IO;
     using System.Linq;
     using System.Reflection;
     using System.Threading.Tasks;
-    using Avalonia.Platform.Storage;
     using Avalonia.Threading;
     using CommunityToolkit.Mvvm.ComponentModel;
     using CommunityToolkit.Mvvm.Input;
-    using Log_Parser_App;
-    using Log_Parser_App.Models;
-    using Log_Parser_App.Services;
-    using Log_Parser_App.ViewModels;
+    using Models;
+    using Services;
     using Microsoft.Extensions.Logging;
 
 
@@ -28,7 +23,6 @@
         private const string FieldMessage = "Message";
 
         private readonly ILogger<MainWindowViewModel> _logger;
-        private readonly Log_Parser_App.ViewModels.MainViewModel _mainView;
         private readonly IUpdateService? _updateService;
 
         [ObservableProperty]
@@ -43,9 +37,8 @@
         [ObservableProperty]
         private bool _isDashboardVisible;
 
-        public Log_Parser_App.ViewModels.MainViewModel MainView => _mainView;
+        public MainViewModel MainView { get; }
 
-        // Filter Builder properties and commands moved here
         [ObservableProperty]
         private ObservableCollection<FilterCriterion> _filterCriteria = new();
 
@@ -57,7 +50,6 @@
              { FieldMessage, ["Equals", "NotEquals", "Contains", "StartsWith", "EndsWith"] }
          };
 
-        // Dictionary to store available values for fields
         public Dictionary<string, HashSet<string>> AvailableValuesByField { get; } = new Dictionary<string, HashSet<string>> {
              { FieldLevel, new HashSet<string>() },
              { FieldSource, new HashSet<string>() }
@@ -65,14 +57,15 @@
 
         public MainWindowViewModel()
         {
-            // Design-time constructor
             _logger = null!;
-            _mainView = new Log_Parser_App.ViewModels.MainViewModel(null!, null!, null!, null!); // Provide dummy services for design time
+            MainView = new MainViewModel(null!, null!, null!, null!); 
             _updateService = null!;
             AppVersion = "v0.0.1-design";
-            // Add a design-time filter criterion for the previewer
             FilterCriteria.Add(new FilterCriterion { SelectedField = FieldLevel, SelectedOperator = "Equals", Value = "ERROR" });
-            CheckForUpdatesAsyncCommand = new RelayCommand(async () => await Task.CompletedTask);
+            CheckForUpdatesAsyncCommand = new RelayCommand(async void () =>
+            {
+                await Task.CompletedTask;
+            });
             AddFilterCriterionCommand = new RelayCommand(() =>
             {
             });
@@ -81,23 +74,17 @@
         public MainWindowViewModel(ILogger<MainWindowViewModel> logger, Log_Parser_App.ViewModels.MainViewModel mainView, IUpdateService updateService)
         {
             _logger = logger;
-            _mainView = mainView;
+            MainView = mainView;
             _updateService = updateService;
-
-            // Получаем версию приложения
             LoadApplicationVersion();
-
-            CheckForUpdatesAsyncCommand = new RelayCommand(async () => await ExecuteCheckForUpdatesAsync());
+            CheckForUpdatesAsyncCommand = new RelayCommand(async void () =>
+            {
+                await ExecuteCheckForUpdatesAsync();
+            });
             AddFilterCriterionCommand = new RelayCommand(ExecuteAddFilterCriterion);
-
-            // Инициализируем статус панели дашборда
             IsDashboardVisible = false;
-
-            // Инициализируем фильтры
             FilterCriteria = new ObservableCollection<FilterCriterion>();
             AvailableValuesByField = new Dictionary<string, HashSet<string>>();
-
-            // Проверяем обновления при запуске
             CheckForUpdatesAsyncCommand.Execute(null);
 
             _logger.LogInformation("MainWindowViewModel initialized");
@@ -160,56 +147,22 @@
             }
         }
 
-
-
-        // Method to populate available values for filter fields based on log entries
-        private void PopulateAvailableFilterValues()
-        {
-            if (MainView.LogEntries == null || MainView.LogEntries.Count == 0)
-            {
-                _logger.LogDebug("No log entries available to populate filter values");
-                return;
-            }
-
-            _logger.LogInformation("Populating available filter values from {Count} log entries", MainView.LogEntries.Count);
-
-            // Clear existing values
-            foreach (var key in AvailableValuesByField.Keys.ToList())
-            {
-                AvailableValuesByField[key].Clear();
-            }
-
-            // Extract unique values for Level
-            var levels = MainView.LogEntries.Select(e => e.Level).Where(l => !string.IsNullOrEmpty(l)).Distinct().OrderBy(l => l).ToHashSet();
-            AvailableValuesByField[FieldLevel] = levels;
-            _logger.LogDebug("Found {Count} unique levels: {Levels}", levels.Count, string.Join(", ", levels));
-
-            // Extract unique values for Source
-            var sources = MainView.LogEntries.Select(e => e.Source).Where(s => !string.IsNullOrEmpty(s)).Distinct().OrderBy(s => s).ToHashSet();
-            AvailableValuesByField[FieldSource] = sources;
-            _logger.LogDebug("Found {Count} unique sources", sources.Count);
-
-            // Notify UI of changes
-            OnPropertyChanged(nameof(AvailableValuesByField));
-        }
-
+        
         public ICommand AddFilterCriterionCommand { get; }
-
-        // Команда для переключения видимости дашборда
         private void ExecuteAddFilterCriterion()
         {
             var newCriterion = new FilterCriterion
             {
-                ParentViewModel = this, // Set the parent ViewModel reference
-                SelectedField = FieldLevel, // Set default field to Level
-                SelectedOperator = "Equals" // Set default operator to Equals
+                ParentViewModel = this, 
+                SelectedField = FieldLevel, 
+                SelectedOperator = "Equals" 
             };
             FilterCriteria.Add(newCriterion);
             _logger.LogInformation("Added new filter criterion.");
         }
 
         [RelayCommand]
-        private void RemoveFilterCriterionCommand(FilterCriterion? criterion) // Make parameter nullable
+        private void RemoveFilterCriterionCommand(FilterCriterion? criterion) 
         {
             if (criterion != null)
             {
@@ -321,14 +274,11 @@
                         _ => entries
                     };
                 case FieldTimestamp:
-                    // Use DateTimeOffset from DatePicker
                     if (DateTimeOffset.TryParse(criterion.Value, out var dateValue))
                     {
-                        // Compare using the Date part of DateTimeOffset for date-only comparisons
-                        // Or use the full DateTimeOffset for exact comparisons if needed
                         return criterion.SelectedOperator switch
                         {
-                            "Equals" => entries.Where(e => e.Timestamp.Date == dateValue.Date), // Compare Date part
+                            "Equals" => entries.Where(e => e.Timestamp.Date == dateValue.Date), 
                             "NotEquals" => entries.Where(e => e.Timestamp.Date != dateValue.Date),
                             "GreaterThan" => entries.Where(e => e.Timestamp > dateValue),
                             "LessThan" => entries.Where(e => e.Timestamp < dateValue),
@@ -340,9 +290,7 @@
                     else
                     {
                         _logger.LogWarning("Could not parse date value for Timestamp filter: {Value}", criterion.Value);
-                        // Optionally return empty if parsing fails and it's a required filter
-                        // return Enumerable.Empty<LogEntry>(); 
-                        return entries; // Or just ignore this filter if parsing fails
+                        return entries; 
                     }
 
                 default:
@@ -366,11 +314,10 @@
             }
 
             MainView.StatusMessage = "Applying filters...";
-            MainView.IsLoading = true; // Access IsLoading via MainView
+            MainView.IsLoading = true; 
 
             try
             {
-                // Get log entries from MainViewModel
                 var entriesToFilter = MainView.LogEntries.ToList();
 
                 await Task.Run(() =>
@@ -394,7 +341,7 @@
 
                     Dispatcher.UIThread.InvokeAsync(() =>
                     {
-                        MainView.FilteredLogEntries.Clear(); // Modify collection in MainView
+                        MainView.FilteredLogEntries.Clear(); 
                         foreach (var entry in filteredEntries)
                         {
                             MainView.FilteredLogEntries.Add(entry);
@@ -410,7 +357,7 @@
             }
             finally
             {
-                MainView.IsLoading = false; // Access IsLoading via MainView
+                MainView.IsLoading = false; 
             }
         }
 
@@ -454,11 +401,8 @@
                         _ => entries
                     };
                 case FieldTimestamp:
-                    // Use DateTimeOffset from DatePicker
                     if (DateTimeOffset.TryParse(criterion.Value, out var dateValue))
                     {
-                        // Compare using the Date part of DateTimeOffset for date-only comparisons
-                        // Or use the full DateTimeOffset for exact comparisons if needed
                         return criterion.SelectedOperator switch
                         {
                             "Equals" => entries.Where(e => e.Timestamp.Date == dateValue.Date), // Compare Date part
@@ -473,9 +417,7 @@
                     else
                     {
                         _logger.LogWarning("Could not parse date value for Timestamp filter: {Value}", criterion.Value);
-                        // Optionally return empty if parsing fails and it's a required filter
-                        // return Enumerable.Empty<LogEntry>(); 
-                        return entries; // Or just ignore this filter if parsing fails
+                        return entries; 
                     }
 
                 default:
@@ -524,13 +466,10 @@
                 MainView.IsLoading = false;
             }
         }
-
         private void OpenLogFile(LogEntry? entry)
         {
             MainView.OpenLogFileCommand.Execute(entry);
         }
-
-        // Удаляем required и используем null! для подавления предупреждения компилятора
         public IRelayCommand OpenLogFileCommand { get; } = null!;
 
         public ICommand ToggleDashboardVisibilityCommand => new RelayCommand(() =>

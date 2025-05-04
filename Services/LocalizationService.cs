@@ -8,12 +8,13 @@ namespace Log_Parser_App.Services
 {
     using Microsoft.Extensions.Logging;
 
-
     public class LocalizationService : ILocalizationService
     {
         private readonly ILogger<LocalizationService> _logger;
         private readonly Dictionary<string, Dictionary<string, string>> _translations = new();
         private CultureInfo _currentCulture;
+
+        private const string DefaultCulture = "en-US";
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -37,7 +38,7 @@ namespace Log_Parser_App.Services
             AvailableCultures = new List<CultureInfo> {
                 new CultureInfo("ru-RU"),
                 new CultureInfo("uk-UA"),
-                new CultureInfo("en-US")
+                new CultureInfo(DefaultCulture)
             };
 
             _currentCulture = new CultureInfo("ru-RU");
@@ -80,7 +81,7 @@ namespace Log_Parser_App.Services
                 }
             }
 
-            if (cultureName != "en-US" && _translations.TryGetValue("en-US", out var enTranslations)) {
+            if (cultureName != DefaultCulture && _translations.TryGetValue(DefaultCulture, out var enTranslations)) {
                 if (enTranslations.TryGetValue(key, out var enTranslation)) {
                     return enTranslation;
                 }
@@ -200,7 +201,7 @@ namespace Log_Parser_App.Services
                 };
 
                 // English translations
-                _translations["en-US"] = new Dictionary<string, string> {
+                _translations[DefaultCulture] = new Dictionary<string, string> {
                     // Window title
                     { "AppTitle", "LogParser - Log Analyzer" },
 
