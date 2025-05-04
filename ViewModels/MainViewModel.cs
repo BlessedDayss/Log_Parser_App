@@ -447,59 +447,65 @@ namespace Log_Parser_App.ViewModels
             try
             {
                 // 1. Log Type Distribution chart (Pie chart)
-                LogDistributionSeries = ErrorCount + WarningCount + InfoCount + OtherCount > 0
-                ? new ISeries[]
+                LogDistributionSeries = new ISeries[]
                 {
                     new PieSeries<double>
                     {
                         Values = new double[] { ErrorCount },
                         Name = "Errors",
                         Fill = new SolidColorPaint(SKColors.Crimson),
-                        InnerRadius = 60,
-                        MaxRadialColumnWidth = 25,
-                        // Using default font size to avoid crash
-                        DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue} ({Math.Round(point.Coordinate.PrimaryValue / (point.StackedValue?.Total ?? 1) * 100)}%)",
+                        InnerRadius = 50,
+                        MaxRadialColumnWidth = 50,
+                        DataLabelsSize = 16,
                         DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle
+                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                        DataLabelsFormatter = point => ErrorCount > 0 ? 
+                            $"Errors: {point.Coordinate.PrimaryValue}\n({Math.Round(point.Coordinate.PrimaryValue / (ErrorCount + WarningCount + InfoCount + OtherCount) * 100)}%)" : "",
+                        IsVisible = (ErrorCount + WarningCount + InfoCount + OtherCount) > 0
                     },
                     new PieSeries<double>
                     {
                         Values = new double[] { WarningCount },
                         Name = "Warnings",
-                        Fill = new SolidColorPaint(SKColors.Orange),
-                        InnerRadius = 60,
-                        MaxRadialColumnWidth = 25,
-                        // Using default font size to avoid crash
-                        DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue} ({Math.Round(point.Coordinate.PrimaryValue / (point.StackedValue?.Total ?? 1) * 100)}%)",
+                        Fill = new SolidColorPaint(SKColors.DarkOrange),
+                        InnerRadius = 50,
+                        MaxRadialColumnWidth = 50,
+                        DataLabelsSize = 16,
                         DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle
+                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                        DataLabelsFormatter = point => WarningCount > 0 ? 
+                            $"Warnings: {point.Coordinate.PrimaryValue}\n({Math.Round(point.Coordinate.PrimaryValue / (ErrorCount + WarningCount + InfoCount + OtherCount) * 100)}%)" : "",
+                        IsVisible = (ErrorCount + WarningCount + InfoCount + OtherCount) > 0
                     },
                     new PieSeries<double>
                     {
                         Values = new double[] { InfoCount },
                         Name = "Info",
-                        Fill = new SolidColorPaint(SKColors.DodgerBlue),
-                        InnerRadius = 60,
-                        MaxRadialColumnWidth = 25,
-                        // Using default font size to avoid crash
-                        DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue} ({Math.Round(point.Coordinate.PrimaryValue / (point.StackedValue?.Total ?? 1) * 100)}%)",
+                        Fill = new SolidColorPaint(SKColors.RoyalBlue),
+                        InnerRadius = 50,
+                        MaxRadialColumnWidth = 50,
+                        DataLabelsSize = 16,
                         DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle
+                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                        DataLabelsFormatter = point => InfoCount > 0 ? 
+                            $"Info: {point.Coordinate.PrimaryValue}\n({Math.Round(point.Coordinate.PrimaryValue / (ErrorCount + WarningCount + InfoCount + OtherCount) * 100)}%)" : "",
+                        IsVisible = (ErrorCount + WarningCount + InfoCount + OtherCount) > 0
                     },
                     new PieSeries<double>
                     {
                         Values = new double[] { OtherCount },
                         Name = "Others",
-                        Fill = new SolidColorPaint(SKColors.SlateGray),
-                        InnerRadius = 60,
-                        MaxRadialColumnWidth = 25,
-                        // Using default font size to avoid crash
-                        DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue} ({Math.Round(point.Coordinate.PrimaryValue / (point.StackedValue?.Total ?? 1) * 100)}%)",
+                        Fill = new SolidColorPaint(SKColors.DarkGray),
+                        InnerRadius = 50,
+                        MaxRadialColumnWidth = 50,
+                        DataLabelsSize = 16,
                         DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle
+                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                        DataLabelsFormatter = point => OtherCount > 0 ? 
+                            $"Others: {point.Coordinate.PrimaryValue}\n({Math.Round(point.Coordinate.PrimaryValue / (ErrorCount + WarningCount + InfoCount + OtherCount) * 100)}%)" : "",
+                        IsVisible = (ErrorCount + WarningCount + InfoCount + OtherCount) > 0
                     }
-                }
-                : Array.Empty<ISeries>();
+                };
 
                 // 2. Logs By Hour - (Line chart)
                 // Группируем логи не по часам, а по фактической дате и времени для более точного отображения

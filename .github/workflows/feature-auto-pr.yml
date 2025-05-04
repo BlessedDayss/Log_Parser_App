@@ -22,7 +22,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           title: 'Auto PR: ${{ github.ref_name }} → dev'
           body: |
-            Автоматический Pull Request для ревью кода из ветки `${{ github.ref_name }}` в `dev`.
+            Automatic Pull Request for code review from branch `${{ github.ref_name }}` to `dev`.
           base: dev
           branch: ${{ github.ref_name }}
           draft: false

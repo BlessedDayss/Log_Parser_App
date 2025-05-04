@@ -10,6 +10,7 @@
         xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
         xmlns:lvccore="using:LiveChartsCore"
         xmlns:lvcskt="using:LiveChartsCore.SkiaSharpView"
+        xmlns:lvcskia="using:LiveChartsCore.SkiaSharpView.Painting"
         mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="750"
         x:Class="Log_Parser_App.Views.MainWindow"
         x:Name="mainWindowInstance"
@@ -245,7 +246,6 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     
                     <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
@@ -268,44 +268,47 @@
                                Foreground="#CCCCCC"
                                FontSize="14" />
                     
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
-                        <Button Classes="icon-button"
-                                ToolTip.Tip="Check for updates"
-                                Command="{Binding CheckForUpdatesAsyncCommand}">
-                            <TextBlock Text="🔄" FontSize="18" />
-                        </Button>
+                    <StackPanel Grid.Column="2" 
+                                Orientation="Vertical" 
+                                HorizontalAlignment="Right"
+                                Spacing="4"
+                                Margin="0,0,8,0">
                         
-                        <Border Background="#A33F3F" 
-                                CornerRadius="4" 
-                                Padding="8,4" 
-                                IsVisible="{Binding IsUpdateAvailable}">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <TextBlock Text="Update available!" 
-                                           Foreground="White" 
-                                           VerticalAlignment="Center" 
-                                           FontSize="12" />
-                                <Button Content="Install" 
-                                        Padding="8,2" 
-                                        FontSize="12"
-                                        Background="#4CAF50"
-                                        Command="{Binding InstallUpdateCommand}" />
-                            </StackPanel>
-                        </Border>
-                        
-                        <!-- Улучшенное отображение версии в верхней панели -->
                         <StackPanel Orientation="Horizontal" 
-                                    VerticalAlignment="Center" 
-                                    Margin="8,0,0,0">
-                            <TextBlock Text="🏷️" 
-                                   FontSize="16" 
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,4,0"/>
-                            <TextBlock Text="{Binding AppVersion}" 
-                                   VerticalAlignment="Center" 
-                                   Foreground="#AAAAAA"
-                                   FontSize="14"
-                                   FontWeight="Medium" />
+                                    HorizontalAlignment="Center" 
+                                    Spacing="4">
+                            <Border Width="24" Height="24" 
+                                    Background="#0078D7" 
+                                    CornerRadius="4"
+                                    Margin="0">
+                                <TextBlock Text="S" 
+                                           FontWeight="Bold" 
+                                           FontSize="14"
+                                           Foreground="White" 
+                                           HorizontalAlignment="Center" 
+                                           VerticalAlignment="Center"/>
+                            </Border>
+                            
+                            <Border Background="#FFCC00" 
+                                    CornerRadius="3" 
+                                    Padding="6,2" 
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="{Binding AppVersion}" 
+                                           FontSize="14" 
+                                           FontWeight="Medium"
+                                           Foreground="#333333"/>
+                            </Border>
                         </StackPanel>
+                        
+                        <Button Content="Check for updates" 
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Padding="0"
+                                Foreground="#AAAAAA"
+                                FontSize="12"
+                                HorizontalAlignment="Center"
+                                HorizontalContentAlignment="Center"
+                                Command="{Binding CheckForUpdatesAsyncCommand}"/>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -673,7 +676,7 @@
                                     </StackPanel>
                                 </Border>
                                 <!-- Daily Activity - mini chart tile -->
-                                <Border Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" Background="#272932" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="8" Margin="5" Padding="15">
+                                <Border Grid.Column="0" Grid.Row="1" Background="#272932" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="8" Margin="5" Padding="15">
                                     <StackPanel>
                                         <TextBlock Text="Daily Activity" FontSize="14" Foreground="#AAAAAA" Margin="0,0,0,8" />
                                         <lvc:CartesianChart
@@ -686,25 +689,49 @@
                                     </StackPanel>
                                 </Border>
                                 
-                                <!-- Log Distribution - mini chart tile -->
-                                <Border Grid.Column="2" Grid.Row="1" Grid.ColumnSpan="2" Background="#272932" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="8" Margin="5" Padding="15">
-                                    <StackPanel>
-                                        <TextBlock Text="Log Distribution" FontSize="14" Foreground="#AAAAAA" Margin="0,0,0,8" />
-                                        <Grid>
+                                <!-- Mini Log Type Distribution Chart -->
+                                <Border Grid.Column="1" Grid.Row="1" Background="#242529" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,5">
+                                    <Grid>
+                                        <TextBlock Text="Log Type Distribution" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Left" VerticalAlignment="Top" />
+                                        <Viewbox MaxHeight="150" MaxWidth="150" Margin="0,20,0,0">
                                             <lvc:PieChart
                                                 Series="{Binding MainView.LogDistributionSeries}"
-                                                Height="80"
-                                                LegendPosition="Hidden"/>
-                                            <Border HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                    Width="40" Height="40" CornerRadius="20" 
-                                                    Background="#272932">
-                                                <TextBlock Text="{Binding MainView.LogStatistics.TotalCount}" 
-                                                        FontSize="14" FontWeight="SemiBold" 
-                                                        HorizontalAlignment="Center" 
-                                                        VerticalAlignment="Center" />
-                                            </Border>
-                                        </Grid>
-                                    </StackPanel>
+                                                Width="100" 
+                                                Height="100"
+                                                LegendPosition="Hidden"
+                                                InitialRotation="-90"
+                                                MaxAngle="270">
+                                            </lvc:PieChart>
+                                        </Viewbox>
+                                        <StackPanel Orientation="Vertical" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,5,5">
+                                            <TextBlock Text="{Binding MainView.ErrorCount, StringFormat='Errors: {0}'}" Foreground="Crimson" FontSize="11" />
+                                            <TextBlock Text="{Binding MainView.WarningCount, StringFormat='Warnings: {0}'}" Foreground="Orange" FontSize="11" />
+                                            <TextBlock Text="{Binding MainView.InfoCount, StringFormat='Info: {0}'}" Foreground="RoyalBlue" FontSize="11" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                                
+                                <!-- Log Distribution - mini chart tile -->
+                                <Border Grid.Column="2" Grid.Row="1" Grid.ColumnSpan="2" Background="#272932" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="8" Margin="5" Padding="15">
+                                    <Grid>
+                                        <lvc:PieChart
+                                            Series="{Binding MainView.LogDistributionSeries}"
+                                            Height="120"
+                                            Width="180" 
+                                            MinWidth="120"
+                                            InitialRotation="-90"
+                                            MaxAngle="270"
+                                            TooltipPosition="Top"
+                                            LegendPosition="Hidden"/>
+                                        <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                Width="40" Height="40" CornerRadius="20" 
+                                                Background="#FF272932">
+                                            <TextBlock Text="{Binding MainView.LogStatistics.TotalCount}" 
+                                                    FontSize="14" FontWeight="SemiBold" 
+                                                    HorizontalAlignment="Center" 
+                                                    VerticalAlignment="Center" />
+                                        </Border>
+                                    </Grid>
                                 </Border>
                               </Grid>
                             </Border>
@@ -717,13 +744,22 @@
                                     <Border Background="#2D2F33" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="10" Padding="15">
                                         <StackPanel>
                                             <TextBlock Text="Log Type Distribution" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
-                                            <Viewbox MaxHeight="220">
+                                            <Viewbox MaxHeight="350">
                                                 <lvc:PieChart
                                                     Series="{Binding MainView.LogDistributionSeries}"
-                                                    Width="300"
-                                                    Height="300"
-                                                    LegendPosition="Right"
-                                                    TooltipPosition="Right" />
+                                                    Width="450"
+                                                    Height="400"
+                                                    LegendPosition="Bottom"
+                                                    TooltipPosition="Top"
+                                                    InitialRotation="0"
+                                                    MaxAngle="360">
+                                                    <lvc:PieChart.LegendTextPaint>
+                                                        <lvcskia:SolidColorPaint Color="White" />
+                                                    </lvc:PieChart.LegendTextPaint>
+                                                    <lvc:PieChart.LegendBackgroundPaint>
+                                                        <lvcskia:SolidColorPaint Color="#333333" />
+                                                    </lvc:PieChart.LegendBackgroundPaint>
+                                                </lvc:PieChart>
                                             </Viewbox>
                                         </StackPanel>
                                     </Border>
@@ -837,6 +873,7 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     
                     <TextBlock Text="{Binding MainView.StatusMessage}" 
@@ -850,19 +887,32 @@
                                VerticalAlignment="Center" 
                                HorizontalAlignment="Right"
                                Foreground="#AAAAAA"
-                               Margin="16,0,0,0"
+                               Margin="16,0,16,0"
                                FontSize="13" />
                     
-                    <!-- Улучшенное отображение версии приложения -->
-                    <StackPanel Grid.Column="1" 
+                    <!-- Логотип приложения и версия в едином блоке -->
+                    <StackPanel Grid.Column="2" 
                               Orientation="Horizontal"
                               VerticalAlignment="Center" 
                               HorizontalAlignment="Right"
-                              Margin="16,0,16,0">
+                              Margin="0,0,16,0">
+                        <!-- Логотип приложения -->
+                        <Border Width="20" Height="20" 
+                                Background="#0078D7" 
+                                CornerRadius="3" 
+                                Margin="0,0,6,0">
+                            <TextBlock Text="S" 
+                                       FontSize="14" 
+                                       FontWeight="Bold" 
+                                       Foreground="White"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                        </Border>
+                        <!-- Иконка версии и текст версии -->
                         <TextBlock Text="🏷️" 
                                    FontSize="16" 
                                    VerticalAlignment="Center"
-                                   Margin="0,0,4,0"/>
+                                   Margin="0,0,2,0"/>
                         <TextBlock Text="{Binding AppVersion}" 
                                    VerticalAlignment="Center" 
                                    Foreground="#777777"
