@@ -55,7 +55,7 @@ jobs:
       - name: Calculate version
         id: version
         run: |
-          dotnet gitversion /showvariable FullSemVer | ForEach-Object {
+          $ver = dotnet-gitversion /showvariable FullSemVer | ForEach-Object {
             echo "FULL_SEM_VER=$_" >> $Env:GITHUB_OUTPUT
           }
         shell: pwsh
