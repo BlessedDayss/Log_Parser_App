@@ -17,18 +17,22 @@ namespace Log_Parser_App.Services.UpdateStrategies
         private readonly string _owner;
         private readonly string _repo;
 
+        private readonly string? _gitHubToken;
+
         public DefaultGitHubUpdateStrategy(
             HttpClient httpClient, 
             ILogger<DefaultGitHubUpdateStrategy> logger, 
             IVersionParser versionParser,
             string owner,
-            string repo)
+            string repo,
+            string? gitHubToken = null)
         {
             _httpClient = httpClient;
             _logger = logger;
             _versionParser = versionParser;
             _owner = owner;
             _repo = repo;
+            _gitHubToken = gitHubToken;
         }
 
         public async Task<UpdateInfo?> CheckForUpdatesAsync(GitHubConnectionResult connectionResult)
@@ -72,6 +76,12 @@ namespace Log_Parser_App.Services.UpdateStrategies
             var request = new HttpRequestMessage(HttpMethod.Get, releaseUrl);
             request.Headers.UserAgent.ParseAdd("Log_Parser_App/1.0");
             request.Headers.Accept.ParseAdd("application/vnd.github.v3+json");
+
+            // Добавляем токен, если он предоставлен
+            if (!string.IsNullOrEmpty(_gitHubToken))
+            {
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("token", _gitHubToken);
+            }
 
             var response = await _httpClient.SendAsync(request);
 

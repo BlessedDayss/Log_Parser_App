@@ -24,7 +24,8 @@ namespace Log_Parser_App.ViewModels
 
         private readonly ILogger<MainWindowViewModel> _logger;
         private readonly IUpdateService? _updateService;
-
+        private readonly ILogParserService? _logParserService;
+        private readonly IFileService? _fileService;
         [ObservableProperty]
         private string _appVersion = string.Empty;
 
@@ -37,17 +38,18 @@ namespace Log_Parser_App.ViewModels
         [ObservableProperty]
         private bool _isDashboardVisible;
 
-        public MainViewModel MainView { get; }
+        [ObservableProperty]
+        private MainViewModel _mainView = null!;
 
         [ObservableProperty]
         private ObservableCollection<FilterCriterion> _filterCriteria = new();
 
-        public List<string> AvailableFields { get; } = [FieldTimestamp, FieldLevel, FieldSource, FieldMessage];
+        public List<string> AvailableFields { get; } = new List<string> { FieldTimestamp, FieldLevel, FieldSource, FieldMessage };
         public Dictionary<string, List<string>> OperatorsByFieldType { get; } = new Dictionary<string, List<string>> {
-             { FieldTimestamp, ["Equals", "NotEquals", "GreaterThan", "LessThan", "GreaterThanOrEqual", "LessThanOrEqual"] },
-             { FieldLevel, ["Equals", "NotEquals", "Contains"] },
-             { FieldSource, ["Equals", "NotEquals", "Contains", "StartsWith", "EndsWith"] },
-             { FieldMessage, ["Equals", "NotEquals", "Contains", "StartsWith", "EndsWith"] }
+             { FieldTimestamp, new List<string> { "Equals", "NotEquals", "GreaterThan", "LessThan", "GreaterThanOrEqual", "LessThanOrEqual" } },
+             { FieldLevel, new List<string> { "Equals", "NotEquals", "Contains" } },
+             { FieldSource, new List<string> { "Equals", "NotEquals", "Contains", "StartsWith", "EndsWith" } },
+             { FieldMessage, new List<string> { "Equals", "NotEquals", "Contains", "StartsWith", "EndsWith" } }
          };
 
         public Dictionary<string, HashSet<string>> AvailableValuesByField { get; } = new Dictionary<string, HashSet<string>> {
@@ -58,7 +60,6 @@ namespace Log_Parser_App.ViewModels
         public MainWindowViewModel()
         {
             _logger = null!;
-            MainView = new MainViewModel(null!, null!, null!, null!); 
             _updateService = null!;
             AppVersion = "v0.0.1-design";
             FilterCriteria.Add(new FilterCriterion { SelectedField = FieldLevel, SelectedOperator = "Equals", Value = "ERROR" });
@@ -71,16 +72,36 @@ namespace Log_Parser_App.ViewModels
             });
         }
 
-        public MainWindowViewModel(ILogger<MainWindowViewModel> logger, Log_Parser_App.ViewModels.MainViewModel mainView, IUpdateService updateService)
+        public MainWindowViewModel(
+            ILogger<MainWindowViewModel> logger,
+            IUpdateService? updateService = null,
+            ILogParserService? logParserService = null,
+            IFileService? fileService = null,
+            IErrorRecommendationService? errorRecommendationService = null,
+            MainViewModel? mainView = null)
         {
-            _logger = logger;
-            MainView = mainView;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _updateService = updateService;
-            LoadApplicationVersion();
-            CheckForUpdatesAsyncCommand = new RelayCommand(async void () =>
-            {
-                await ExecuteCheckForUpdatesAsync();
-            });
+            _logParserService = logParserService;
+            _fileService = fileService;
+            var mainViewLogger = Microsoft.Extensions.Logging.LoggerFactory.Create(builder => builder.AddConsole())
+                .CreateLogger<MainViewModel>();
+            _mainView = mainView ?? new MainViewModel(
+                logParserService ?? throw new ArgumentNullException(nameof(logParserService)), 
+                mainViewLogger, 
+                fileService ?? throw new ArgumentNullException(nameof(fileService)), 
+                errorRecommendationService ?? throw new ArgumentNullException(nameof(errorRecommendationService)));
+
+            // Безусловная инициализация
+            _mainView ??= new MainViewModel(
+                logParserService ?? throw new ArgumentNullException(nameof(logParserService)), 
+                mainViewLogger, 
+                fileService ?? throw new ArgumentNullException(nameof(fileService)), 
+                errorRecommendationService ?? throw new ArgumentNullException(nameof(errorRecommendationService)));
+
+            // Инициализация команд и начальных значений
+            InitializeCommands();
+            LoadInitialData();
             AddFilterCriterionCommand = new RelayCommand(ExecuteAddFilterCriterion);
             IsDashboardVisible = false;
             FilterCriteria = new ObservableCollection<FilterCriterion>();
@@ -90,16 +111,41 @@ namespace Log_Parser_App.ViewModels
             _logger.LogInformation("MainWindowViewModel initialized");
         }
 
+        private void InitializeCommands()
+        {
+            CheckForUpdatesAsyncCommand = new RelayCommand(async () => {
+                if (_updateService != null)
+                    await ExecuteCheckForUpdatesAsync();
+            });
+            AddFilterCriterionCommand = new RelayCommand(ExecuteAddFilterCriterion);
+        }
+
+        private void LoadInitialData()
+        {
+            LoadApplicationVersion();
+        }
+
+        private UpdateViewModel CreateUpdateViewModel()
+        {
+            var updateLogger = Microsoft.Extensions.Logging.LoggerFactory.Create(builder => builder.AddConsole())
+                .CreateLogger<UpdateViewModel>();
+            return _updateService == null 
+                ? new UpdateViewModel(null!, updateLogger) 
+                : new UpdateViewModel(_updateService, updateLogger);
+        }
+
         private void LoadApplicationVersion()
         {
             var assembly = Assembly.GetExecutingAssembly();
-            var version = assembly.GetName().Version;
-            AppVersion = version != null ? $"v{version.Major}.{version.Minor}.{version.Build}" : "Unknown";
+            var assemblyName = assembly.GetName();
+            AppVersion = assemblyName.Version?.ToString() ?? "Unknown";
         }
 
-        public ICommand CheckForUpdatesAsyncCommand { get; }
+        public ICommand CheckForUpdatesAsyncCommand { get; private set; }
 
-        private async Task ExecuteCheckForUpdatesAsync()
+        public ICommand AddFilterCriterionCommand { get; private set; }
+
+        public async Task ExecuteCheckForUpdatesAsync()
         {
             try
             {
@@ -108,17 +154,21 @@ namespace Log_Parser_App.ViewModels
                 {
                     AvailableUpdate = updateInfo;
                     IsUpdateAvailable = true;
-                    _logger.LogInformation($"Update available: {updateInfo.Version}");
+                    _logger?.LogInformation($"Update available: {updateInfo.Version}");
+                    
+                    // Показ сообщения об обновлении
+                    var updateViewModel = CreateUpdateViewModel();
+                    updateViewModel.ShowUpdateNotification(updateInfo);
                 }
                 else
                 {
                     IsUpdateAvailable = false;
-                    _logger.LogInformation("Application is up to date");
+                    _logger?.LogInformation("Application is up to date");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error checking for updates");
+                _logger?.LogError(ex, "Error checking for updates");
                 IsUpdateAvailable = false;
             }
         }
@@ -132,23 +182,23 @@ namespace Log_Parser_App.ViewModels
                 {
                     AvailableUpdate = updateInfo;
                     IsUpdateAvailable = true;
-                    _logger.LogInformation($"Update available: {updateInfo.Version}");
+                    _logger?.LogInformation($"Update available: {updateInfo.Version}");
                 }
                 else
                 {
                     IsUpdateAvailable = false;
-                    _logger.LogInformation("Application is up to date");
+                    _logger?.LogInformation("Application is up to date");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error checking for updates");
+                _logger?.LogError(ex, "Error checking for updates");
                 IsUpdateAvailable = false;
             }
         }
 
         
-        public ICommand AddFilterCriterionCommand { get; }
+        // Removed duplicate command declaration
         private void ExecuteAddFilterCriterion()
         {
             var newCriterion = new FilterCriterion
@@ -158,7 +208,7 @@ namespace Log_Parser_App.ViewModels
                 SelectedOperator = "Equals" 
             };
             FilterCriteria.Add(newCriterion);
-            _logger.LogInformation("Added new filter criterion.");
+            _logger?.LogInformation("Added new filter criterion.");
         }
 
         [RelayCommand]

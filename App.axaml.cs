@@ -47,7 +47,10 @@ namespace Log_Parser_App
                 var logger = services.GetRequiredService<ILogger<MainWindowViewModel>>();
 
                 var updateService = services.GetRequiredService<IUpdateService>();
-                var mainWindowViewModel = new MainWindowViewModel(logger, mainViewModel, updateService);
+                var logParserService = services.GetRequiredService<ILogParserService>();
+                var fileService = services.GetRequiredService<IFileService>();
+                var errorRecommendationService = services.GetRequiredService<IErrorRecommendationService>();
+                var mainWindowViewModel = new MainWindowViewModel(logger, updateService, logParserService, fileService, errorRecommendationService, mainViewModel);
 
                 MainWindow = new MainWindow {
                     DataContext = mainWindowViewModel
@@ -55,10 +58,7 @@ namespace Log_Parser_App
 
                 desktop.MainWindow = MainWindow;
 
-                var fileService = services.GetRequiredService<IFileService>();
-                if (fileService is FileService fs) {
-                    fs.InitializeTopLevel(MainWindow);
-                }
+                // Removed duplicate fileService declaration
 
                 if (OperatingSystem.IsWindows()) {
                     var fileAssociationService = services.GetRequiredService<IFileAssociationService>();
@@ -104,12 +104,16 @@ namespace Log_Parser_App
             services.AddSingleton<IFileAssociationService, WindowsFileAssociationService>();
             services.AddSingleton<IUpdateService, UpdateService>();
             services.AddSingleton<IVersionParser, GitHubVersionParser>();
+            // Получаем токен из переменных окружения
+            string? gitHubToken = Environment.GetEnvironmentVariable("GITHUB_TOKEN");
+
             services.AddSingleton<IGitHubUpdateStrategy>(provider => new DefaultGitHubUpdateStrategy(
                 provider.GetRequiredService<HttpClient>(),
                 provider.GetRequiredService<ILogger<DefaultGitHubUpdateStrategy>>(),
                 provider.GetRequiredService<IVersionParser>(),
                 "BlessedDayss",
-                "Log_Parser_App"
+                "Log_Parser_App",
+                gitHubToken
             ));
             services.AddSingleton<IUpdateService>(provider => new GitHubUpdateService(
                 provider.GetRequiredService<ILogger<GitHubUpdateService>>(),

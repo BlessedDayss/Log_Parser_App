@@ -1,18 +1,16 @@
 namespace Log_Parser_App
 {
     using System;
-    using System.IO;
     using System.Net.Http;
     using Avalonia;
-    using Log_Parser_App.Services;
-    using Log_Parser_App.Services.Interfaces;
-    using Log_Parser_App.Services.UpdateStrategies;
-    using Log_Parser_App.Services.VersionParsers;
-    using Log_Parser_App.ViewModels;
+    using Services;
+    using Services.Interfaces;
+    using Services.UpdateStrategies;
+    using Services.VersionParsers;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
-    using MainViewModel = Log_Parser_App.ViewModels.MainViewModel;
-    using UpdateViewModel = Log_Parser_App.ViewModels.UpdateViewModel;
+    using MainViewModel = ViewModels.MainViewModel;
+    using UpdateViewModel = ViewModels.UpdateViewModel;
 
 
 
@@ -25,14 +23,10 @@ namespace Log_Parser_App
         public static void Main(string[] args) {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
             StartupArgs = args;
-
-            // Установка токена GitHub через переменную окружения
-            // ВАЖНО: Замените на свой личный токен GitHub
+            
             var token = Environment.GetEnvironmentVariable("GITHUB_TOKEN");
             if (string.IsNullOrEmpty(token))
             {
-                // Если токен не установлен, используйте свой личный токен
-                // Рекомендуется использовать переменные окружения
                 Console.WriteLine("ВАЖНО: Установите токен GitHub в переменной окружения GITHUB_TOKEN");
             }
 

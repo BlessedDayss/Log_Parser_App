@@ -29,8 +29,18 @@ namespace Log_Parser_App.ViewModels
 		[ObservableProperty]
 		private UpdateInfo? _availableUpdate;
 
+		[ObservableProperty]
+		private bool _isUpdateAvailable;
+
 		private bool IsUpdateValid() {
 			return AvailableUpdate != null && AvailableUpdate.Version > new Version(0, 0, 0);
+		}
+
+		public void ShowUpdateNotification(UpdateInfo updateInfo) {
+			AvailableUpdate = updateInfo;
+			IsUpdateAvailable = true;
+			StatusMessage = $"Доступно обновление: {updateInfo.Version}";
+			logger.LogInformation($"Update notification shown: {updateInfo.Version}");
 		}
 
 		public async Task CheckForUpdatesOnStartupAsync() {
