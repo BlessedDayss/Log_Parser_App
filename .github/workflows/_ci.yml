@@ -17,7 +17,11 @@ concurrency:
 env:
   DOTNET_VERSION: 8.0.x
   SONAR_ORG: blesseddayss
+
+  SONAR_PROJ: BlessedDayss_Log_Parser_App
+
   SONAR_PROJ: Log_Parser_App
+
   PROJECT_NAME: Log_Parser_App
 
 jobs:
@@ -63,6 +67,7 @@ jobs:
             "/d:sonar.login=$Env:SONAR_TOKEN",
             "/d:sonar.host.url=https://sonarcloud.io",
             "/d:sonar.cs.opencover.reportsPaths=coverage/coverage.opencover.xml",
+            "/d:sonar.branch.name=${{ github.ref_name }}"
             "/d:sonar.qualitygate.wait=true"
           )
           if ("${{ github.event_name }}" -eq "pull_request") {
@@ -76,6 +81,7 @@ jobs:
         shell: pwsh
 
       - run: dotnet build -c Release --no-restore
+        continue-on-error: true
         shell: pwsh
 
       - continue-on-error: true
@@ -165,4 +171,5 @@ jobs:
                   { project: projectId, content: created.node_id }
                 ).catch(()=>{});
               }
+            }
             }

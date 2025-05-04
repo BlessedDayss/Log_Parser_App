@@ -170,22 +170,22 @@ namespace Log_Parser_App.ViewModels
         {
             // Получаем аргументы командной строки из Program
             var args = Program.StartupArgs;
-            
+
             if (args.Length > 0 && !string.IsNullOrEmpty(args[0]))
             {
                 var filePath = args[0];
-                
+
                 // Если файл существует, загружаем его с небольшой задержкой
                 // чтобы UI успел инициализироваться
                 if (System.IO.File.Exists(filePath))
                 {
                     _logger.LogInformation("Запланирована загрузка файла из аргументов командной строки: {FilePath}", filePath);
                     LastOpenedFilePath = filePath;
-                    
+
                     // Делаем небольшую задержку перед загрузкой файла
-                    Task.Delay(500).ContinueWith(async _ => 
+                    Task.Delay(500).ContinueWith(async _ =>
                     {
-                        await Dispatcher.UIThread.InvokeAsync(async () => 
+                        await Dispatcher.UIThread.InvokeAsync(async () =>
                         {
                             await LoadFileAsync(filePath);
                         });
@@ -217,8 +217,9 @@ namespace Log_Parser_App.ViewModels
                 }, DispatcherPriority.Background);
 
                 // Выполняем парсинг полностью отдельно от UI-потока
-                var entries = await Task.Run(async () => {
-                    try 
+                var entries = await Task.Run(async () =>
+                {
+                    try
                     {
                         _logger.LogDebug("PERF: Начало парсинга файла {FilePath}", filePath);
                         var parseStopwatch = System.Diagnostics.Stopwatch.StartNew();
@@ -236,7 +237,8 @@ namespace Log_Parser_App.ViewModels
                 var logEntries = entries as LogEntry[] ?? entries.ToArray();
                 _logger.LogDebug("PERF: Начало предварительной обработки {Count} записей", logEntries.Length);
 
-                var processedEntries = await Task.Run(() => {
+                var processedEntries = await Task.Run(() =>
+                {
                     // Преобразуем записи в потоке пула потоков
                     List<LogEntry> processed = new List<LogEntry>(logEntries.Length);
                     foreach (var entry in logEntries)
@@ -264,11 +266,13 @@ namespace Log_Parser_App.ViewModels
                 });
 
                 _logger.LogDebug("PERF: Начало обработки рекомендаций для ошибок");
-                
+
                 // Добавляем рекомендации для ошибок параллельно с загрузкой UI
-                var errorsWithRecommendations = await Task.Run(() => {
+                var errorsWithRecommendations = await Task.Run(() =>
+                {
                     var errorEntries = processedEntries.Where(e => e.Level == "ERROR").ToList();
-                    Parallel.ForEach(errorEntries, entry => {
+                    Parallel.ForEach(errorEntries, entry =>
+                    {
                         try
                         {
                             _logger.LogTrace("Обработка рекомендаций для ошибки: '{Message}'", entry.Message);
@@ -302,21 +306,22 @@ namespace Log_Parser_App.ViewModels
                 for (int i = 0; i < processedEntries.Count; i += batchSize)
                 {
                     var batch = processedEntries.Skip(i).Take(batchSize).ToList();
-                    
-                    await Dispatcher.UIThread.InvokeAsync(() => {
+
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
                         foreach (var entry in batch)
                         {
                             LogEntries.Add(entry);
                             FilteredLogEntries.Add(entry);
                         }
-                        
+
                         // Обновляем статус для пользователя
                         if (i + batchSize < processedEntries.Count)
                         {
                             StatusMessage = $"Loading entries... ({i + batch.Count}/{processedEntries.Count})";
                         }
                     }, DispatcherPriority.Background);
-                    
+
                     // Делаем небольшую паузу, чтобы UI мог перерисоваться
                     await Task.Delay(10);
                 }
@@ -326,10 +331,10 @@ namespace Log_Parser_App.ViewModels
                 {
                     UpdateErrorLogEntries();
                     UpdateLogStatistics();
-                    
+
                     _logger.LogDebug("PERF: Завершение загрузки данных в UI");
                     _logger.LogInformation("Загружено {Count} записей логов за {ElapsedMs}ms", LogEntries.Count, sw.ElapsedMilliseconds);
-                    
+
                     StatusMessage = $"Loaded {LogEntries.Count} log entries";
                     SelectedTabIndex = 0;
                     IsLoading = false;
@@ -338,8 +343,9 @@ namespace Log_Parser_App.ViewModels
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Ошибка загрузки файла логов");
-                
-                await Dispatcher.UIThread.InvokeAsync(() => {
+
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
                     StatusMessage = $"Error: {ex.Message}";
                     IsLoading = false;
                 });
@@ -354,7 +360,7 @@ namespace Log_Parser_App.ViewModels
                 var file = await _fileService.PickLogFileAsync();
                 if (file == null) return;
                 LastOpenedFilePath = file;
-                
+
                 // Используем наш оптимизированный метод загрузки файла
                 await LoadFileAsync(file);
             }
@@ -446,60 +452,69 @@ namespace Log_Parser_App.ViewModels
         {
             try
             {
+                // Ensure we don't divide by zero in any calculations
+                int totalLogs = ErrorCount + WarningCount + InfoCount + OtherCount;
+
                 // 1. Log Type Distribution chart (Pie chart)
-                LogDistributionSeries = ErrorCount + WarningCount + InfoCount + OtherCount > 0
-                ? new ISeries[]
+                LogDistributionSeries = new ISeries[]
                 {
                     new PieSeries<double>
                     {
                         Values = new double[] { ErrorCount },
                         Name = "Errors",
                         Fill = new SolidColorPaint(SKColors.Crimson),
-                        InnerRadius = 60,
-                        MaxRadialColumnWidth = 25,
-                        // Using default font size to avoid crash
-                        DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue} ({Math.Round(point.Coordinate.PrimaryValue / (point.StackedValue?.Total ?? 1) * 100)}%)",
+                        InnerRadius = 50,
+                        MaxRadialColumnWidth = 50,
+                        DataLabelsSize = 16,
                         DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle
+                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                        DataLabelsFormatter = point => ErrorCount > 0 && totalLogs > 0 ?
+                            $"Errors: {point.Coordinate.PrimaryValue}\n({Math.Round(point.Coordinate.PrimaryValue / totalLogs * 100)}%)" : "",
+                        IsVisible = totalLogs > 0
                     },
                     new PieSeries<double>
                     {
                         Values = new double[] { WarningCount },
                         Name = "Warnings",
-                        Fill = new SolidColorPaint(SKColors.Orange),
-                        InnerRadius = 60,
-                        MaxRadialColumnWidth = 25,
-                        // Using default font size to avoid crash
-                        DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue} ({Math.Round(point.Coordinate.PrimaryValue / (point.StackedValue?.Total ?? 1) * 100)}%)",
+                        Fill = new SolidColorPaint(SKColors.DarkOrange),
+                        InnerRadius = 50,
+                        MaxRadialColumnWidth = 50,
+                        DataLabelsSize = 16,
                         DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle
+                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                        DataLabelsFormatter = point => WarningCount > 0 && totalLogs > 0 ?
+                            $"Warnings: {point.Coordinate.PrimaryValue}\n({Math.Round(point.Coordinate.PrimaryValue / totalLogs * 100)}%)" : "",
+                        IsVisible = totalLogs > 0
                     },
                     new PieSeries<double>
                     {
                         Values = new double[] { InfoCount },
                         Name = "Info",
-                        Fill = new SolidColorPaint(SKColors.DodgerBlue),
-                        InnerRadius = 60,
-                        MaxRadialColumnWidth = 25,
-                        // Using default font size to avoid crash
-                        DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue} ({Math.Round(point.Coordinate.PrimaryValue / (point.StackedValue?.Total ?? 1) * 100)}%)",
+                        Fill = new SolidColorPaint(SKColors.RoyalBlue),
+                        InnerRadius = 50,
+                        MaxRadialColumnWidth = 50,
+                        DataLabelsSize = 16,
                         DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle
+                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                        DataLabelsFormatter = point => InfoCount > 0 && totalLogs > 0 ?
+                            $"Info: {point.Coordinate.PrimaryValue}\n({Math.Round(point.Coordinate.PrimaryValue / totalLogs * 100)}%)" : "",
+                        IsVisible = totalLogs > 0
                     },
                     new PieSeries<double>
                     {
                         Values = new double[] { OtherCount },
                         Name = "Others",
-                        Fill = new SolidColorPaint(SKColors.SlateGray),
-                        InnerRadius = 60,
-                        MaxRadialColumnWidth = 25,
-                        // Using default font size to avoid crash
-                        DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue} ({Math.Round(point.Coordinate.PrimaryValue / (point.StackedValue?.Total ?? 1) * 100)}%)",
+                        Fill = new SolidColorPaint(SKColors.DarkGray),
+                        InnerRadius = 50,
+                        MaxRadialColumnWidth = 50,
+                        DataLabelsSize = 16,
                         DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle
+                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                        DataLabelsFormatter = point => OtherCount > 0 && totalLogs > 0 ?
+                            $"Others: {point.Coordinate.PrimaryValue}\n({Math.Round(point.Coordinate.PrimaryValue / totalLogs * 100)}%)" : "",
+                        IsVisible = totalLogs > 0
                     }
-                }
-                : Array.Empty<ISeries>();
+                };
 
                 // 2. Logs By Hour - (Line chart)
                 // Группируем логи не по часам, а по фактической дате и времени для более точного отображения

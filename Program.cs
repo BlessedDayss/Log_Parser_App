@@ -18,6 +18,9 @@ internal abstract class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        // Настраиваем кодировку консоли для корректного отображения кириллицы
+        Console.OutputEncoding = System.Text.Encoding.UTF8;
+        
         // Сохраняем аргументы для использования позже
         StartupArgs = args;
         
