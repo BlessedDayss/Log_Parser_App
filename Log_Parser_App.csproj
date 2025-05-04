@@ -34,6 +34,7 @@
     </ItemGroup>
     <ItemGroup>
       <Content Include=".github\workflows\auto-merge-dev-to-main.yml" />
+      <Content Include=".github\workflows\build-bump-sonar-release.yml" />
       <Content Include=".github\workflows\feature-auto-pr.yml" />
     </ItemGroup>
 </Project>
