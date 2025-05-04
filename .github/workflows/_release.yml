@@ -2,7 +2,8 @@ name: CD • Release (main)
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main ]        
+  workflow_dispatch:          
 
 permissions:
   contents: write
@@ -18,50 +19,57 @@ jobs:
   release:
     runs-on: windows-latest
     timeout-minutes: 20
+
     steps:
-      - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+    # ───────── checkout ─────────
+    - uses: actions/checkout@v4
+      with: { fetch-depth: 0 }
 
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-          cache: true
+    # ───────── .NET SDK ─────────
+    - uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        cache: true
 
-      # ---------- версия ----------
-      - name: GitVersion
-        id: ver
-        shell: pwsh
-        run: |
-          dotnet tool install --global gitversion.tool
-          dotnet gitversion /showvariable FullSemVer | ForEach-Object {
-            "FULL_SEM_VER=$_" >> $env:GITHUB_OUTPUT
-          }
+    # ───────── GitVersion ───────
+    - name: Install & run GitVersion
+      id: ver
+      shell: pwsh
+      run: |
+        dotnet tool install --global gitversion.tool
+        $ver = dotnet-gitversion /showvariable FullSemVer
+        "FULL_SEM_VER=$ver" >> $Env:GITHUB_OUTPUT
 
-      # ---------- билд ----------
-      - name: Publish win‑x64
-        run: |
-          dotnet publish ./Log_Parser_App.csproj `
-            -c Release -r win-x64 `
-            --self-contained true -p:PublishSingleFile=true `
-            -o publish/
+    # ───────── Build / Publish ──
+    - name: Publish win‑x64 single‑file
+      shell: pwsh
+      run: |
+        dotnet publish ./Log_Parser_App.csproj `
+          -c Release -r win-x64 `
+          --self-contained true `
+          -p:PublishSingleFile=true `
+          -o publish/
 
-      # ---------- релиз ----------
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env: { GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} }
-        with:
-          tag_name: v${{ steps.ver.outputs.FULL_SEM_VER }}
-          release_name: Release v${{ steps.ver.outputs.FULL_SEM_VER }}
-          body: "Automated release of version v${{ steps.ver.outputs.FULL_SEM_VER }}"
-          draft: false
-          prerelease: false
+    # ───────── Create Release ───
+    - name: Create GitHub Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ steps.ver.outputs.FULL_SEM_VER }}
+        release_name: Release v${{ steps.ver.outputs.FULL_SEM_VER }}
+        body: "Automated release of version v${{ steps.ver.outputs.FULL_SEM_VER }}"
+        draft: false
+        prerelease: false
 
-      - name: Upload EXE
-        uses: actions/upload-release-asset@v1
-        env: { GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} }
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./publish/Log_Parser_App.exe
-          asset_name: Log_Parser_App_v${{ steps.ver.outputs.FULL_SEM_VER }}.exe
-          asset_content_type: application/vnd.microsoft.portable-executable
+    # ───────── Upload asset ─────
+    - name: Upload EXE
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./publish/Log_Parser_App.exe
+        asset_name: Log_Parser_App_v${{ steps.ver.outputs.FULL_SEM_VER }}.exe
+        asset_content_type: application/vnd.microsoft.portable-executable
