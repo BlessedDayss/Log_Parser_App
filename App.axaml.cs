@@ -26,12 +26,15 @@ namespace Log_Parser_App
     {
         public static Window? MainWindow { get; private set; }
 
-        public override void Initialize() {
+        public override void Initialize()
+        {
             AvaloniaXamlLoader.Load(this);
         }
 
-        public override void OnFrameworkInitializationCompleted() {
-            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
+        public override void OnFrameworkInitializationCompleted()
+        {
+            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            {
                 DisableAvaloniaDataAnnotationValidation();
 
                 var serviceCollection = new ServiceCollection();
@@ -39,7 +42,8 @@ namespace Log_Parser_App
                 var services = serviceCollection.BuildServiceProvider();
 
                 var updateViewModel = services.GetService<UpdateViewModel>();
-                if (updateViewModel != null) {
+                if (updateViewModel != null)
+                {
                     Task.Run(async () => await updateViewModel.CheckForUpdatesOnStartupAsync());
                 }
 
@@ -52,18 +56,34 @@ namespace Log_Parser_App
                 var errorRecommendationService = services.GetRequiredService<IErrorRecommendationService>();
                 var mainWindowViewModel = new MainWindowViewModel(logger, updateService, logParserService, fileService, errorRecommendationService, mainViewModel);
 
-                MainWindow = new MainWindow {
+                MainWindow = new MainWindow
+                {
                     DataContext = mainWindowViewModel
                 };
 
                 desktop.MainWindow = MainWindow;
 
-                // Removed duplicate fileService declaration
+                // Initialize TopLevel for FileService with null check
+                if (fileService is FileService fs && MainWindow != null)
+                {
+                    var topLevel = TopLevel.GetTopLevel(MainWindow);
+                    if (topLevel != null)
+                    {
+                        fs.InitializeTopLevel(topLevel);
+                    }
+                    else
+                    {
+                        logger.LogError("Failed to get TopLevel from MainWindow");
+                    }
+                }
 
-                if (OperatingSystem.IsWindows()) {
+                if (OperatingSystem.IsWindows())
+                {
                     var fileAssociationService = services.GetRequiredService<IFileAssociationService>();
-                    Task.Run(async () => {
-                        if (!await fileAssociationService.AreFileAssociationsRegisteredAsync()) {
+                    Task.Run(async () =>
+                    {
+                        if (!await fileAssociationService.AreFileAssociationsRegisteredAsync())
+                        {
                             await fileAssociationService.RegisterFileAssociationsAsync();
                         }
                     });
@@ -72,7 +92,8 @@ namespace Log_Parser_App
                 var appLogger = services.GetService<ILogger<App>>();
                 appLogger?.LogInformation("Application started");
 
-                desktop.ShutdownRequested += (sender, _) => {
+                desktop.ShutdownRequested += (sender, _) =>
+                {
                     appLogger?.LogInformation("Application shutdown requested");
                 };
             }
@@ -80,12 +101,14 @@ namespace Log_Parser_App
             base.OnFrameworkInitializationCompleted();
         }
 
-        private static void ConfigureServices(ServiceCollection services) {
+        private static void ConfigureServices(ServiceCollection services)
+        {
             string logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LogParserApp", "logs", "app.log");
 
             Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
 
-            services.AddLogging(builder => {
+            services.AddLogging(builder =>
+            {
                 builder.AddConsole();
                 builder.SetMinimumLevel(LogLevel.Debug);
             });
@@ -97,7 +120,8 @@ namespace Log_Parser_App
             RegisterViewModels(services);
         }
 
-        private static void RegisterServices(ServiceCollection services) {
+        private static void RegisterServices(ServiceCollection services)
+        {
             services.AddSingleton<ILogParserService, LogParserService>();
             services.AddSingleton<IFileService, FileService>();
             services.AddSingleton<IErrorRecommendationService, ErrorRecommendationService>();
@@ -125,15 +149,18 @@ namespace Log_Parser_App
             services.AddSingleton<UpdateViewModel>();
         }
 
-        private static void RegisterViewModels(ServiceCollection services) {
+        private static void RegisterViewModels(ServiceCollection services)
+        {
             services.AddSingleton<MainViewModel>();
             services.AddSingleton<MainWindowViewModel>();
         }
 
-        private static void DisableAvaloniaDataAnnotationValidation() {
+        private static void DisableAvaloniaDataAnnotationValidation()
+        {
             var dataValidationPluginsToRemove = BindingPlugins.DataValidators.OfType<DataAnnotationsValidationPlugin>().ToArray();
 
-            foreach (var plugin in dataValidationPluginsToRemove) {
+            foreach (var plugin in dataValidationPluginsToRemove)
+            {
                 BindingPlugins.DataValidators.Remove(plugin);
             }
         }

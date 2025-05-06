@@ -32,31 +32,13 @@ namespace Log_Parser_App.ViewModels
         private bool _isLoading;
 
         [ObservableProperty]
-        private string _filePath = string.Empty;
-
-        [ObservableProperty]
-        private string _fileStatus = "No file selected";
-
-        [ObservableProperty]
         private bool _isDarkTheme;
 
         [ObservableProperty]
-        private int _selectedTabIndex = 0;
+        private TabItem? _selectedTab;
 
         [ObservableProperty]
-        private ObservableCollection<LogEntry> _logEntries = new();
-
-        [ObservableProperty]
-        private ObservableCollection<LogEntry> _filteredLogEntries = new();
-
-        [ObservableProperty]
-        private ObservableCollection<LogEntry> _errorLogEntries = new();
-
-        [ObservableProperty]
-        private LogStatistics _logStatistics = new();
-
-        [ObservableProperty]
-        private bool _isDashboardVisible = false;
+        private ObservableCollection<TabItem> _tabs = new();
 
         [ObservableProperty]
         private int _errorCount;
@@ -83,12 +65,8 @@ namespace Log_Parser_App.ViewModels
         private double _otherPercent;
 
         [ObservableProperty]
-        private PackageLogEntry? _selectedPackageEntry;
+        private LogStatistics _logStatistics = new();
 
-        [ObservableProperty]
-        private LogEntry? _selectedLogEntry;
-
-        // LiveCharts - Графики
         [ObservableProperty]
         private ISeries[] _levelsOverTimeSeries = Array.Empty<ISeries>();
 
@@ -114,16 +92,13 @@ namespace Log_Parser_App.ViewModels
         private Axis[] _countAxis = { new Axis { Name = "Count", MinLimit = 0 } };
 
         [ObservableProperty]
-        private Axis[] _daysAxis = { new Axis { Name = "Days", Labels = new List<string>() } };
+        private Axis[] _hoursAxis = { new Axis { Name = "Hours", Labels = new List<string>() } };
 
         [ObservableProperty]
-        private Axis[] _hoursAxis = { new Axis { Name = "Hours", Labels = new List<string>() { "00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "24:00" } } };
+        private Axis[] _errorMessageAxis = { new Axis { Name = "Error Message", Labels = new List<string>() } };
 
         [ObservableProperty]
-        private Axis[] _sourceAxis = { new Axis { Name = "Source", LabelsRotation = 15, Labels = new List<string>() } };
-
-        [ObservableProperty]
-        private Axis[] _errorMessageAxis = { new Axis { LabelsRotation = 15, Name = "Error Message" } };
+        private Axis[] _sourceAxis = { new Axis { Name = "Source", Labels = new List<string>() } };
 
         public System.Windows.Input.ICommand? ExternalOpenFileCommand { get; set; }
 
@@ -146,7 +121,6 @@ namespace Log_Parser_App.ViewModels
             _errorRecommendationService = errorRecommendationService;
 
             InitializeErrorRecommendationService();
-
             _logger.LogInformation("MainViewModel initialized");
         }
 
@@ -164,34 +138,79 @@ namespace Log_Parser_App.ViewModels
         }
 
         [RelayCommand]
-        private async Task LoadFile()
+        private async Task LoadFilesOrFolder()
         {
             try
             {
-                var file = await _fileService.PickLogFileAsync();
-                if (file == null) return;
-                LastOpenedFilePath = file;
-
-                StatusMessage = $"Opening {Path.GetFileName(file)}...";
-                IsLoading = true;
-                FileStatus = Path.GetFileName(file);
-
-                // Switch to dashboard in UI thread
-                IsDashboardVisible = true;
-
-                // Execute parsing in a separate thread
-                await Task.Run((Func<Task?>)(async () =>
+                var paths = await _fileService.PickFilesOrFolderAsync();
+                if (!paths.Any())
                 {
-                    // Clear collections only through UI thread
-                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    _logger.LogInformation("No files or folders selected");
+                    return;
+                }
+
+                IsLoading = true;
+                StatusMessage = "Loading selected files...";
+
+                foreach (var path in paths)
+                {
+                    if (Directory.Exists(path))
                     {
-                        LogEntries.Clear();
-                    });
+                        // Handle folder - find all log files in the folder
+                        var logFiles = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories)
+                            .Where(f => f.EndsWith(".log", StringComparison.OrdinalIgnoreCase) ||
+                                      f.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) ||
+                                      f.EndsWith(".csv", StringComparison.OrdinalIgnoreCase));
 
-                    var entries = await _logParserService.ParseLogFileAsync(file);
+                        foreach (var logFile in logFiles)
+                        {
+                            await LoadSingleFile(logFile);
+                        }
+                    }
+                    else
+                    {
+                        // Handle single file
+                        await LoadSingleFile(path);
+                    }
+                }
 
+                if (Tabs.Count > 0 && SelectedTab == null)
+                {
+                    SelectedTab = Tabs[0];
+                }
 
-                    var logEntries = entries as LogEntry[] ?? entries.ToArray();
+                StatusMessage = $"Loaded {Tabs.Count} files";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading files");
+                StatusMessage = $"Error: {ex.Message}";
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+
+        private async Task LoadSingleFile(string filePath)
+        {
+            try
+            {
+                LastOpenedFilePath = filePath;
+                var fileName = Path.GetFileName(filePath);
+
+                var tab = new TabItem
+                {
+                    Header = fileName,
+                    FilePath = filePath,
+                    StatusMessage = $"Loading {fileName}..."
+                };
+
+                await Task.Run(async () =>
+                {
+                    var entries = await _logParserService.ParseLogFileAsync(filePath);
+                    var logEntries = entries.ToList();
+
                     foreach (var entry in logEntries)
                     {
                         if (!string.IsNullOrEmpty(entry.Message))
@@ -203,82 +222,341 @@ namespace Log_Parser_App.ViewModels
                             entry.Message = mainLine.Trim();
                             entry.StackTrace = stackLines.Count > 0 ? string.Join("\n", stackLines) : null;
                         }
-                    }
 
-                    foreach (var entry in logEntries)
-                    {
                         entry.OpenFileCommand = ExternalOpenFileCommand;
+
+                        // Properly process errors using ErrorRecommendationService
+                        if (entry.Level == "ERROR" || entry.Level == "FAULT" || entry.Level == "CRITICAL")
+                        {
+                            // Get recommendations from the service
+                            var recommendation = await Task.Run(() => _errorRecommendationService.AnalyzeError(entry.Message));
+
+                            if (recommendation != null)
+                            {
+                                // Apply the recommendation to the log entry
+                                entry.ErrorType = recommendation.ErrorType;
+                                entry.ErrorDescription = recommendation.Description;
+                                entry.ErrorRecommendations.Clear();
+                                entry.ErrorRecommendations.AddRange(recommendation.Recommendations);
+
+                                _logger.LogDebug("Applied error recommendation of type {ErrorType} to log entry", recommendation.ErrorType);
+                            }
+                            else
+                            {
+                                // Default error information if no recommendation found
+                                entry.ErrorType = "UnknownError";
+                                entry.ErrorDescription = "Unknown error type. No specific recommendations available.";
+                                entry.ErrorRecommendations.Clear();
+                                entry.ErrorRecommendations.Add("Check the application documentation for this error message.");
+                                entry.ErrorRecommendations.Add("Search the error message online for more information.");
+                                entry.ErrorRecommendations.Add("Contact support if the issue persists.");
+
+                                _logger.LogDebug("No error recommendation found for: {ErrorMessage}", entry.Message);
+                            }
+                        }
                     }
 
                     await Dispatcher.UIThread.InvokeAsync(() =>
                     {
-                        _logger.LogInformation("Processing {Count} log entries", logEntries.Count());
-
-                        LogEntries.Clear(); // Очищаем основную коллекцию
-
                         foreach (var entry in logEntries)
                         {
-                            LogEntries.Add(entry);
-
-                            // --- Логика рекомендаций для ошибок (остается здесь, т.к. использует ErrorRecommendationService) ---
-                            if (entry.Level == "ERROR") // Проверяем финальный уровень ПОСЛЕ парсинга
+                            tab.LogEntries.Add(entry);
+                            tab.FilteredLogEntries.Add(entry);
+                            if (entry.Level == "ERROR" || entry.Level == "FAULT" || entry.Level == "CRITICAL")
                             {
-                                _logger.LogDebug("Processing recommendations for ERROR entry: '{Message}'", entry.Message);
-                                var recommendation = _errorRecommendationService.AnalyzeError(entry.Message);
-                                if (recommendation != null)
-                                {
-                                    entry.ErrorType = recommendation.ErrorType;
-                                    entry.ErrorDescription = recommendation.Description;
-                                    entry.ErrorRecommendations.Clear();
-                                    entry.ErrorRecommendations.AddRange(recommendation.Recommendations);
-                                }
-                                else
-                                {
-                                    entry.ErrorType = "UnknownError";
-                                    entry.ErrorDescription = "Unknown error. Recommendations not found.";
-                                    entry.ErrorRecommendations.Clear(); // Очищаем на случай, если были старые
-                                    entry.ErrorRecommendations.Add("Check error log for additional information.");
-                                    entry.ErrorRecommendations.Add("Contact documentation or support.");
-                                    _logger.LogWarning("No recommendation found for error message: {Message}", entry.Message);
-                                }
-                                _logger.LogDebug("Finished recommendations processing for entry. HasRecommendations: {HasRecommendations}", entry.HasRecommendations);
+                                tab.ErrorLogEntries.Add(entry);
                             }
-                            // --- Конец логики рекомендаций ---
                         }
 
-                        OnPropertyChanged(nameof(LogEntries)); // Уведомляем об обновлении основной коллекции
-
-                        _logger.LogInformation("Added {Count} entries to main collection", LogEntries.Count);
-
-                        // Фильтрованные записи обновляются после основного списка
-                        FilteredLogEntries.Clear();
-                        foreach (var entry in LogEntries)
-                        {
-                            FilteredLogEntries.Add(entry);
-                        }
-                        OnPropertyChanged(nameof(FilteredLogEntries)); // Уведомляем об обновлении фильтрованных записей
+                        UpdateTabStatistics(tab);
+                        tab.StatusMessage = $"Loaded {tab.LogEntries.Count} entries";
                     });
-                }));
-
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    UpdateErrorLogEntries(); // Обновляем коллекцию ошибок ПОСЛЕ добавления всех записей
-                    UpdateLogStatistics(); // Обновляем статистику ПОСЛЕ добавления всех записей
-                    StatusMessage = $"Loaded {LogEntries.Count} log entries";
-                    SelectedTabIndex = 0;
                 });
 
-                _logger.LogInformation("Loaded {Count} log entries", LogEntries.Count);
+                Tabs.Add(tab);
+                _logger.LogInformation("Added new tab for file: {FilePath}", filePath);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading log file");
-                StatusMessage = $"Error: {ex.Message}";
+                _logger.LogError(ex, "Error loading file: {FilePath}", filePath);
+                throw;
             }
-            finally
+        }
+
+        private void UpdateTabStatistics(TabItem tab)
+        {
+            if (tab.LogEntries.Count == 0)
             {
-                IsLoading = false;
+                ResetTabStatistics(tab);
+                return;
             }
+
+            _logger.LogDebug("Updating statistics for tab {TabHeader}", tab.Header);
+
+            tab.ErrorCount = tab.LogEntries.Count(e => e.Level == "ERROR");
+            tab.WarningCount = tab.LogEntries.Count(e => e.Level == "WARNING");
+            tab.InfoCount = tab.LogEntries.Count(e => e.Level == "INFO");
+            tab.OtherCount = tab.LogEntries.Count(e => e.Level != "ERROR" && e.Level != "WARNING" && e.Level != "INFO");
+
+            var total = tab.LogEntries.Count;
+            tab.ErrorPercent = total > 0 ? Math.Round((double)tab.ErrorCount / total * 100, 1) : 0;
+            tab.WarningPercent = total > 0 ? Math.Round((double)tab.WarningCount / total * 100, 1) : 0;
+            tab.InfoPercent = total > 0 ? Math.Round((double)tab.InfoCount / total * 100, 1) : 0;
+            tab.OtherPercent = total > 0 ? Math.Round((double)tab.OtherCount / total * 100, 1) : 0;
+
+            UpdateTabCharts(tab);
+
+            tab.TabStatistics = new LogStatistics
+            {
+                TotalCount = total,
+                ErrorCount = tab.ErrorCount,
+                WarningCount = tab.WarningCount,
+                InfoCount = tab.InfoCount,
+                OtherCount = tab.OtherCount,
+                ErrorPercent = tab.ErrorPercent,
+                WarningPercent = tab.WarningPercent,
+                InfoPercent = tab.InfoPercent,
+                OtherPercent = tab.OtherPercent
+            };
+        }
+
+        private void ResetTabStatistics(TabItem tab)
+        {
+            tab.ErrorCount = 0;
+            tab.WarningCount = 0;
+            tab.InfoCount = 0;
+            tab.OtherCount = 0;
+            tab.ErrorPercent = 0;
+            tab.WarningPercent = 0;
+            tab.InfoPercent = 0;
+            tab.OtherPercent = 0;
+
+            tab.LevelsOverTimeSeries = Array.Empty<ISeries>();
+            tab.TopErrorsSeries = Array.Empty<ISeries>();
+            tab.LogDistributionSeries = Array.Empty<ISeries>();
+            tab.TimeHeatmapSeries = Array.Empty<ISeries>();
+            tab.ErrorTrendSeries = Array.Empty<ISeries>();
+            tab.SourcesDistributionSeries = Array.Empty<ISeries>();
+        }
+
+        private void UpdateTabCharts(TabItem tab)
+        {
+            try
+            {
+                // Update all charts for the tab
+                // (Implementation of chart updating logic - similar to existing UpdateCharts but for tab)
+                UpdateLogDistributionChart(tab);
+                UpdateTimeSeriesCharts(tab);
+                UpdateTopErrorsChart(tab);
+                UpdateSourcesDistributionChart(tab);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating charts for tab {TabHeader}", tab.Header);
+            }
+        }
+
+        private void UpdateLogDistributionChart(TabItem tab)
+        {
+            tab.LogDistributionSeries = tab.ErrorCount + tab.WarningCount + tab.InfoCount + tab.OtherCount > 0
+                ? new ISeries[]
+                {
+                    new PieSeries<double>
+                    {
+                        Values = new double[] { tab.ErrorCount },
+                        Name = "Errors",
+                        Fill = new SolidColorPaint(SKColors.OrangeRed),
+                        InnerRadius = 50,
+                        MaxRadialColumnWidth = 20,
+                        DataLabelsSize = 14,
+                        DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue} ({Math.Round(point.Coordinate.PrimaryValue / (point.StackedValue?.Total ?? 1) * 100)}%)",
+                        DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Outer
+                    },
+                    new PieSeries<double>
+                    {
+                        Values = new double[] { tab.WarningCount },
+                        Name = "Warnings",
+                        Fill = new SolidColorPaint(SKColors.Orange),
+                        InnerRadius = 50,
+                        MaxRadialColumnWidth = 20,
+                        DataLabelsSize = 14,
+                        DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue} ({Math.Round(point.Coordinate.PrimaryValue / (point.StackedValue?.Total ?? 1) * 100)}%)",
+                        DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Outer
+                    },
+                    new PieSeries<double>
+                    {
+                        Values = new double[] { tab.InfoCount },
+                        Name = "Information",
+                        Fill = new SolidColorPaint(SKColors.DodgerBlue),
+                        InnerRadius = 50,
+                        MaxRadialColumnWidth = 20,
+                        DataLabelsSize = 14,
+                        DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue} ({Math.Round(point.Coordinate.PrimaryValue / (point.StackedValue?.Total ?? 1) * 100)}%)",
+                        DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Outer
+                    }
+                }
+                : Array.Empty<ISeries>();
+        }
+
+        private void UpdateTimeSeriesCharts(TabItem tab)
+        {
+            var timeGroups = tab.LogEntries
+                .GroupBy(e => e.Timestamp.Hour)
+                .OrderBy(g => g.Key)
+                .ToList();
+
+            var allHours = Enumerable.Range(0, 24).ToList();
+            var baseDate = DateTime.Today;
+
+            var errorsByHour = new List<DateTimePoint>();
+            var warningsByHour = new List<DateTimePoint>();
+            var infosByHour = new List<DateTimePoint>();
+            var totalByHour = new List<DateTimePoint>();
+
+            foreach (var hour in allHours)
+            {
+                var hourTime = baseDate.AddHours(hour);
+                var group = timeGroups.FirstOrDefault(g => g.Key == hour);
+
+                int errorCount = group?.Count(e => e.Level == "ERROR") ?? 0;
+                int warningCount = group?.Count(e => e.Level == "WARNING") ?? 0;
+                int infoCount = group?.Count(e => e.Level == "INFO") ?? 0;
+                int totalCount = group?.Count() ?? 0;
+
+                errorsByHour.Add(new DateTimePoint(hourTime, errorCount));
+                warningsByHour.Add(new DateTimePoint(hourTime, warningCount));
+                infosByHour.Add(new DateTimePoint(hourTime, infoCount));
+                totalByHour.Add(new DateTimePoint(hourTime, totalCount));
+            }
+
+            tab.LevelsOverTimeSeries = new ISeries[]
+            {
+                new LineSeries<DateTimePoint>
+                {
+                    Values = totalByHour,
+                    Name = "All Logs",
+                    Stroke = new SolidColorPaint(SKColors.Gray, 3),
+                    Fill = new SolidColorPaint(SKColors.Gray.WithAlpha(40)),
+                    GeometryFill = new SolidColorPaint(SKColors.White),
+                    GeometryStroke = new SolidColorPaint(SKColors.Gray, 2),
+                    LineSmoothness = 0.5
+                },
+                new LineSeries<DateTimePoint>
+                {
+                    Values = errorsByHour,
+                    Name = "Errors",
+                    Stroke = new SolidColorPaint(SKColors.OrangeRed, 3),
+                    Fill = new SolidColorPaint(SKColors.OrangeRed.WithAlpha(40)),
+                    GeometryFill = new SolidColorPaint(SKColors.White),
+                    GeometryStroke = new SolidColorPaint(SKColors.OrangeRed, 2),
+                    LineSmoothness = 0.5
+                }
+            };
+
+            var timeHeatData = totalByHour.Select(p => Convert.ToDouble(p.Value)).DefaultIfEmpty(0).ToArray();
+            tab.TimeHeatmapSeries = new ISeries[]
+            {
+                new ColumnSeries<double>
+                {
+                    Values = timeHeatData,
+                    Name = "Activity",
+                    Fill = new LinearGradientPaint(
+                        new[] { new SKColor(100, 149, 237, 100), new SKColor(65, 105, 225) },
+                        new SKPoint(0, 0),
+                        new SKPoint(0, 1)
+                    ),
+                    Stroke = null,
+                    MaxBarWidth = double.MaxValue
+                }
+            };
+        }
+
+        private void UpdateTopErrorsChart(TabItem tab)
+        {
+            var topErrors = tab.LogEntries
+                .Where(e => e.Level == "ERROR")
+                .GroupBy(e => e.Message)
+                .Select(g => new { Message = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .Take(10)
+                .ToList();
+
+            if (topErrors.Any())
+            {
+                var values = topErrors.Select(e => (double)e.Count).ToArray();
+                var labels = topErrors.Select(e => TruncateMessage(e.Message, 40)).ToList();
+
+                tab.TopErrorsSeries = new ISeries[]
+                {
+                    new ColumnSeries<double>
+                    {
+                        Values = values,
+                        Name = "Count",
+                        Fill = new LinearGradientPaint(
+                            new[] { new SKColor(255, 0, 0, 200), new SKColor(255, 99, 71, 220) },
+                            new SKPoint(0, 0),
+                            new SKPoint(0, 1)
+                        ),
+                        Stroke = new SolidColorPaint(SKColors.OrangeRed.WithAlpha(220), 2),
+                        MaxBarWidth = 50,
+                        DataLabelsSize = 12,
+                        DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                        DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Top,
+                        DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue}"
+                    }
+                };
+            }
+            else
+            {
+                tab.TopErrorsSeries = Array.Empty<ISeries>();
+            }
+        }
+
+        private void UpdateSourcesDistributionChart(TabItem tab)
+        {
+            var sourcesData = tab.LogEntries
+                .GroupBy(e => e.Source)
+                .Select(g => new { Source = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .Take(8)
+                .ToList();
+
+            if (sourcesData.Any())
+            {
+                var sourceValues = new List<ISeries>();
+                var colors = new[]
+                {
+                    SKColors.DodgerBlue, SKColors.MediumSeaGreen, SKColors.Orange,
+                    SKColors.Purple, SKColors.OrangeRed, SKColors.Gold,
+                    SKColors.MediumVioletRed, SKColors.LightSlateGray
+                };
+
+                foreach (var source in sourcesData)
+                {
+                    sourceValues.Add(new ColumnSeries<double>
+                    {
+                        Values = new[] { source.Count },
+                        Name = source.Source,
+                        Fill = new SolidColorPaint(colors[sourceValues.Count % colors.Length]),
+                        MaxBarWidth = 35
+                    });
+                }
+
+                tab.SourcesDistributionSeries = sourceValues.ToArray();
+            }
+            else
+            {
+                tab.SourcesDistributionSeries = Array.Empty<ISeries>();
+            }
+        }
+
+        private static string TruncateMessage(string message, int maxLength)
+        {
+            if (string.IsNullOrEmpty(message)) return string.Empty;
+            return message.Length <= maxLength ? message : message.Substring(0, maxLength) + "...";
         }
 
         [RelayCommand]
@@ -288,386 +566,24 @@ namespace Log_Parser_App.ViewModels
             _logger.LogInformation("Theme changed to: {Theme}", IsDarkTheme ? "Dark" : "Light");
         }
 
-        private void UpdateErrorLogEntries()
-        {
-            ErrorLogEntries.Clear();
-            _logger.LogDebug("Updating ErrorLogEntries. Checking {Count} entries in LogEntries.", LogEntries.Count);
-            var errors = LogEntries.Where(e => e.Level == "ERROR").ToList();
-            foreach (var errorEntry in errors)
-            {
-                _logger.LogTrace("Adding entry to ErrorLogEntries (Line {LineNumber}): Level={Level}", errorEntry.LineNumber, errorEntry.Level);
-                ErrorLogEntries.Add(errorEntry);
-            }
-            _logger.LogInformation("Updated ErrorLogEntries collection with {Count} entries", ErrorLogEntries.Count);
-            OnPropertyChanged(nameof(ErrorLogEntries)); // Уведомляем UI об изменениях
-        }
-
-        private void UpdateLogStatistics()
-        {
-            if (LogEntries.Count == 0)
-            {
-                ErrorCount = 0;
-                WarningCount = 0;
-                InfoCount = 0;
-                OtherCount = 0;
-                ErrorPercent = 0;
-                WarningPercent = 0;
-                InfoPercent = 0;
-                OtherPercent = 0;
-                // Сбрасываем графики
-                LevelsOverTimeSeries = Array.Empty<ISeries>();
-                TopErrorsSeries = Array.Empty<ISeries>();
-                LogDistributionSeries = Array.Empty<ISeries>();
-                TimeHeatmapSeries = Array.Empty<ISeries>();
-                ErrorTrendSeries = Array.Empty<ISeries>();
-                SourcesDistributionSeries = Array.Empty<ISeries>();
-                return;
-            }
-
-            _logger.LogDebug("Updating LogStatistics. Current LogEntries count: {Count}", LogEntries.Count);
-
-            ErrorCount = LogEntries.Count(e => e.Level == "ERROR");
-            WarningCount = LogEntries.Count(e => e.Level == "WARNING");
-            InfoCount = LogEntries.Count(e => e.Level == "INFO");
-            OtherCount = LogEntries.Count(e => e.Level != "ERROR" && e.Level != "WARNING" && e.Level != "INFO");
-
-            var total = LogEntries.Count;
-            ErrorPercent = total > 0 ? Math.Round((double)ErrorCount / total * 100, 1) : 0;
-            WarningPercent = total > 0 ? Math.Round((double)WarningCount / total * 100, 1) : 0;
-            InfoPercent = total > 0 ? Math.Round((double)InfoCount / total * 100, 1) : 0;
-            OtherPercent = total > 0 ? Math.Round((double)OtherCount / total * 100, 1) : 0;
-
-            _logger.LogDebug("Calculated counts - Error: {ErrorCount}, Warning: {WarningCount}, Info: {InfoCount}, Other: {OtherCount}",
-                ErrorCount, WarningCount, InfoCount, OtherCount);
-
-            UpdateCharts();
-
-            // Обновляем статистику в классе LogStatistics (для будущего использования)
-            LogStatistics = new LogStatistics
-            {
-                TotalCount = total,
-                ErrorCount = ErrorCount,
-                WarningCount = WarningCount,
-                InfoCount = InfoCount,
-                OtherCount = OtherCount,
-                ErrorPercent = ErrorPercent,
-                WarningPercent = WarningPercent,
-                InfoPercent = InfoPercent,
-                OtherPercent = OtherPercent
-            };
-        }
-
-        private void UpdateCharts()
-        {
-            try
-            {
-                // 1. График распределения типов логов (пончик)
-                LogDistributionSeries = ErrorCount + WarningCount + InfoCount + OtherCount > 0
-                ? new ISeries[]
-                {
-                    new PieSeries<double>
-                    {
-                        Values = new double[] { ErrorCount },
-                        Name = "Ошибки",
-                        Fill = new SolidColorPaint(SKColors.OrangeRed),
-                        InnerRadius = 50,
-                        MaxRadialColumnWidth = 20,
-                        DataLabelsSize = 14,
-                        DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue} ({Math.Round((point.StackedValue?.Total ?? 0) == 0 ? 0 : point.Coordinate.PrimaryValue / (point.StackedValue?.Total ?? 1) * 100)}%)",
-                        DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Outer
-                    },
-                    new PieSeries<double>
-                    {
-                        Values = new double[] { WarningCount },
-                        Name = "Предупреждения",
-                        Fill = new SolidColorPaint(SKColors.Orange),
-                        InnerRadius = 50,
-                        MaxRadialColumnWidth = 20,
-                        DataLabelsSize = 14,
-                        DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue} ({Math.Round((point.StackedValue?.Total ?? 0) == 0 ? 0 : point.Coordinate.PrimaryValue / (point.StackedValue?.Total ?? 1) * 100)}%)",
-                        DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Outer
-                    },
-                    new PieSeries<double>
-                    {
-                        Values = new double[] { InfoCount },
-                        Name = "Информация",
-                        Fill = new SolidColorPaint(SKColors.DodgerBlue),
-                        InnerRadius = 50,
-                        MaxRadialColumnWidth = 20,
-                        DataLabelsSize = 14,
-                        DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue} ({Math.Round((point.StackedValue?.Total ?? 0) == 0 ? 0 : point.Coordinate.PrimaryValue / (point.StackedValue?.Total ?? 1) * 100)}%)",
-                        DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Outer
-                    },
-                    new PieSeries<double>
-                    {
-                        Values = new double[] { OtherCount },
-                        Name = "Другие",
-                        Fill = new SolidColorPaint(SKColors.Gray),
-                        InnerRadius = 50,
-                        MaxRadialColumnWidth = 20,
-                        DataLabelsSize = 14,
-                        DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue} ({Math.Round((point.StackedValue?.Total ?? 0) == 0 ? 0 : point.Coordinate.PrimaryValue / (point.StackedValue?.Total ?? 1) * 100)}%)",
-                        DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Outer
-                    }
-                }
-                : Array.Empty<ISeries>();
-
-                // 2. Временная динамика логов по часам - (линейный график)
-                // Сгруппируем логи по часам для удобства анализа
-                var timeGroups = LogEntries
-                    .GroupBy(e => e.Timestamp.Hour)
-                    .OrderBy(g => g.Key)
-                    .ToList();
-
-                // Создаем полный список часов от 0 до 23 для равномерного отображения
-                var allHours = Enumerable.Range(0, 24).ToList();
-                var baseDate = DateTime.Today;
-
-                var errorsByHour = new List<DateTimePoint>();
-                var warningsByHour = new List<DateTimePoint>();
-                var infosByHour = new List<DateTimePoint>();
-                var totalByHour = new List<DateTimePoint>();
-
-                foreach (var hour in allHours)
-                {
-                    var hourTime = baseDate.AddHours(hour);
-                    var group = timeGroups.FirstOrDefault(g => g.Key == hour);
-
-                    int errorCount = group?.Count(e => e.Level == "ERROR") ?? 0;
-                    int warningCount = group?.Count(e => e.Level == "WARNING") ?? 0;
-                    int infoCount = group?.Count(e => e.Level == "INFO") ?? 0;
-                    int totalCount = group?.Count() ?? 0;
-
-                    errorsByHour.Add(new DateTimePoint(hourTime, errorCount));
-                    warningsByHour.Add(new DateTimePoint(hourTime, warningCount));
-                    infosByHour.Add(new DateTimePoint(hourTime, infoCount));
-                    totalByHour.Add(new DateTimePoint(hourTime, totalCount));
-                }
-
-                LevelsOverTimeSeries = new ISeries[]
-                {
-                    new LineSeries<DateTimePoint>
-                    {
-                        Values = totalByHour,
-                        Name = "Все логи",
-                        Stroke = new SolidColorPaint(SKColors.Gray, 3),
-                        Fill = new SolidColorPaint(SKColors.Gray.WithAlpha(40)),
-                        GeometryFill = new SolidColorPaint(SKColors.White),
-                        GeometryStroke = new SolidColorPaint(SKColors.Gray, 2),
-                        LineSmoothness = 0.5
-                    },
-                    new LineSeries<DateTimePoint>
-                    {
-                        Values = errorsByHour,
-                        Name = "Ошибки",
-                        Stroke = new SolidColorPaint(SKColors.OrangeRed, 3),
-                        Fill = new SolidColorPaint(SKColors.OrangeRed.WithAlpha(40)),
-                        GeometryFill = new SolidColorPaint(SKColors.White),
-                        GeometryStroke = new SolidColorPaint(SKColors.OrangeRed, 2),
-                        LineSmoothness = 0.5
-                    },
-                    new LineSeries<DateTimePoint>
-                    {
-                        Values = warningsByHour,
-                        Name = "Предупреждения",
-                        Stroke = new SolidColorPaint(SKColors.Orange, 3),
-                        Fill = new SolidColorPaint(SKColors.Orange.WithAlpha(40)),
-                        GeometryFill = new SolidColorPaint(SKColors.White),
-                        GeometryStroke = new SolidColorPaint(SKColors.Orange, 2),
-                        LineSmoothness = 0.5
-                    },
-                    new LineSeries<DateTimePoint>
-                    {
-                        Values = infosByHour,
-                        Name = "Информация",
-                        Stroke = new SolidColorPaint(SKColors.DodgerBlue, 3),
-                        Fill = new SolidColorPaint(SKColors.DodgerBlue.WithAlpha(40)),
-                        GeometryFill = new SolidColorPaint(SKColors.White),
-                        GeometryStroke = new SolidColorPaint(SKColors.DodgerBlue, 2),
-                        LineSmoothness = 0.5
-                    }
-                };
-
-                if (totalByHour.Count != 0)
-                {
-                    var values = totalByHour.Select(p => (int)p.Value!).ToList();
-                }
-
-                var timeHeatData = totalByHour.Select(p => Convert.ToDouble(p.Value)).DefaultIfEmpty(0).ToArray();
-
-                TimeHeatmapSeries =
-                [
-                    new ColumnSeries<double>
-                    {
-                        Values = timeHeatData,
-                        Name = "Активность",
-                        Fill = new LinearGradientPaint(
-                            [new SKColor(100, 149, 237, 100), new SKColor(65, 105, 225)],
-                            new SKPoint(0, 0),
-                            new SKPoint(0, 1)
-                        ),
-                        Stroke = null,
-                        MaxBarWidth = double.MaxValue
-                    }
-                ];
-
-                // 4. Тренд ошибок по часам
-                var errorTrend = errorsByHour.Select(p => p.Value).ToArray();
-
-                ErrorTrendSeries = errorTrend.Any(v => v > 0) ? new ISeries[]
-                {
-                    new LineSeries<double>
-                    {
-                        Values = errorTrend,
-                        Name = "Тренд ошибок",
-                        Stroke = new SolidColorPaint(SKColors.OrangeRed, 3),
-                        Fill = new SolidColorPaint(SKColors.OrangeRed.WithAlpha(40)),
-                        GeometryFill = new SolidColorPaint(SKColors.White),
-                        GeometryStroke = new SolidColorPaint(SKColors.OrangeRed, 2),
-                        LineSmoothness = 0.8
-                    }
-                } : Array.Empty<ISeries>();
-
-                var topErrors = LogEntries
-                    .Where(e => e.Level == "ERROR")
-                    .GroupBy(e => e.Message)
-                    .Select(g => new { Message = g.Key, Count = g.Count() })
-                    .OrderByDescending(x => x.Count)
-                    .Take(10)
-                    .ToList();
-
-                if (topErrors.Any())
-                {
-                    var values = topErrors.Select(e => (double)e.Count).ToArray();
-                    var labels = topErrors.Select(e => TruncateMessage(e.Message, 40)).ToList();
-
-                    TopErrorsSeries = new ISeries[]
-                    {
-                        new ColumnSeries<double>
-                        {
-                            Values = values,
-                            Name = "Количество",
-                            Fill = new LinearGradientPaint(
-                                new[] { new SKColor(255, 0, 0, 200), new SKColor(255, 99, 71, 220) },
-                                new SKPoint(0, 0),
-                                new SKPoint(0, 1)
-                            ),
-                            Stroke = new SolidColorPaint(SKColors.OrangeRed.WithAlpha(220), 2),
-                            MaxBarWidth = 50,
-                            DataLabelsSize = 12,
-                            DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                            DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Top,
-                            DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue}"
-                        }
-                    };
-
-                    ErrorMessageAxis[0].Labels = labels;
-                    ErrorMessageAxis[0].TextSize = 11;
-                }
-                else
-                {
-                    TopErrorsSeries = Array.Empty<ISeries>();
-                    ErrorMessageAxis[0].Labels = new List<string>();
-                }
-
-                // 6. Распределение логов по источникам
-                var sourcesData = LogEntries
-                    .GroupBy(e => e.Source)
-                    .Select(g => new { Source = g.Key, Count = g.Count() })
-                    .OrderByDescending(x => x.Count)
-                    .Take(8)
-                    .ToList();
-
-                if (sourcesData.Any())
-                {
-                    var sourceValues = new List<ISeries>();
-                    var colors = new SKColor[]
-                    {
-                        SKColors.DodgerBlue, SKColors.MediumSeaGreen, SKColors.Orange,
-                        SKColors.Purple, SKColors.OrangeRed, SKColors.Gold,
-                        SKColors.MediumVioletRed, SKColors.LightSlateGray
-                    };
-
-                    // Создаем серии для каждого типа лога (Error, Warning, Info)
-                    for (int i = 0; i < sourcesData.Count; i++)
-                    {
-                        var source = sourcesData[i].Source;
-                        var sourceEntries = LogEntries.Where(e => e.Source == source).ToList();
-
-                        var errorCount = sourceEntries.Count(e => e.Level == "ERROR");
-                        var warningCount = sourceEntries.Count(e => e.Level == "WARNING");
-                        var infoCount = sourceEntries.Count(e => e.Level == "INFO");
-                        var otherCount = sourceEntries.Count - errorCount - warningCount - infoCount;
-
-                        sourceValues.Add(new StackedColumnSeries<double>
-                        {
-                            Values = new double[] { errorCount, warningCount, infoCount, otherCount },
-                            Name = source,
-                            Stroke = null,
-                            DataLabelsSize = 10,
-                            DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                            Fill = new SolidColorPaint(colors[i % colors.Length])
-                        });
-                    }
-
-                    SourcesDistributionSeries = sourceValues.ToArray();
-                    SourceAxis[0].Labels = sourcesData.Select(x => x.Source).ToList();
-                }
-                else
-                {
-                    SourcesDistributionSeries = Array.Empty<ISeries>();
-                    SourceAxis[0].Labels = new List<string>();
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating charts");
-            }
-        }
-
-        private string TruncateMessage(string message, int maxLength)
-        {
-            if (string.IsNullOrEmpty(message)) return string.Empty;
-            return message.Length <= maxLength ? message : message.Substring(0, maxLength) + "...";
-        }
-
-        [RelayCommand]
-        private void ShowPackageErrorDetails(PackageLogEntry? entry)
-        {
-            if (entry == null)
-                return;
-
-            SelectedPackageEntry = entry;
-            _logger.LogInformation("Selected package error entry: {PackageId}", entry.PackageId);
-        }
-
-        [RelayCommand]
-        private static void ApplyFilters()
-        {
-            // Implementation of ApplyFilters method
-            // This method should filter LogEntries and result in FilteredLogEntries
-            // ... existing code ...
-        }
-
         [RelayCommand]
         private void OpenLogFile(LogEntry? entry)
         {
             if (entry == null)
                 return;
+
             var filePath = LastOpenedFilePath;
             if (string.IsNullOrEmpty(filePath))
             {
                 StatusMessage = "File path is empty. Cannot open file.";
                 return;
             }
+
             try
             {
                 var opened = false;
                 string? error = null;
+
                 if (OperatingSystem.IsMacOS())
                 {
                     try
@@ -715,23 +631,338 @@ namespace Log_Parser_App.ViewModels
                     }
                     catch (Exception ex)
                     {
-                        error = $"Не удалось открыть файл через xdg-open: {ex.Message}\n{ex.StackTrace}";
+                        error = $"Cannot open file with xdg-open: {ex.Message}\n{ex.StackTrace}";
                         _logger.LogError(ex, "Linux open failed");
                     }
                 }
                 else
                 {
-                    error = "Неизвестная ОС, не могу открыть файл";
+                    error = "Unknown OS, cannot open file";
                 }
+
                 if (!opened)
                 {
-                    StatusMessage = error ?? "Не удалось открыть файл (неизвестная ошибка)";
+                    StatusMessage = error ?? "Failed to open file (unknown error)";
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to open file {FilePath}", filePath);
-                StatusMessage = $"Ошибка открытия файла: {ex.Message}\n{ex.StackTrace}";
+                StatusMessage = $"Error opening file: {ex.Message}\n{ex.StackTrace}";
+            }
+        }
+
+        [RelayCommand]
+        private void CloseTab(TabItem tab)
+        {
+            if (tab == null) return;
+
+            var index = Tabs.IndexOf(tab);
+            Tabs.Remove(tab);
+
+            if (Tabs.Count == 0)
+            {
+                SelectedTab = null;
+                StatusMessage = "No files open";
+                ResetAllStatistics();
+            }
+            else
+            {
+                // Select the next available tab
+                if (index >= Tabs.Count)
+                {
+                    index = Tabs.Count - 1;
+                }
+                SelectedTab = Tabs[index];
+                UpdateGlobalStatistics();
+            }
+
+            _logger.LogInformation("Closed tab for file: {FilePath}", tab.FilePath);
+        }
+
+        private void ResetAllStatistics()
+        {
+            ErrorCount = 0;
+            WarningCount = 0;
+            InfoCount = 0;
+            OtherCount = 0;
+            ErrorPercent = 0;
+            WarningPercent = 0;
+            InfoPercent = 0;
+            OtherPercent = 0;
+
+            LogStatistics = new LogStatistics();
+            LevelsOverTimeSeries = Array.Empty<ISeries>();
+            TopErrorsSeries = Array.Empty<ISeries>();
+            LogDistributionSeries = Array.Empty<ISeries>();
+            TimeHeatmapSeries = Array.Empty<ISeries>();
+            ErrorTrendSeries = Array.Empty<ISeries>();
+            SourcesDistributionSeries = Array.Empty<ISeries>();
+        }
+
+        private void UpdateGlobalStatistics()
+        {
+            if (SelectedTab == null || Tabs.Count == 0)
+            {
+                ResetAllStatistics();
+                return;
+            }
+
+            var totalEntries = Tabs.Sum(t => t.LogEntries.Count);
+            ErrorCount = Tabs.Sum(t => t.ErrorCount);
+            WarningCount = Tabs.Sum(t => t.WarningCount);
+            InfoCount = Tabs.Sum(t => t.InfoCount);
+            OtherCount = Tabs.Sum(t => t.OtherCount);
+
+            ErrorPercent = totalEntries > 0 ? Math.Round((double)ErrorCount / totalEntries * 100, 1) : 0;
+            WarningPercent = totalEntries > 0 ? Math.Round((double)WarningCount / totalEntries * 100, 1) : 0;
+            InfoPercent = totalEntries > 0 ? Math.Round((double)InfoCount / totalEntries * 100, 1) : 0;
+            OtherPercent = totalEntries > 0 ? Math.Round((double)OtherCount / totalEntries * 100, 1) : 0;
+
+            LogStatistics = new LogStatistics
+            {
+                TotalCount = totalEntries,
+                ErrorCount = ErrorCount,
+                WarningCount = WarningCount,
+                InfoCount = InfoCount,
+                OtherCount = OtherCount,
+                ErrorPercent = ErrorPercent,
+                WarningPercent = WarningPercent,
+                InfoPercent = InfoPercent,
+                OtherPercent = OtherPercent
+            };
+
+            // Update charts based on combined data from all tabs
+            UpdateGlobalCharts();
+        }
+
+        private void UpdateGlobalCharts()
+        {
+            try
+            {
+                UpdateLogDistributionChart();
+                UpdateTimeSeriesCharts();
+                UpdateTopErrorsChart();
+                UpdateSourcesDistributionChart();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating global charts");
+            }
+        }
+
+        private void UpdateLogDistributionChart()
+        {
+            LogDistributionSeries = ErrorCount + WarningCount + InfoCount + OtherCount > 0
+                ? new ISeries[]
+                {
+                    new PieSeries<double>
+                    {
+                        Values = new double[] { ErrorCount },
+                        Name = "Errors",
+                        Fill = new SolidColorPaint(SKColors.OrangeRed),
+                        InnerRadius = 50,
+                        MaxRadialColumnWidth = 20,
+                        DataLabelsSize = 14,
+                        DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue} ({Math.Round(point.Coordinate.PrimaryValue / (point.StackedValue?.Total ?? 1) * 100)}%)",
+                        DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Outer
+                    },
+                    new PieSeries<double>
+                    {
+                        Values = new double[] { WarningCount },
+                        Name = "Warnings",
+                        Fill = new SolidColorPaint(SKColors.Orange),
+                        InnerRadius = 50,
+                        MaxRadialColumnWidth = 20,
+                        DataLabelsSize = 14,
+                        DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue} ({Math.Round(point.Coordinate.PrimaryValue / (point.StackedValue?.Total ?? 1) * 100)}%)",
+                        DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Outer
+                    },
+                    new PieSeries<double>
+                    {
+                        Values = new double[] { InfoCount },
+                        Name = "Information",
+                        Fill = new SolidColorPaint(SKColors.DodgerBlue),
+                        InnerRadius = 50,
+                        MaxRadialColumnWidth = 20,
+                        DataLabelsSize = 14,
+                        DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue} ({Math.Round(point.Coordinate.PrimaryValue / (point.StackedValue?.Total ?? 1) * 100)}%)",
+                        DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Outer
+                    }
+                }
+                : Array.Empty<ISeries>();
+        }
+
+        private void UpdateTimeSeriesCharts()
+        {
+            var allEntries = Tabs.SelectMany(t => t.LogEntries)
+                .GroupBy(e => e.Timestamp.Hour)
+                .OrderBy(g => g.Key)
+                .ToList();
+
+            var allHours = Enumerable.Range(0, 24).ToList();
+            var baseDate = DateTime.Today;
+
+            var errorsByHour = new List<DateTimePoint>();
+            var warningsByHour = new List<DateTimePoint>();
+            var infosByHour = new List<DateTimePoint>();
+            var totalByHour = new List<DateTimePoint>();
+
+            foreach (var hour in allHours)
+            {
+                var hourTime = baseDate.AddHours(hour);
+                var group = allEntries.FirstOrDefault(g => g.Key == hour);
+
+                int errorCount = group?.Count(e => e.Level == "ERROR") ?? 0;
+                int warningCount = group?.Count(e => e.Level == "WARNING") ?? 0;
+                int infoCount = group?.Count(e => e.Level == "INFO") ?? 0;
+                int totalCount = group?.Count() ?? 0;
+
+                errorsByHour.Add(new DateTimePoint(hourTime, errorCount));
+                warningsByHour.Add(new DateTimePoint(hourTime, warningCount));
+                infosByHour.Add(new DateTimePoint(hourTime, infoCount));
+                totalByHour.Add(new DateTimePoint(hourTime, totalCount));
+            }
+
+            LevelsOverTimeSeries = new ISeries[]
+            {
+                new LineSeries<DateTimePoint>
+                {
+                    Values = totalByHour,
+                    Name = "All Logs",
+                    Stroke = new SolidColorPaint(SKColors.Gray, 3),
+                    Fill = new SolidColorPaint(SKColors.Gray.WithAlpha(40)),
+                    GeometryFill = new SolidColorPaint(SKColors.White),
+                    GeometryStroke = new SolidColorPaint(SKColors.Gray, 2),
+                    LineSmoothness = 0.5
+                },
+                new LineSeries<DateTimePoint>
+                {
+                    Values = errorsByHour,
+                    Name = "Errors",
+                    Stroke = new SolidColorPaint(SKColors.OrangeRed, 3),
+                    Fill = new SolidColorPaint(SKColors.OrangeRed.WithAlpha(40)),
+                    GeometryFill = new SolidColorPaint(SKColors.White),
+                    GeometryStroke = new SolidColorPaint(SKColors.OrangeRed, 2),
+                    LineSmoothness = 0.5
+                }
+            };
+
+            var timeHeatData = totalByHour.Select(p => Convert.ToDouble(p.Value)).DefaultIfEmpty(0).ToArray();
+            TimeHeatmapSeries = new ISeries[]
+            {
+                new ColumnSeries<double>
+                {
+                    Values = timeHeatData,
+                    Name = "Activity",
+                    Fill = new LinearGradientPaint(
+                        new[] { new SKColor(100, 149, 237, 100), new SKColor(65, 105, 225) },
+                        new SKPoint(0, 0),
+                        new SKPoint(0, 1)
+                    ),
+                    Stroke = null,
+                    MaxBarWidth = double.MaxValue
+                }
+            };
+        }
+
+        private void UpdateTopErrorsChart()
+        {
+            var topErrors = Tabs.SelectMany(t => t.LogEntries)
+                .Where(e => e.Level == "ERROR")
+                .GroupBy(e => e.Message)
+                .Select(g => new { Message = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .Take(10)
+                .ToList();
+
+            if (topErrors.Any())
+            {
+                var values = topErrors.Select(e => (double)e.Count).ToArray();
+                var labels = topErrors.Select(e => TruncateMessage(e.Message, 40)).ToList();
+
+                TopErrorsSeries = new ISeries[]
+                {
+                    new ColumnSeries<double>
+                    {
+                        Values = values,
+                        Name = "Count",
+                        Fill = new LinearGradientPaint(
+                            new[] { new SKColor(255, 0, 0, 200), new SKColor(255, 99, 71, 220) },
+                            new SKPoint(0, 0),
+                            new SKPoint(0, 1)
+                        ),
+                        Stroke = new SolidColorPaint(SKColors.OrangeRed.WithAlpha(220), 2),
+                        MaxBarWidth = 50,
+                        DataLabelsSize = 12,
+                        DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                        DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Top,
+                        DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue}"
+                    }
+                };
+            }
+            else
+            {
+                TopErrorsSeries = Array.Empty<ISeries>();
+            }
+        }
+
+        private void UpdateSourcesDistributionChart()
+        {
+            var sourcesData = Tabs.SelectMany(t => t.LogEntries)
+                .GroupBy(e => e.Source)
+                .Select(g => new { Source = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .Take(8)
+                .ToList();
+
+            if (sourcesData.Any())
+            {
+                var sourceValues = new List<ISeries>();
+                var colors = new[]
+                {
+                    SKColors.DodgerBlue, SKColors.MediumSeaGreen, SKColors.Orange,
+                    SKColors.Purple, SKColors.OrangeRed, SKColors.Gold,
+                    SKColors.MediumVioletRed, SKColors.LightSlateGray
+                };
+
+                foreach (var source in sourcesData)
+                {
+                    sourceValues.Add(new ColumnSeries<double>
+                    {
+                        Values = new[] { source.Count },
+                        Name = source.Source,
+                        Fill = new SolidColorPaint(colors[sourceValues.Count % colors.Length]),
+                        MaxBarWidth = 35
+                    });
+                }
+
+                SourcesDistributionSeries = sourceValues.ToArray();
+            }
+            else
+            {
+                SourcesDistributionSeries = Array.Empty<ISeries>();
+            }
+        }
+
+        partial void OnSelectedTabChanged(TabItem? oldValue, TabItem? newValue)
+        {
+            if (newValue != null)
+            {
+                StatusMessage = $"Selected file: {newValue.FilePath}";
+                LastOpenedFilePath = newValue.FilePath;
+            }
+            UpdateGlobalStatistics();
+        }
+
+        partial void OnIsLoadingChanged(bool value)
+        {
+            if (!value && SelectedTab != null)
+            {
+                UpdateGlobalStatistics();
             }
         }
     }
