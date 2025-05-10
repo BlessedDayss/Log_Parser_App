@@ -43,14 +43,26 @@ namespace Log_Parser_App.ViewModels
         [ObservableProperty]
         private int _selectedTabIndex = 0;
 
-        [ObservableProperty]
-        private ObservableCollection<LogEntry> _logEntries = new();
+        private List<LogEntry> _logEntries = new();
+        public List<LogEntry> LogEntries
+        {
+            get => _logEntries;
+            set { _logEntries = value; OnPropertyChanged(); }
+        }
 
-        [ObservableProperty]
-        private ObservableCollection<LogEntry> _filteredLogEntries = new();
+        private List<LogEntry> _filteredLogEntries = new();
+        public List<LogEntry> FilteredLogEntries
+        {
+            get => _filteredLogEntries;
+            set { _filteredLogEntries = value; OnPropertyChanged(); }
+        }
 
-        [ObservableProperty]
-        private ObservableCollection<LogEntry> _errorLogEntries = new();
+        private List<LogEntry> _errorLogEntries = new();
+        public List<LogEntry> ErrorLogEntries
+        {
+            get => _errorLogEntries;
+            set { _errorLogEntries = value; OnPropertyChanged(); }
+        }
 
         [ObservableProperty]
         private LogStatistics _logStatistics = new();
@@ -201,14 +213,10 @@ namespace Log_Parser_App.ViewModels
                 StatusMessage = $"Opening {Path.GetFileName(filePath)}...";
                 IsLoading = true;
                 FileStatus = Path.GetFileName(filePath);
-
-                // Переключаемся на дашборд
                 IsDashboardVisible = true;
-
                 _logger.LogInformation("PERF: Начало загрузки файла {FilePath}", filePath);
                 var sw = System.Diagnostics.Stopwatch.StartNew();
 
-                // Очищаем коллекции только через UI поток
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     LogEntries.Clear();
@@ -239,7 +247,6 @@ namespace Log_Parser_App.ViewModels
 
                 var processedEntries = await Task.Run(() =>
                 {
-                    // Преобразуем записи в потоке пула потоков
                     List<LogEntry> processed = new List<LogEntry>(logEntries.Length);
                     foreach (var entry in logEntries)
                     {
@@ -267,8 +274,7 @@ namespace Log_Parser_App.ViewModels
 
                 _logger.LogDebug("PERF: Начало обработки рекомендаций для ошибок");
 
-                // Добавляем рекомендации для ошибок параллельно с загрузкой UI
-                var errorsWithRecommendations = await Task.Run(() =>
+                await Task.Run(() =>
                 {
                     var errorEntries = processedEntries.Where(e => e.Level == "ERROR").ToList();
                     Parallel.ForEach(errorEntries, entry =>
@@ -298,43 +304,17 @@ namespace Log_Parser_App.ViewModels
                             _logger.LogError(ex, "Ошибка при обработке рекомендаций для записи {LineNumber}", entry.LineNumber);
                         }
                     });
-                    return errorEntries;
                 });
 
-                // Загружаем записи в UI пакетами для предотвращения блокировки
-                const int batchSize = 1000;
-                for (int i = 0; i < processedEntries.Count; i += batchSize)
-                {
-                    var batch = processedEntries.Skip(i).Take(batchSize).ToList();
-
-                    await Dispatcher.UIThread.InvokeAsync(() =>
-                    {
-                        foreach (var entry in batch)
-                        {
-                            LogEntries.Add(entry);
-                            FilteredLogEntries.Add(entry);
-                        }
-
-                        // Обновляем статус для пользователя
-                        if (i + batchSize < processedEntries.Count)
-                        {
-                            StatusMessage = $"Loading entries... ({i + batch.Count}/{processedEntries.Count})";
-                        }
-                    }, DispatcherPriority.Background);
-
-                    // Делаем небольшую паузу, чтобы UI мог перерисоваться
-                    await Task.Delay(10);
-                }
-
-                // Обновляем UI и статистику после завершения загрузки
+                // Обновляем UI и статистику после полной загрузки
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
+                    LogEntries = processedEntries.ToList();
+                    FilteredLogEntries = processedEntries.ToList();
                     UpdateErrorLogEntries();
                     UpdateLogStatistics();
-
                     _logger.LogDebug("PERF: Завершение загрузки данных в UI");
                     _logger.LogInformation("Загружено {Count} записей логов за {ElapsedMs}ms", LogEntries.Count, sw.ElapsedMilliseconds);
-
                     StatusMessage = $"Loaded {LogEntries.Count} log entries";
                     SelectedTabIndex = 0;
                     IsLoading = false;
@@ -343,7 +323,6 @@ namespace Log_Parser_App.ViewModels
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Ошибка загрузки файла логов");
-
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     StatusMessage = $"Error: {ex.Message}";
@@ -381,19 +360,13 @@ namespace Log_Parser_App.ViewModels
 
         private void UpdateErrorLogEntries()
         {
-            ErrorLogEntries.Clear();
-            _logger.LogDebug("Updating ErrorLogEntries. Checking {Count} entries in LogEntries.", LogEntries.Count);
             var errors = LogEntries.Where(e => e.Level == "ERROR").ToList();
-            foreach (var errorEntry in errors)
-            {
-                _logger.LogTrace("Adding entry to ErrorLogEntries (Line {LineNumber}): Level={Level}", errorEntry.LineNumber, errorEntry.Level);
-                ErrorLogEntries.Add(errorEntry);
-            }
+            ErrorLogEntries = errors;
             _logger.LogInformation("Updated ErrorLogEntries collection with {Count} entries", ErrorLogEntries.Count);
-            OnPropertyChanged(nameof(ErrorLogEntries)); // Уведомляем UI об изменениях
+            OnPropertyChanged(nameof(ErrorLogEntries));
         }
 
-        private void UpdateLogStatistics()
+        private async void UpdateLogStatistics()
         {
             if (LogEntries.Count == 0)
             {
@@ -405,7 +378,6 @@ namespace Log_Parser_App.ViewModels
                 WarningPercent = 0;
                 InfoPercent = 0;
                 OtherPercent = 0;
-                // Сбрасываем графики
                 LevelsOverTimeSeries = Array.Empty<ISeries>();
                 TopErrorsSeries = Array.Empty<ISeries>();
                 LogDistributionSeries = Array.Empty<ISeries>();
@@ -414,168 +386,159 @@ namespace Log_Parser_App.ViewModels
                 SourcesDistributionSeries = Array.Empty<ISeries>();
                 return;
             }
-
             _logger.LogDebug("Updating LogStatistics. Current LogEntries count: {Count}", LogEntries.Count);
-
-            ErrorCount = LogEntries.Count(e => e.Level == "ERROR");
-            WarningCount = LogEntries.Count(e => e.Level == "WARNING");
-            InfoCount = LogEntries.Count(e => e.Level == "INFO");
-            OtherCount = LogEntries.Count(e => e.Level != "ERROR" && e.Level != "WARNING" && e.Level != "INFO");
-
-            var total = LogEntries.Count;
-            ErrorPercent = total > 0 ? Math.Round((double)ErrorCount / total * 100, 1) : 0;
-            WarningPercent = total > 0 ? Math.Round((double)WarningCount / total * 100, 1) : 0;
-            InfoPercent = total > 0 ? Math.Round((double)InfoCount / total * 100, 1) : 0;
-            OtherPercent = total > 0 ? Math.Round((double)OtherCount / total * 100, 1) : 0;
-
-            _logger.LogDebug("Calculated counts - Error: {ErrorCount}, Warning: {WarningCount}, Info: {InfoCount}, Other: {OtherCount}",
-                ErrorCount, WarningCount, InfoCount, OtherCount);
-
-            UpdateCharts();
-
-            // Обновляем статистику в классе LogStatistics (для будущего использования)
-            LogStatistics = new LogStatistics
+            var logEntries = LogEntries.ToList();
+            var stats = await Task.Run(() => CalculateStatisticsAndCharts(logEntries));
+            await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                TotalCount = total,
-                ErrorCount = ErrorCount,
-                WarningCount = WarningCount,
-                InfoCount = InfoCount,
-                OtherCount = OtherCount,
-                ErrorPercent = ErrorPercent,
-                WarningPercent = WarningPercent,
-                InfoPercent = InfoPercent,
-                OtherPercent = OtherPercent
-            };
+                ErrorCount = stats.ErrorCount;
+                WarningCount = stats.WarningCount;
+                InfoCount = stats.InfoCount;
+                OtherCount = stats.OtherCount;
+                ErrorPercent = stats.ErrorPercent;
+                WarningPercent = stats.WarningPercent;
+                InfoPercent = stats.InfoPercent;
+                OtherPercent = stats.OtherPercent;
+                LevelsOverTimeSeries = stats.LevelsOverTimeSeries;
+                TopErrorsSeries = stats.TopErrorsSeries;
+                LogDistributionSeries = stats.LogDistributionSeries;
+                TimeHeatmapSeries = stats.TimeHeatmapSeries;
+                ErrorTrendSeries = stats.ErrorTrendSeries;
+                SourcesDistributionSeries = stats.SourcesDistributionSeries;
+                LogStatistics = stats.LogStatistics;
+                // Оси и метки тоже присваиваем если нужно
+                TimeAxis = stats.TimeAxis;
+                CountAxis = stats.CountAxis;
+                DaysAxis = stats.DaysAxis;
+                HoursAxis = stats.HoursAxis;
+                SourceAxis = stats.SourceAxis;
+                ErrorMessageAxis = stats.ErrorMessageAxis;
+            });
         }
 
-        private void UpdateCharts()
+        private (int ErrorCount, int WarningCount, int InfoCount, int OtherCount, double ErrorPercent, double WarningPercent, double InfoPercent, double OtherPercent, ISeries[] LevelsOverTimeSeries, ISeries[] TopErrorsSeries, ISeries[] LogDistributionSeries, ISeries[] TimeHeatmapSeries, ISeries[] ErrorTrendSeries, ISeries[] SourcesDistributionSeries, LogStatistics LogStatistics, Axis[] TimeAxis, Axis[] CountAxis, Axis[] DaysAxis, Axis[] HoursAxis, Axis[] SourceAxis, Axis[] ErrorMessageAxis) CalculateStatisticsAndCharts(List<LogEntry> logEntries)
         {
-            try
+            int errorCount = logEntries.Count(e => e.Level == "ERROR");
+            int warningCount = logEntries.Count(e => e.Level == "WARNING");
+            int infoCount = logEntries.Count(e => e.Level == "INFO");
+            int otherCount = logEntries.Count - errorCount - warningCount - infoCount;
+            int total = logEntries.Count;
+            double errorPercent = total > 0 ? Math.Round((double)errorCount / total * 100, 1) : 0;
+            double warningPercent = total > 0 ? Math.Round((double)warningCount / total * 100, 1) : 0;
+            double infoPercent = total > 0 ? Math.Round((double)infoCount / total * 100, 1) : 0;
+            double otherPercent = total > 0 ? Math.Round((double)otherCount / total * 100, 1) : 0;
+            var logStats = new LogStatistics
             {
-                // Ensure we don't divide by zero in any calculations
-                int totalLogs = ErrorCount + WarningCount + InfoCount + OtherCount;
-
-                // 1. Log Type Distribution chart (Pie chart)
-                LogDistributionSeries = new ISeries[]
+                TotalCount = total,
+                ErrorCount = errorCount,
+                WarningCount = warningCount,
+                InfoCount = infoCount,
+                OtherCount = otherCount,
+                ErrorPercent = errorPercent,
+                WarningPercent = warningPercent,
+                InfoPercent = infoPercent,
+                OtherPercent = otherPercent
+            };
+            // 1. Log Type Distribution chart (Pie chart)
+            var logDistributionSeries = new ISeries[]
+            {
+                new PieSeries<double>
                 {
-                    new PieSeries<double>
-                    {
-                        Values = new double[] { ErrorCount },
-                        Name = "Errors",
-                        Fill = new SolidColorPaint(SKColors.Crimson),
-                        InnerRadius = 50,
-                        MaxRadialColumnWidth = 50,
-                        DataLabelsSize = 16,
-                        DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
-                        DataLabelsFormatter = point => ErrorCount > 0 && totalLogs > 0 ?
-                            $"Errors: {point.Coordinate.PrimaryValue}\n({Math.Round(point.Coordinate.PrimaryValue / totalLogs * 100)}%)" : "",
-                        IsVisible = totalLogs > 0
-                    },
-                    new PieSeries<double>
-                    {
-                        Values = new double[] { WarningCount },
-                        Name = "Warnings",
-                        Fill = new SolidColorPaint(SKColors.DarkOrange),
-                        InnerRadius = 50,
-                        MaxRadialColumnWidth = 50,
-                        DataLabelsSize = 16,
-                        DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
-                        DataLabelsFormatter = point => WarningCount > 0 && totalLogs > 0 ?
-                            $"Warnings: {point.Coordinate.PrimaryValue}\n({Math.Round(point.Coordinate.PrimaryValue / totalLogs * 100)}%)" : "",
-                        IsVisible = totalLogs > 0
-                    },
-                    new PieSeries<double>
-                    {
-                        Values = new double[] { InfoCount },
-                        Name = "Info",
-                        Fill = new SolidColorPaint(SKColors.RoyalBlue),
-                        InnerRadius = 50,
-                        MaxRadialColumnWidth = 50,
-                        DataLabelsSize = 16,
-                        DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
-                        DataLabelsFormatter = point => InfoCount > 0 && totalLogs > 0 ?
-                            $"Info: {point.Coordinate.PrimaryValue}\n({Math.Round(point.Coordinate.PrimaryValue / totalLogs * 100)}%)" : "",
-                        IsVisible = totalLogs > 0
-                    },
-                    new PieSeries<double>
-                    {
-                        Values = new double[] { OtherCount },
-                        Name = "Others",
-                        Fill = new SolidColorPaint(SKColors.DarkGray),
-                        InnerRadius = 50,
-                        MaxRadialColumnWidth = 50,
-                        DataLabelsSize = 16,
-                        DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                        DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
-                        DataLabelsFormatter = point => OtherCount > 0 && totalLogs > 0 ?
-                            $"Others: {point.Coordinate.PrimaryValue}\n({Math.Round(point.Coordinate.PrimaryValue / totalLogs * 100)}%)" : "",
-                        IsVisible = totalLogs > 0
-                    }
-                };
-
-                // 2. Logs By Hour - (Line chart)
-                // Группируем логи не по часам, а по фактической дате и времени для более точного отображения
-                var actualTimeGroups = LogEntries
-                    .GroupBy(e => new { Date = e.Timestamp.Date, Hour = e.Timestamp.Hour, Minute = e.Timestamp.Minute / 10 * 10 })
-                    .OrderBy(g => g.Key.Date)
-                    .ThenBy(g => g.Key.Hour)
-                    .ThenBy(g => g.Key.Minute)
-                    .ToList();
-
-                // Находим минимальное и максимальное время в логах
-                var minTimestamp = LogEntries.Any() ? LogEntries.Min(e => e.Timestamp) : DateTime.Now.AddHours(-1);
-                var maxTimestamp = LogEntries.Any() ? LogEntries.Max(e => e.Timestamp) : DateTime.Now;
-
-                // Если диапазон слишком мал (меньше часа), расширяем его для лучшей визуализации
-                if ((maxTimestamp - minTimestamp).TotalMinutes < 60)
+                    Values = new double[] { errorCount },
+                    Name = "Errors",
+                    Fill = new SolidColorPaint(SKColors.Crimson),
+                    InnerRadius = 50,
+                    MaxRadialColumnWidth = 50,
+                    DataLabelsSize = 16,
+                    DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                    DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                    DataLabelsFormatter = point => errorCount > 0 && total > 0 ? $"Errors: {point.Coordinate.PrimaryValue}\n({Math.Round(point.Coordinate.PrimaryValue / total * 100)}%)" : "",
+                    IsVisible = total > 0
+                },
+                new PieSeries<double>
                 {
-                    maxTimestamp = minTimestamp.AddHours(1);
+                    Values = new double[] { warningCount },
+                    Name = "Warnings",
+                    Fill = new SolidColorPaint(SKColors.DarkOrange),
+                    InnerRadius = 50,
+                    MaxRadialColumnWidth = 50,
+                    DataLabelsSize = 16,
+                    DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                    DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                    DataLabelsFormatter = point => warningCount > 0 && total > 0 ? $"Warnings: {point.Coordinate.PrimaryValue}\n({Math.Round(point.Coordinate.PrimaryValue / total * 100)}%)" : "",
+                    IsVisible = total > 0
+                },
+                new PieSeries<double>
+                {
+                    Values = new double[] { infoCount },
+                    Name = "Info",
+                    Fill = new SolidColorPaint(SKColors.RoyalBlue),
+                    InnerRadius = 50,
+                    MaxRadialColumnWidth = 50,
+                    DataLabelsSize = 16,
+                    DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                    DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                    DataLabelsFormatter = point => infoCount > 0 && total > 0 ? $"Info: {point.Coordinate.PrimaryValue}\n({Math.Round(point.Coordinate.PrimaryValue / total * 100)}%)" : "",
+                    IsVisible = total > 0
+                },
+                new PieSeries<double>
+                {
+                    Values = new double[] { otherCount },
+                    Name = "Others",
+                    Fill = new SolidColorPaint(SKColors.DarkGray),
+                    InnerRadius = 50,
+                    MaxRadialColumnWidth = 50,
+                    DataLabelsSize = 16,
+                    DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                    DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                    DataLabelsFormatter = point => otherCount > 0 && total > 0 ? $"Others: {point.Coordinate.PrimaryValue}\n({Math.Round(point.Coordinate.PrimaryValue / total * 100)}%)" : "",
+                    IsVisible = total > 0
                 }
-
-                // Создаем список времен для отображения на оси
-                var timePoints = new List<DateTime>();
-                var tickInterval = DetermineOptimalTimeInterval(minTimestamp, maxTimestamp);
-                var currentTime = new DateTime(minTimestamp.Year, minTimestamp.Month, minTimestamp.Day,
-                                              minTimestamp.Hour, minTimestamp.Minute / tickInterval * tickInterval, 0);
-
-                while (currentTime <= maxTimestamp.AddMinutes(tickInterval))
-                {
-                    timePoints.Add(currentTime);
-                    currentTime = currentTime.AddMinutes(tickInterval);
-                }
-
-                // Создаем точки данных на основе фактического времени
-                var errorsByTime = new List<DateTimePoint>();
-                var warningsByTime = new List<DateTimePoint>();
-                var infosByTime = new List<DateTimePoint>();
-                var totalByTime = new List<DateTimePoint>();
-
-                // Создаем точки для каждого интервала времени
-                foreach (var time in timePoints)
-                {
-                    var endTime = time.AddMinutes(tickInterval);
-                    var entries = LogEntries.Where(e => e.Timestamp >= time && e.Timestamp < endTime).ToList();
-
-                    var errorCount = entries.Count(e => e.Level == "ERROR");
-                    var warningCount = entries.Count(e => e.Level == "WARNING");
-                    var infoCount = entries.Count(e => e.Level == "INFO");
-                    var totalCount = entries.Count;
-
-                    errorsByTime.Add(new DateTimePoint(time, errorCount));
-                    warningsByTime.Add(new DateTimePoint(time, warningCount));
-                    infosByTime.Add(new DateTimePoint(time, infoCount));
-                    totalByTime.Add(new DateTimePoint(time, totalCount));
-                }
-
-                // Форматируем метки времени для оси X
-                List<string> timeLabels = new List<string>();
-                string format = DetermineTimeFormat(minTimestamp, maxTimestamp, tickInterval);
-
-                // Настраиваем ось времени с динамическими метками
-                TimeAxis[0] = new Axis
+            };
+            // 2. Logs By Hour - (Line chart)
+            var actualTimeGroups = logEntries
+                .GroupBy(e => new { Date = e.Timestamp.Date, Hour = e.Timestamp.Hour, Minute = e.Timestamp.Minute / 10 * 10 })
+                .OrderBy(g => g.Key.Date)
+                .ThenBy(g => g.Key.Hour)
+                .ThenBy(g => g.Key.Minute)
+                .ToList();
+            var minTimestamp = logEntries.Any() ? logEntries.Min(e => e.Timestamp) : DateTime.Now.AddHours(-1);
+            var maxTimestamp = logEntries.Any() ? logEntries.Max(e => e.Timestamp) : DateTime.Now;
+            if ((maxTimestamp - minTimestamp).TotalMinutes < 60)
+            {
+                maxTimestamp = minTimestamp.AddHours(1);
+            }
+            var timePoints = new List<DateTime>();
+            var tickInterval = DetermineOptimalTimeInterval(minTimestamp, maxTimestamp);
+            var currentTime = new DateTime(minTimestamp.Year, minTimestamp.Month, minTimestamp.Day,
+                                          minTimestamp.Hour, minTimestamp.Minute / tickInterval * tickInterval, 0);
+            while (currentTime <= maxTimestamp.AddMinutes(tickInterval))
+            {
+                timePoints.Add(currentTime);
+                currentTime = currentTime.AddMinutes(tickInterval);
+            }
+            var errorsByTime = new List<DateTimePoint>();
+            var warningsByTime = new List<DateTimePoint>();
+            var infosByTime = new List<DateTimePoint>();
+            var totalByTime = new List<DateTimePoint>();
+            foreach (var time in timePoints)
+            {
+                var endTime = time.AddMinutes(tickInterval);
+                var entries = logEntries.Where(e => e.Timestamp >= time && e.Timestamp < endTime).ToList();
+                var errorC = entries.Count(e => e.Level == "ERROR");
+                var warningC = entries.Count(e => e.Level == "WARNING");
+                var infoC = entries.Count(e => e.Level == "INFO");
+                var totalC = entries.Count;
+                errorsByTime.Add(new DateTimePoint(time, errorC));
+                warningsByTime.Add(new DateTimePoint(time, warningC));
+                infosByTime.Add(new DateTimePoint(time, infoC));
+                totalByTime.Add(new DateTimePoint(time, totalC));
+            }
+            List<string> timeLabels = new List<string>();
+            string format = DetermineTimeFormat(minTimestamp, maxTimestamp, tickInterval);
+            var timeAxis = new[]
+            {
+                new Axis
                 {
                     Name = "Время",
                     NamePaint = new SolidColorPaint(SKColors.LightGray),
@@ -583,228 +546,150 @@ namespace Log_Parser_App.ViewModels
                     TextSize = 12,
                     Labeler = value =>
                     {
-                        try
-                        {
-                            return new DateTime((long)value).ToString(format);
-                        }
-                        catch
-                        {
-                            return string.Empty;
-                        }
+                        try { return new DateTime((long)value).ToString(format); } catch { return string.Empty; }
                     },
                     UnitWidth = TimeSpan.FromMinutes(tickInterval).Ticks,
                     MinStep = TimeSpan.FromMinutes(tickInterval).Ticks,
                     SeparatorsPaint = new SolidColorPaint(SKColors.LightSlateGray) { StrokeThickness = 0.5f },
                     ShowSeparatorLines = true
-                };
-
-                // Улучшенные линейные серии с более информативной визуализацией
-                LevelsOverTimeSeries = new ISeries[]
+                }
+            };
+            var countAxis = new[] { new Axis { Name = "Count", MinLimit = 0 } };
+            var daysAxis = new[] { new Axis { Name = "Days", Labels = new List<string>() } };
+            var hoursAxis = new[] { new Axis { Name = "Hours", Labels = new List<string>() { "00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "24:00" } } };
+            var sourceAxis = new[] { new Axis { Name = "Source", LabelsRotation = 15, Labels = new List<string>() } };
+            var errorMessageAxis = new[] { new Axis { LabelsRotation = 15, Name = "Error Message" } };
+            var levelsOverTimeSeries = new ISeries[]
+            {
+                new LineSeries<DateTimePoint>
                 {
-                    new LineSeries<DateTimePoint>
-                    {
-                        Values = totalByTime,
-                        Name = "Все логи",
-                        Stroke = new SolidColorPaint(SKColors.LightGray, 2),
-                        Fill = new SolidColorPaint(SKColors.Gray.WithAlpha(40)),
-                        GeometryFill = new SolidColorPaint(SKColors.White),
-                        GeometryStroke = new SolidColorPaint(SKColors.Gray, 2),
-                        GeometrySize = 8,
-                        LineSmoothness = 0.2,
-                    },
-                    new LineSeries<DateTimePoint>
-                    {
-                        Values = errorsByTime,
-                        Name = "Ошибки",
-                        Stroke = new SolidColorPaint(SKColors.Crimson, 3),
-                        Fill = new SolidColorPaint(SKColors.Crimson.WithAlpha(40)),
-                        GeometryFill = new SolidColorPaint(SKColors.White),
-                        GeometryStroke = new SolidColorPaint(SKColors.Crimson, 2),
-                        GeometrySize = 10,
-                        LineSmoothness = 0.2,
-                    },
-                    new LineSeries<DateTimePoint>
-                    {
-                        Values = warningsByTime,
-                        Name = "Предупреждения",
-                        Stroke = new SolidColorPaint(SKColors.Orange, 3),
-                        Fill = new SolidColorPaint(SKColors.Orange.WithAlpha(40)),
-                        GeometryFill = new SolidColorPaint(SKColors.White),
-                        GeometryStroke = new SolidColorPaint(SKColors.Orange, 2),
-                        GeometrySize = 10,
-                        LineSmoothness = 0.2,
-                    },
-                    new LineSeries<DateTimePoint>
-                    {
-                        Values = infosByTime,
-                        Name = "Информация",
-                        Stroke = new SolidColorPaint(SKColors.DodgerBlue, 3),
-                        Fill = new SolidColorPaint(SKColors.DodgerBlue.WithAlpha(40)),
-                        GeometryFill = new SolidColorPaint(SKColors.White),
-                        GeometryStroke = new SolidColorPaint(SKColors.DodgerBlue, 2),
-                        GeometrySize = 10,
-                        LineSmoothness = 0.2,
-                    }
-                };
-
-                // 3. Activity Heat Map
-                int maxValue = totalByTime.Any() ? totalByTime.Select(p => (int)p.Value).Max() : 0;
-
-                var timeHeatData = totalByTime.Select(p => p.Value).ToArray();
-
-                TimeHeatmapSeries = new ISeries[]
+                    Values = totalByTime,
+                    Name = "Все логи",
+                    Stroke = new SolidColorPaint(SKColors.LightGray, 2),
+                    Fill = new SolidColorPaint(SKColors.Gray.WithAlpha(40)),
+                    GeometryFill = new SolidColorPaint(SKColors.White),
+                    GeometryStroke = new SolidColorPaint(SKColors.Gray, 2),
+                    GeometrySize = 8,
+                    LineSmoothness = 0.2,
+                },
+                new LineSeries<DateTimePoint>
+                {
+                    Values = errorsByTime,
+                    Name = "Ошибки",
+                    Stroke = new SolidColorPaint(SKColors.Crimson, 3),
+                    Fill = new SolidColorPaint(SKColors.Crimson.WithAlpha(40)),
+                    GeometryFill = new SolidColorPaint(SKColors.White),
+                    GeometryStroke = new SolidColorPaint(SKColors.Crimson, 2),
+                    GeometrySize = 10,
+                    LineSmoothness = 0.2,
+                },
+                new LineSeries<DateTimePoint>
+                {
+                    Values = warningsByTime,
+                    Name = "Предупреждения",
+                    Stroke = new SolidColorPaint(SKColors.Orange, 3),
+                    Fill = new SolidColorPaint(SKColors.Orange.WithAlpha(40)),
+                    GeometryFill = new SolidColorPaint(SKColors.White),
+                    GeometryStroke = new SolidColorPaint(SKColors.Orange, 2),
+                    GeometrySize = 10,
+                    LineSmoothness = 0.2,
+                },
+                new LineSeries<DateTimePoint>
+                {
+                    Values = infosByTime,
+                    Name = "Информация",
+                    Stroke = new SolidColorPaint(SKColors.DodgerBlue, 3),
+                    Fill = new SolidColorPaint(SKColors.DodgerBlue.WithAlpha(40)),
+                    GeometryFill = new SolidColorPaint(SKColors.White),
+                    GeometryStroke = new SolidColorPaint(SKColors.DodgerBlue, 2),
+                    GeometrySize = 10,
+                    LineSmoothness = 0.2,
+                }
+            };
+            int maxValue = totalByTime.Any() ? totalByTime.Select(p => (int)p.Value).Max() : 0;
+            var timeHeatData = totalByTime.Select(p => p.Value).ToArray();
+            var timeHeatmapSeries = new ISeries[]
+            {
+                new ColumnSeries<double>
+                {
+                    Values = timeHeatData,
+                    Name = "Activity",
+                    Fill = new LinearGradientPaint(
+                        new[] {
+                            new SKColor(65, 105, 225, 80),
+                            new SKColor(65, 105, 225, 140),
+                            new SKColor(65, 105, 225, 200),
+                            new SKColor(65, 105, 225, 255)
+                        },
+                        new SKPoint(0, 1),
+                        new SKPoint(0, 0)
+                    ),
+                    Stroke = null,
+                    MaxBarWidth = double.MaxValue,
+                    IgnoresBarPosition = true
+                }
+            };
+            var errorTrend = errorsByTime.Select(p => p.Value).ToArray();
+            var errorTrendSeries = errorTrend.Any(v => v > 0) ? new ISeries[]
+            {
+                new LineSeries<double>
+                {
+                    Values = errorTrend,
+                    Name = "Error Trend",
+                    Stroke = new SolidColorPaint(SKColors.Crimson, 3),
+                    Fill = new SolidColorPaint(SKColors.Crimson.WithAlpha(40)),
+                    GeometryFill = new SolidColorPaint(SKColors.White),
+                    GeometryStroke = new SolidColorPaint(SKColors.Crimson, 2),
+                    LineSmoothness = 0.8
+                }
+            } : Array.Empty<ISeries>();
+            var topErrors = logEntries
+                .Where(e => e.Level == "ERROR")
+                .GroupBy(e => e.Message)
+                .Select(g => new { Message = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .Take(10)
+                .ToList();
+            if (topErrors.Any())
+            {
+                var values = topErrors.Select(e => (double)e.Count).ToArray();
+                var labels = topErrors.Select(e => TruncateMessage(e.Message, 30)).ToList();
+                errorMessageAxis[0].Labels = labels;
+                errorMessageAxis[0].Name = "Error Messages";
+                try
+                {
+                    errorMessageAxis[0].TextSize = 11;
+                    errorMessageAxis[0].LabelsRotation = 25;
+                }
+                catch { }
+                var topErrorsSeries = new ISeries[]
                 {
                     new ColumnSeries<double>
                     {
-                        Values = timeHeatData,
-                        Name = "Activity",
+                        Values = values,
+                        Name = "Count",
                         Fill = new LinearGradientPaint(
                             new[] {
-                                new SKColor(65, 105, 225, 80), // Light blue
-                                new SKColor(65, 105, 225, 140),
-                                new SKColor(65, 105, 225, 200),
-                                new SKColor(65, 105, 225, 255)  // Royal blue
+                                new SKColor(220, 53, 69, 190),
+                                new SKColor(220, 53, 69, 230)
                             },
-                            new SKPoint(0, 1),
-                            new SKPoint(0, 0)
+                            new SKPoint(0, 0),
+                            new SKPoint(0, 1)
                         ),
-                        Stroke = null,
-                        MaxBarWidth = double.MaxValue,
-                        IgnoresBarPosition = true
+                        Stroke = new SolidColorPaint(SKColors.Crimson.WithAlpha(220), 2),
+                        MaxBarWidth = 50,
+                        DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                        DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Top,
+                        DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue}"
                     }
                 };
-
-                // 4. Error Trend by Hour
-                var errorTrend = errorsByTime.Select(p => p.Value).ToArray();
-
-                ErrorTrendSeries = errorTrend.Any(v => v > 0) ? new ISeries[]
-                {
-                    new LineSeries<double>
-                    {
-                        Values = errorTrend,
-                        Name = "Error Trend",
-                        Stroke = new SolidColorPaint(SKColors.Crimson, 3),
-                        Fill = new SolidColorPaint(SKColors.Crimson.WithAlpha(40)),
-                        GeometryFill = new SolidColorPaint(SKColors.White),
-                        GeometryStroke = new SolidColorPaint(SKColors.Crimson, 2),
-                        LineSmoothness = 0.8
-                    }
-                } : Array.Empty<ISeries>();
-
-                // 5. Top Errors Chart
-                var topErrors = LogEntries
-                    .Where(e => e.Level == "ERROR")
-                    .GroupBy(e => e.Message)
-                    .Select(g => new { Message = g.Key, Count = g.Count() })
-                    .OrderByDescending(x => x.Count)
-                    .Take(10)
-                    .ToList();
-
-                if (topErrors.Any())
-                {
-                    var values = topErrors.Select(e => (double)e.Count).ToArray();
-                    var labels = topErrors.Select(e => TruncateMessage(e.Message, 30)).ToList();
-
-                    TopErrorsSeries = new ISeries[]
-                    {
-                        new ColumnSeries<double>
-                        {
-                            Values = values,
-                            Name = "Count",
-                            Fill = new LinearGradientPaint(
-                                new[] {
-                                    new SKColor(220, 53, 69, 190),  // Bootstrap danger lighter
-                                    new SKColor(220, 53, 69, 230)   // Bootstrap danger
-                                },
-                                new SKPoint(0, 0),
-                                new SKPoint(0, 1)
-                            ),
-                            Stroke = new SolidColorPaint(SKColors.Crimson.WithAlpha(220), 2),
-                            MaxBarWidth = 50,
-                            DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                            DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Top,
-                            DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue}"
-                        }
-                    };
-
-                    ErrorMessageAxis[0].Labels = labels;
-                    ErrorMessageAxis[0].Name = "Error Messages";
-                    // Safely set text size for axis
-                    try
-                    {
-                        ErrorMessageAxis[0].TextSize = 11;
-                        ErrorMessageAxis[0].LabelsRotation = 25;
-                    }
-                    catch
-                    {
-                        _logger.LogWarning("Could not set text size for error message axis");
-                    }
-                }
-                else
-                {
-                    TopErrorsSeries = Array.Empty<ISeries>();
-                    ErrorMessageAxis[0].Labels = new List<string>();
-                    ErrorMessageAxis[0].Name = "Error Messages";
-                }
-
-                // 6. Source Distribution
-                var sourcesData = LogEntries
-                    .GroupBy(e => e.Source)
-                    .Where(g => !string.IsNullOrEmpty(g.Key)) // Filter out empty sources
-                    .Select(g => new { Source = g.Key, Count = g.Count() })
-                    .OrderByDescending(x => x.Count)
-                    .Take(8)
-                    .ToList();
-
-                if (sourcesData.Any())
-                {
-                    var sourceValues = new List<ISeries>();
-                    var colors = new SKColor[]
-                    {
-                        SKColors.CornflowerBlue, SKColors.MediumSeaGreen, SKColors.Orange,
-                        SKColors.MediumPurple, SKColors.Crimson, SKColors.Gold,
-                        SKColors.MediumVioletRed, SKColors.SlateBlue
-                    };
-
-                    // Create series for each log type (Error, Warning, Info)
-                    for (int i = 0; i < sourcesData.Count; i++)
-                    {
-                        var source = sourcesData[i].Source;
-                        var sourceEntries = LogEntries.Where(e => e.Source == source).ToList();
-
-                        var errorCount = sourceEntries.Count(e => e.Level == "ERROR");
-                        var warningCount = sourceEntries.Count(e => e.Level == "WARNING");
-                        var infoCount = sourceEntries.Count(e => e.Level == "INFO");
-                        var otherCount = sourceEntries.Count - errorCount - warningCount - infoCount;
-
-                        sourceValues.Add(new StackedColumnSeries<double>
-                        {
-                            Values = new double[] { errorCount, warningCount, infoCount, otherCount },
-                            Name = source,
-                            Stroke = null,
-                            DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                            Fill = new SolidColorPaint(colors[i % colors.Length]),
-                            Padding = 10
-                        });
-                    }
-
-                    SourcesDistributionSeries = sourceValues.ToArray();
-                    SourceAxis[0].Labels = sourcesData.Select(x => x.Source).ToList();
-                    SourceAxis[0].LabelsRotation = 25;
-                    SourceAxis[0].Name = "Log Sources";
-                    SourceAxis[0].SeparatorsPaint = new SolidColorPaint(SKColors.LightGray.WithAlpha(100));
-                    SourceAxis[0].ShowSeparatorLines = true;
-                }
-                else
-                {
-                    SourcesDistributionSeries = Array.Empty<ISeries>();
-                    SourceAxis[0].Labels = new List<string>();
-                    SourceAxis[0].Name = "Log Sources";
-                }
+                return (errorCount, warningCount, infoCount, otherCount, errorPercent, warningPercent, infoPercent, otherPercent, levelsOverTimeSeries, topErrorsSeries, logDistributionSeries, timeHeatmapSeries, errorTrendSeries, Array.Empty<ISeries>(), logStats, timeAxis, countAxis, daysAxis, hoursAxis, sourceAxis, errorMessageAxis);
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogError(ex, "Error updating charts");
+                errorMessageAxis[0].Labels = new List<string>();
+                errorMessageAxis[0].Name = "Error Messages";
+                return (errorCount, warningCount, infoCount, otherCount, errorPercent, warningPercent, infoPercent, otherPercent, levelsOverTimeSeries, Array.Empty<ISeries>(), logDistributionSeries, timeHeatmapSeries, errorTrendSeries, Array.Empty<ISeries>(), logStats, timeAxis, countAxis, daysAxis, hoursAxis, sourceAxis, errorMessageAxis);
             }
         }
 

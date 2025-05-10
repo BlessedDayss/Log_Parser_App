@@ -234,13 +234,11 @@ public partial class MainWindowViewModel : ViewModelBase
             _logger.LogWarning("Attempted to apply a null filter criterion.");
             return;
         }
-
         if (MainView.LogEntries.Count == 0)
         {
             MainView.StatusMessage = "No log entries to filter";
             return;
         }
-
         if (string.IsNullOrWhiteSpace(criterion.SelectedField) || 
             string.IsNullOrWhiteSpace(criterion.SelectedOperator) ||
             criterion.Value == null)
@@ -248,33 +246,23 @@ public partial class MainWindowViewModel : ViewModelBase
             MainView.StatusMessage = "Please configure the filter criterion completely";
             return;
         }
-
         MainView.StatusMessage = "Applying filter...";
         MainView.IsLoading = true;
-
         try
         {
-            var entriesToFilter = MainView.LogEntries.ToList();
-            
+            var entriesToFilter = MainView.LogEntries;
             await Task.Run(() =>
             {
                 IEnumerable<LogEntry> filtered = entriesToFilter;
-                
                 if (!string.IsNullOrWhiteSpace(criterion.SelectedField) &&
                     !string.IsNullOrWhiteSpace(criterion.SelectedOperator) &&
                     criterion.Value != null)
                 {
                     filtered = ApplyFilterCriterion(filtered, criterion);
                 }
-                
                 Dispatcher.UIThread.Post(() =>
                 {
-                    MainView.FilteredLogEntries.Clear();
-                    foreach (var entry in filtered)
-                    {
-                        MainView.FilteredLogEntries.Add(entry);
-                    }
-                    MainView.StatusMessage = $"Applied filter. Showing {MainView.FilteredLogEntries.Count} entries.";
+                    MainView.FilteredLogEntries = filtered.ToList();
                 });
             });
         }
@@ -362,25 +350,21 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task ApplyFilters()
     {
-         if (MainView.LogEntries.Count == 0)
+        if (MainView.LogEntries.Count == 0)
         {
             MainView.StatusMessage = "No log entries to filter";
             return;
         }
-         if (FilterCriteria.Count == 0 || FilterCriteria.Any(c => string.IsNullOrWhiteSpace(c.SelectedField) || string.IsNullOrWhiteSpace(c.SelectedOperator)))
-         {
-             MainView.StatusMessage = "Please configure all filter criteria";
-             return;
-         }
-
+        if (FilterCriteria.Count == 0 || FilterCriteria.Any(c => string.IsNullOrWhiteSpace(c.SelectedField) || string.IsNullOrWhiteSpace(c.SelectedOperator)))
+        {
+            MainView.StatusMessage = "Please configure all filter criteria";
+            return;
+        }
         MainView.StatusMessage = "Applying filters...";
-        MainView.IsLoading = true; // Access IsLoading via MainView
-
+        MainView.IsLoading = true;
         try
         {
-            // Get log entries from MainViewModel
-            var entriesToFilter = MainView.LogEntries.ToList();
-            
+            var entriesToFilter = MainView.LogEntries;
             await Task.Run(() =>
             {
                 IEnumerable<LogEntry> currentlyFiltered = entriesToFilter;
@@ -388,26 +372,18 @@ public partial class MainWindowViewModel : ViewModelBase
                 {
                     if (string.IsNullOrWhiteSpace(criterion.SelectedField) ||
                         string.IsNullOrWhiteSpace(criterion.SelectedOperator) ||
-                        criterion.Value == null) // Check for null value
+                        criterion.Value == null)
                     {
                         _logger.LogWarning("Skipping incomplete filter criterion: Field='{Field}', Operator='{Operator}', Value='{Value}'",
                             criterion.SelectedField, criterion.SelectedOperator, criterion.Value);
                         continue;
                     }
-                    
                     currentlyFiltered = ApplySingleFilter(currentlyFiltered, criterion);
                 }
-
                 var filteredEntries = currentlyFiltered.ToList();
-
                 Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    MainView.FilteredLogEntries.Clear(); // Modify collection in MainView
-                    foreach (var entry in filteredEntries)
-                    {
-                        MainView.FilteredLogEntries.Add(entry);
-                    }
-                    MainView.StatusMessage = $"Filters applied. Found {MainView.FilteredLogEntries.Count} entries";
+                    MainView.FilteredLogEntries = filteredEntries;
                 });
             });
         }
@@ -418,7 +394,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
         finally
         {
-            MainView.IsLoading = false; // Access IsLoading via MainView
+            MainView.IsLoading = false;
         }
     }
     
@@ -500,25 +476,16 @@ public partial class MainWindowViewModel : ViewModelBase
             MainView.StatusMessage = "No log entries to reset";
             return;
         }
-        
         try
         {
             MainView.StatusMessage = "Resetting filters...";
             MainView.IsLoading = true;
-            
             await Task.Run(() =>
             {
-                var allEntries = MainView.LogEntries.ToList();
-                
+                var allEntries = MainView.LogEntries;
                 Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    MainView.FilteredLogEntries.Clear();
-                    foreach (var entry in allEntries)
-                    {
-                        MainView.FilteredLogEntries.Add(entry);
-                    }
-                    
-                    MainView.StatusMessage = $"Filters reset. Showing all {MainView.FilteredLogEntries.Count} entries";
+                    MainView.FilteredLogEntries = allEntries.ToList();
                 });
             });
         }

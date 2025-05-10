@@ -472,46 +472,23 @@
                                             <DataGridTemplateColumn Header="Message" Width="*">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate x:DataType="models1:LogEntry">
-                                                        <Button Background="Transparent" BorderThickness="0" Padding="2,1" Command="{Binding OpenFileCommand}" CommandParameter="{Binding}">
-                                                            <TextBlock Text="{Binding DisplayMessage}" TextWrapping="Wrap" FontWeight="Normal" FontSize="13"/>
-                                                        </Button>
+                                                        <TextBlock Text="{Binding DisplayMessage}" TextWrapping="Wrap" FontWeight="Normal" FontSize="13"/>
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellTemplate>
                                             </DataGridTemplateColumn>
                                             <DataGridTemplateColumn Header="Recommendations" Width="350">
-                                                <DataGridTemplateColumn.CellTemplate>
-                                                    <DataTemplate x:DataType="models1:LogEntry">
-                                                        <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="200" IsVisible="{Binding HasRecommendations}">
-                                                            <StackPanel Margin="6">
-                                                                <TextBlock Text="{Binding ErrorDescription}" 
-                                                                           TextWrapping="Wrap"
-                                                                           FontSize="12" 
-                                                                           Foreground="#CCCCCC"
-                                                                           Margin="0,0,0,8"/>
-                                                                <ItemsControl ItemsSource="{Binding ErrorRecommendations}">
+                                                        <DataGridTemplateColumn.CellTemplate>
+                                                            <DataTemplate x:DataType="models1:LogEntry">
+                                                                <ItemsControl ItemsSource="{Binding ErrorRecommendations}" IsVisible="{Binding HasRecommendations}">
                                                                     <ItemsControl.ItemTemplate>
                                                                         <DataTemplate>
-                                                                            <StackPanel Orientation="Horizontal" Margin="0,3">
-                                                                                <TextBlock Text="•" 
-                                                                                         Foreground="#64B5F6" 
-                                                                                         FontWeight="Bold" 
-                                                                                         Margin="0,0,8,0"
-                                                                                         VerticalAlignment="Top"/>
-                                                                                <TextBlock Text="{Binding}"
-                                                                                         TextWrapping="Wrap"
-                                                                                         FontSize="12"
-                                                                                         LineHeight="18"
-                                                                                         Foreground="#E0E0E0"
-                                                                                         MaxWidth="300"/>
-                                                                            </StackPanel>
+                                                                            <TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="12" MaxWidth="300"/>
                                                                         </DataTemplate>
                                                                     </ItemsControl.ItemTemplate>
                                                                 </ItemsControl>
-                                                            </StackPanel>
-                                                        </ScrollViewer>
-                                                    </DataTemplate>
-                                                </DataGridTemplateColumn.CellTemplate>
-                                            </DataGridTemplateColumn>
+                                                            </DataTemplate>
+                                                        </DataGridTemplateColumn.CellTemplate>
+                                                    </DataGridTemplateColumn>
                                         </DataGrid.Columns>
                                     </DataGrid>
                                 </ScrollViewer>
@@ -547,46 +524,23 @@
                                             <DataGridTemplateColumn Header="Message" Width="*">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate x:DataType="models1:LogEntry">
-                                                        <Button Background="Transparent" BorderThickness="0" Padding="2,1" Command="{Binding OpenFileCommand}" CommandParameter="{Binding}">
-                                                            <TextBlock Text="{Binding DisplayMessage}" TextWrapping="Wrap" FontWeight="Normal" FontSize="13"/>
-                                                        </Button>
+                                                        <TextBlock Text="{Binding DisplayMessage}" TextWrapping="Wrap" FontWeight="Normal" FontSize="13"/>
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellTemplate>
                                             </DataGridTemplateColumn>
                                             <DataGridTemplateColumn Header="Recommendations" Width="350">
-                                                <DataGridTemplateColumn.CellTemplate>
-                                                    <DataTemplate x:DataType="models1:LogEntry">
-                                                        <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="200" IsVisible="{Binding HasRecommendations}">
-                                                            <StackPanel Margin="6">
-                                                                <TextBlock Text="{Binding ErrorDescription}" 
-                                                                           TextWrapping="Wrap"
-                                                                           FontSize="12" 
-                                                                           Foreground="#CCCCCC"
-                                                                           Margin="0,0,0,8"/>
-                                                                <ItemsControl ItemsSource="{Binding ErrorRecommendations}">
+                                                        <DataGridTemplateColumn.CellTemplate>
+                                                            <DataTemplate x:DataType="models1:LogEntry">
+                                                                <ItemsControl ItemsSource="{Binding ErrorRecommendations}" IsVisible="{Binding HasRecommendations}">
                                                                     <ItemsControl.ItemTemplate>
                                                                         <DataTemplate>
-                                                                            <StackPanel Orientation="Horizontal" Margin="0,3">
-                                                                                <TextBlock Text="•" 
-                                                                                         Foreground="#64B5F6" 
-                                                                                         FontWeight="Bold" 
-                                                                                         Margin="0,0,8,0"
-                                                                                         VerticalAlignment="Top"/>
-                                                                                <TextBlock Text="{Binding}"
-                                                                                         TextWrapping="Wrap"
-                                                                                         FontSize="12"
-                                                                                         LineHeight="18"
-                                                                                         Foreground="#E0E0E0"
-                                                                                         MaxWidth="300"/>
-                                                                            </StackPanel>
+                                                                            <TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="12" MaxWidth="300"/>
                                                                         </DataTemplate>
                                                                     </ItemsControl.ItemTemplate>
                                                                 </ItemsControl>
-                                                            </StackPanel>
-                                                        </ScrollViewer>
-                                                    </DataTemplate>
-                                                </DataGridTemplateColumn.CellTemplate>
-                                            </DataGridTemplateColumn>
+                                                            </DataTemplate>
+                                                        </DataGridTemplateColumn.CellTemplate>
+                                                    </DataGridTemplateColumn>
                                         </dataGrid:DataGrid.Columns>
                                     </dataGrid:DataGrid>
                                 </ScrollViewer>
