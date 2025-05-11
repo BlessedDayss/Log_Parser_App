@@ -11,8 +11,23 @@ namespace Log_Parser_App.Models
 
     public partial class LogEntry : INotifyPropertyChanged
     {
+        private DateTime _timestamp = DateTime.Now;
+        public DateTime Timestamp
+        {
+            get => _timestamp;
+            set
+            {
+                if (_timestamp != value)
+                {
+                    _timestamp = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(FormattedTimestamp));
+                    UpdateGraphs();
+                }
+            }
+        }
 
-        public DateTime Timestamp { get; set; } = DateTime.Now;
+        public string FormattedTimestamp => Timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff");
         
         private string _level = "INFO";
         
@@ -29,20 +44,51 @@ namespace Log_Parser_App.Models
                     OnPropertyChanged(nameof(LevelIcon)); // Уведомляем об изменении зависимых свойств
                     OnPropertyChanged(nameof(LevelBackground));
                     OnPropertyChanged(nameof(LevelColor));
+                    UpdateGraphs();
                 }
             }
         }
         
-        public string Source { get; set; } = string.Empty;
+        private string _source = string.Empty;
+        public string Source
+        {
+            get => _source;
+            set
+            {
+                if (_source != value)
+                {
+                    _source = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(FormattedSource));
+                    UpdateGraphs();
+                }
+            }
+        }
+
+        public string FormattedSource => string.IsNullOrEmpty(Source) ? "Unknown" : Source;
         
-        public string Message { get; set; } = string.Empty;
+        private string _message = string.Empty;
+        public string Message
+        {
+            get => _message;
+            set
+            {
+                if (_message != value)
+                {
+                    _message = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(DisplayMessage));
+                    UpdateGraphs();
+                }
+            }
+        }
         
         public string RawData { get; init; } = string.Empty;
 
         public string? CorrelationId { get; set; }
         
 
-        public string LevelIcon => Level switch
+        public string LevelIcon => Level.ToUpperInvariant() switch
         {
             "ERROR" => "🔴",
             "WARNING" => "🟠",
@@ -50,11 +96,12 @@ namespace Log_Parser_App.Models
             "DEBUG" => "🟢",
             "TRACE" => "⚪",
             "CRITICAL" => "⛔",
+            "VERBOSE" => "⚫",
             _ => "ℹ️"
         };
         
 
-        public string LevelBackground => _level.ToUpperInvariant() switch
+        public string LevelBackground => Level.ToUpperInvariant() switch
         {
             "ERROR" => "#FFEBEE",    // Light red
             "WARNING" => "#FFF3E0",  // Light orange
@@ -62,14 +109,19 @@ namespace Log_Parser_App.Models
             "DEBUG" => "#E8F5E9",    // Light green
             "TRACE" => "#F3F3F3",    // Light gray
             "CRITICAL" => "#5C0011", // Dark red
+            "VERBOSE" => "#F5F5F5",  // Light gray
             _ => "#FFFFFF"           // White
         };
 
-        public IBrush LevelColor => _level switch
+        public IBrush LevelColor => Level.ToUpperInvariant() switch
         {
             "ERROR" => new SolidColorBrush(Color.Parse("#F15B5B")),
             "WARNING" => new SolidColorBrush(Color.Parse("#F9A825")),
             "INFO" => new SolidColorBrush(Color.Parse("#64B5F6")),
+            "DEBUG" => new SolidColorBrush(Color.Parse("#4CAF50")),
+            "TRACE" => new SolidColorBrush(Color.Parse("#9E9E9E")),
+            "CRITICAL" => new SolidColorBrush(Color.Parse("#D32F2F")),
+            "VERBOSE" => new SolidColorBrush(Color.Parse("#757575")),
             _ => new SolidColorBrush(Color.Parse("#BBBBBB"))
         };
         
@@ -93,7 +145,11 @@ namespace Log_Parser_App.Models
             {
                 if (string.IsNullOrEmpty(Message))
                     return string.Empty;
+                    
                 var lines = Message.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                if (lines.Length == 0)
+                    return string.Empty;
+                    
                 var regex = MyRegex();
                 foreach (var line in lines)
                 {
@@ -117,6 +173,13 @@ namespace Log_Parser_App.Models
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        private void UpdateGraphs()
+        {
+            OnPropertyChanged(nameof(Level));
+            OnPropertyChanged(nameof(Source));
+            OnPropertyChanged(nameof(Timestamp));
         }
     }
 } 

@@ -11,18 +11,31 @@ namespace Log_Parser_App.Services
 {
     public partial class LogParserService(ILogger<LogParserService> logger) : ILogParserService
     {
-        private static readonly Regex CommonLogFormat = MyRegex10();
+        private static readonly Regex CommonLogFormat = new Regex("""^(\S+) \S+ \S+ \[([^:]+)[^\]]+\] "[^"]*" (\d+) (\d+)""", RegexOptions.Compiled);
         
-        private static readonly Regex StandardLogFormat = MyRegex9();
+        private static readonly Regex StandardLogFormat = new Regex(@"^(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}(?:\.\d+)?)\s+(\w+)\s+\[([^\]]+)\]\s+(.*)", RegexOptions.Compiled);
 
-        private static readonly Regex ConfigUpdateLogFormat = MyRegex11();
+        private static readonly Regex ConfigUpdateLogFormat = new Regex(@"\[(\d{2}:\d{2}:\d{2})\]\s+(\d+)\)\s+(\[?[^\]]+\]?)\s+(?:\[?Error\]?|\[?Warning\]?|when)", RegexOptions.Compiled);
 
         private static readonly string[] DateFormats = {
             "yyyy-MM-dd HH:mm:ss,fff",
             "yyyy-MM-dd HH:mm:ss.fff",
             "yyyy-MM-dd HH:mm:ss",
             "dd/MMM/yyyy:HH:mm:ss",
-            "yyyy/MM/dd HH:mm:ss"
+            "yyyy/MM/dd HH:mm:ss",
+            "MM/dd/yyyy HH:mm:ss",
+            "dd.MM.yyyy HH:mm:ss",
+            "yyyy.MM.dd HH:mm:ss"
+        };
+        
+        private static readonly HashSet<string> ValidLogLevels = new()
+        {
+            "ERROR", "ERR", "CRITICAL", "CRIT",
+            "WARNING", "WARN",
+            "INFO", "INFORMATION",
+            "DEBUG",
+            "TRACE",
+            "VERBOSE"
         };
         
         public async Task<IEnumerable<LogEntry>> ParseLogFileAsync(string filePath)
@@ -450,35 +463,24 @@ namespace Log_Parser_App.Services
             if (!match.Success)
                 return null;
 
+            DateTime timestamp;
             if (!DateTime.TryParseExact(match.Groups[1].Value, DateFormats, 
-                    null, System.Globalization.DateTimeStyles.None, out var timestamp))
+                    null, System.Globalization.DateTimeStyles.None, out timestamp))
             {
                 timestamp = DateTime.Now;
             }
 
             string level = match.Groups[2].Value;
-            string message = match.Groups[4].Value;
+            string source = match.Groups[3].Value.Trim();
+            string message = match.Groups[4].Value.Trim();
             
-            if (MyRegex().IsMatch(message))
-            {
-                level = "ERROR";
-                logger.LogDebug("Found exact word Error in message: '{0}'", message.Substring(0, Math.Min(30, message.Length)));
-            }
-            else if (Regex.IsMatch(message, @"\bWarning\b|\bWARNING\b|\bwarning\b"))
-            {
-                level = "WARNING";
-                logger.LogDebug("Found exact word Warning in message: '{0}'", message.Substring(0, Math.Min(30, message.Length)));
-            }
-            else
-            {
-                level = DetermineLogLevel(level, message);
-            }
-
+            level = DetermineLogLevel(level, message);
+            
             return new LogEntry
             {
                 Timestamp = timestamp,
                 Level = level,
-                Source = match.Groups[3].Value,
+                Source = source,
                 Message = message,
                 RawData = line,
                 FilePath = filePath,
@@ -492,20 +494,25 @@ namespace Log_Parser_App.Services
             if (!match.Success)
                 return null;
 
+            DateTime timestamp;
             if (!DateTime.TryParseExact(match.Groups[2].Value, DateFormats,
-                    null, System.Globalization.DateTimeStyles.None, out var timestamp))
+                    null, System.Globalization.DateTimeStyles.None, out timestamp))
             {
                 timestamp = DateTime.Now;
             }
 
-            string message = $"Status: {match.Groups[3].Value}, Size: {match.Groups[4].Value}";
+            string source = match.Groups[1].Value.Trim();
+            string status = match.Groups[3].Value;
+            string size = match.Groups[4].Value;
+            
+            string message = $"Status: {status}, Size: {size}";
             string level = DetermineLogLevel("INFO", message);
 
             return new LogEntry
             {
                 Timestamp = timestamp,
                 Level = level,
-                Source = match.Groups[1].Value,
+                Source = source,
                 Message = message,
                 RawData = line,
                 FilePath = filePath,
@@ -522,17 +529,17 @@ namespace Log_Parser_App.Services
             if (parts.Length < 3)
                 return null;
 
-            if (!DateTime.TryParseExact(parts[0], DateFormats, 
-                    null, System.Globalization.DateTimeStyles.None, out var timestamp))
+            DateTime timestamp;
+            if (!DateTime.TryParseExact(parts[0].Trim(), DateFormats, 
+                    null, System.Globalization.DateTimeStyles.None, out timestamp))
             {
                 timestamp = DateTime.Now;
             }
 
-            string level = parts.Length > 1 ? parts[1] : "INFO";
-            string source = parts.Length > 2 ? parts[2] : "";
-            string message = parts.Length > 3 ? parts[3] : "";
+            string level = parts.Length > 1 ? parts[1].Trim() : "INFO";
+            string source = parts.Length > 2 ? parts[2].Trim() : "";
+            string message = parts.Length > 3 ? string.Join(",", parts.Skip(3)).Trim() : "";
 
-            // Normalize log level
             level = DetermineLogLevel(level, message);
 
             return new LogEntry
@@ -552,53 +559,17 @@ namespace Log_Parser_App.Services
         /// </summary>
         private string DetermineLogLevel(string originalLevel, string message)
         {
-            // Check for separate words Error or Warning in message
-            // Use word boundaries \b for exact match
-            if (Regex.IsMatch(message, @"\bError\b|\bERROR\b|\berror\b"))
-            {
-                logger.LogDebug("Found exact word Error in message");
-                return "ERROR";
-            }
-            
-            if (Regex.IsMatch(message, @"\bWarning\b|\bWARNING\b|\bwarning\b"))
-            {
-                logger.LogDebug("Found exact word Warning in message");
-                return "WARNING";
-            }
-            
-            // Strictly check message content for exact match with Error/Warning
-            if (message.Equals("Error", StringComparison.Ordinal) || 
-                message.Equals("ERROR", StringComparison.Ordinal) || 
-                message.Equals("error", StringComparison.Ordinal))
-            {
-                logger.LogDebug("Exact match of message with word Error: '{0}'", message);
-                return "ERROR";
-            }
-            
-            if (message.Equals("Warning", StringComparison.Ordinal) || 
-                message.Equals("WARNING", StringComparison.Ordinal) || 
-                message.Equals("warning", StringComparison.Ordinal))
-            {
-                logger.LogDebug("Exact match of message with word Warning: '{0}'", message);
-                return "WARNING";
-            }
-            
-            // Normalize original level for comparison
-            var normalizedLevel = originalLevel.Trim().ToUpperInvariant();
-            
-            // Check standard log levels
-            if (normalizedLevel == "ERROR" || normalizedLevel == "ERR")
+            if (Regex.IsMatch(message, @"\b(?:Error|ERROR|error|Exception|EXCEPTION|exception|Failed|FAILED|failed)\b"))
             {
                 return "ERROR";
             }
             
-            if (normalizedLevel == "WARNING" || normalizedLevel == "WARN")
+            if (Regex.IsMatch(message, @"\b(?:Warning|WARNING|warning|Warn|WARN|warn)\b"))
             {
                 return "WARNING";
             }
             
-            // Other levels remain as they are
-            return normalizedLevel == "DEBUG" || normalizedLevel == "TRACE" ? normalizedLevel : "INFO";
+            return "INFO";
         }
 
         private string ExtractValueFromCondition(string wherePart, string fieldName)
