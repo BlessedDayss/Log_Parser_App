@@ -63,7 +63,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         // Design-time constructor
         _logger = null!; 
-        _mainView = new Log_Parser_App.ViewModels.MainViewModel(null!, null!, null!, null!); // Provide dummy services for design time
+        _mainView = new Log_Parser_App.ViewModels.MainViewModel(null!, null!, null!, null!, null!); // Provide dummy services for design time
         _updateService = null!;
         AppVersion = "v0.0.1-design";
         // Add a design-time filter criterion for the previewer

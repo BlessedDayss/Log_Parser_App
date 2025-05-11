@@ -16,5 +16,8 @@ namespace Log_Parser_App.Services
         Task<IEnumerable<LogEntry>> FilterErrorsAsync(IEnumerable<LogEntry> logEntries);
         
         Task<IEnumerable<PackageLogEntry>> ParsePackageLogFileAsync(string filePath);
+        
+        Task<IEnumerable<LogEntry>> ParseLogFilesAsync(IEnumerable<string> filePaths);
+        Task<IEnumerable<LogEntry>> ParseLogDirectoryAsync(string directoryPath, string searchPattern = "*.log");
     }
 } 

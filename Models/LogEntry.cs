@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Avalonia.Media;
 using Microsoft.Extensions.Logging;
+using System.Windows.Input;
 
 namespace Log_Parser_App.Models
 {
@@ -181,5 +182,22 @@ namespace Log_Parser_App.Models
             OnPropertyChanged(nameof(Source));
             OnPropertyChanged(nameof(Timestamp));
         }
+
+        private bool _isExpanded;
+        public bool IsExpanded
+        {
+            get => _isExpanded;
+            set
+            {
+                if (_isExpanded != value)
+                {
+                    _isExpanded = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        private ICommand? _toggleExpandCommand;
+        public ICommand ToggleExpandCommand => _toggleExpandCommand ??= new DelegateCommand(() => IsExpanded = !IsExpanded);
     }
 } 

@@ -8,12 +8,15 @@ using Log_Parser_App.ViewModels;
 using System;
 using NLog;
 using System.IO;
+using Avalonia.Input;
 
 namespace Log_Parser_App.Views;
 
 public partial class MainWindow : Window
 {
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+    private DateTime _lastTapTime = DateTime.MinValue;
+    private object? _lastTappedItem = null;
 
     public MainWindow()
     {
@@ -77,6 +80,25 @@ public partial class MainWindow : Window
         else
         {
             logger.Warn($"Файл версии не найден: {versionFilePath}");
+        }
+    }
+
+    private void LogEntryRow_Tapped(object? sender, Avalonia.Input.TappedEventArgs e)
+    {
+        if (sender is DataGrid dataGrid && dataGrid.SelectedItem is Log_Parser_App.Models.LogEntry entry)
+        {
+            var now = DateTime.Now;
+            if (_lastTappedItem == entry && (now - _lastTapTime).TotalMilliseconds < 400)
+            {
+                entry.IsExpanded = !entry.IsExpanded;
+                _lastTapTime = DateTime.MinValue;
+                _lastTappedItem = null;
+            }
+            else
+            {
+                _lastTapTime = now;
+                _lastTappedItem = entry;
+            }
         }
     }
 }
