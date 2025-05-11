@@ -112,11 +112,29 @@ public partial class App : Application
         services.AddSingleton<IFileService, FileService>();
         services.AddSingleton<IErrorRecommendationService, ErrorRecommendationService>();
         
+        // Регистрируем сервисы парсинга логов
+        services.AddSingleton<Log_Parser_App.Models.Interfaces.ILogFileLoader, LogFileLoader>();
+        services.AddSingleton<Log_Parser_App.Models.Interfaces.ILogFilesLoader, LogFilesLoader>();
+        services.AddSingleton<StandardLogLineParser>();
+        services.AddSingleton<CsvLogLineParser>();
+        services.AddSingleton<SimpleLogLineParser>();
+        services.AddSingleton<Log_Parser_App.Models.Interfaces.ILogLineParser>(provider =>
+            new LogLineParserChain(new Log_Parser_App.Models.Interfaces.ILogLineParser[]
+            {
+                provider.GetRequiredService<StandardLogLineParser>(),
+                provider.GetRequiredService<CsvLogLineParser>(),
+                provider.GetRequiredService<SimpleLogLineParser>()
+            })
+        );
+        // FilePickerService с MainWindow
+        services.AddSingleton<Log_Parser_App.Models.Interfaces.IFilePickerService>(provider =>
+            new Log_Parser_App.Services.FilePickerService((Window?)App.MainWindow!));
+        
         // Регистрируем сервис ассоциаций файлов
         services.AddSingleton<IFileAssociationService, WindowsFileAssociationService>();
         
-        services.AddSingleton<IUpdateService, UpdateService>();
-        services.AddSingleton<IUpdateService>(provider => 
+        services.AddSingleton<Log_Parser_App.Services.IUpdateService, UpdateService>();
+        services.AddSingleton<Log_Parser_App.Services.IUpdateService>(provider => 
             new GitHubUpdateService(
                 provider.GetRequiredService<ILogger<GitHubUpdateService>>(),
                 "BlessedDayss", 

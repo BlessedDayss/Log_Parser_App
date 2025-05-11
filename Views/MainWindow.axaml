@@ -24,6 +24,7 @@
     <Window.Resources>
         <!-- Converters -->
         <converters:BoolToBrushConverter x:Key="BoolToBrushConverter" />
+        <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
         
         <!-- Color/Brush Resources -->
         <SolidColorBrush x:Key="BackgroundBrush" Color="#1A1C21" />
@@ -468,11 +469,15 @@
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellTemplate>
                                             </DataGridTemplateColumn>
-                                            <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="120" />
                                             <DataGridTemplateColumn Header="Message" Width="*">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate x:DataType="models1:LogEntry">
-                                                        <TextBlock Text="{Binding DisplayMessage}" TextWrapping="Wrap" FontWeight="Normal" FontSize="13"/>
+                                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                                            <TextBlock Text="{Binding DisplayMessage}" TextWrapping="Wrap" FontWeight="Normal" FontSize="13"/>
+                                                            <Button Background="Transparent" BorderThickness="0" Padding="0" Margin="4,0,0,0" IsVisible="{Binding StackTrace, Converter={StaticResource NullToVisibilityConverter}}" Command="{Binding ToggleExpandCommand}">
+                                                                <TextBlock Text="🪲" Foreground="#F9A825" FontSize="14"/>
+                                                            </Button>
+                                                        </StackPanel>
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellTemplate>
                                             </DataGridTemplateColumn>
@@ -490,6 +495,13 @@
                                                         </DataGridTemplateColumn.CellTemplate>
                                                     </DataGridTemplateColumn>
                                         </DataGrid.Columns>
+                                        <DataGrid.RowDetailsTemplate>
+                                            <DataTemplate x:DataType="models1:LogEntry">
+                                                <Border Background="#232323" Padding="12" Margin="0,0,0,4" CornerRadius="6" IsVisible="{Binding IsExpanded}">
+                                                    <TextBlock Text="{Binding StackTrace}" Foreground="#F5F5F7" FontFamily="Consolas" FontSize="13" TextWrapping="Wrap"/>
+                                                </Border>
+                                            </DataTemplate>
+                                        </DataGrid.RowDetailsTemplate>
                                     </DataGrid>
                                 </ScrollViewer>
                             </Grid>
@@ -520,7 +532,6 @@
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellTemplate>
                                             </DataGridTemplateColumn>
-                                            <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="120" />
                                             <DataGridTemplateColumn Header="Message" Width="*">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate x:DataType="models1:LogEntry">

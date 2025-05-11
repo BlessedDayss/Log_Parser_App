@@ -15,6 +15,7 @@ using LiveChartsCore.SkiaSharpView.Painting;
 using LiveChartsCore.Defaults;
 using SkiaSharp;
 using System.Collections.Generic;
+using Log_Parser_App.Models.Interfaces;
 
 namespace Log_Parser_App.ViewModels
 {
@@ -24,6 +25,7 @@ namespace Log_Parser_App.ViewModels
         private readonly ILogger<MainViewModel> _logger;
         private readonly IFileService _fileService;
         private readonly IErrorRecommendationService _errorRecommendationService;
+        private readonly IFilePickerService _filePickerService;
 
         [ObservableProperty]
         private string _statusMessage = "Ready to work";
@@ -150,12 +152,14 @@ namespace Log_Parser_App.ViewModels
             ILogParserService logParserService,
             ILogger<MainViewModel> logger,
             IFileService fileService,
-            IErrorRecommendationService errorRecommendationService)
+            IErrorRecommendationService errorRecommendationService,
+            IFilePickerService filePickerService)
         {
             _logParserService = logParserService;
             _logger = logger;
             _fileService = fileService;
             _errorRecommendationService = errorRecommendationService;
+            _filePickerService = filePickerService;
 
             InitializeErrorRecommendationService();
 
@@ -811,6 +815,116 @@ namespace Log_Parser_App.ViewModels
             {
                 _logger.LogError(ex, "Failed to open file {FilePath}", filePath);
                 StatusMessage = $"Ошибка открытия файла: {ex.Message}\n{ex.StackTrace}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task LoadMultipleFiles()
+        {
+            try
+            {
+                var files = await _filePickerService.PickFilesAsync();
+                if (files == null || !files.Any()) return;
+                StatusMessage = $"Opening {files.Count()} files...";
+                IsLoading = true;
+                FileStatus = $"{files.Count()} files";
+                IsDashboardVisible = true;
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    LogEntries.Clear();
+                    FilteredLogEntries.Clear();
+                    ErrorLogEntries.Clear();
+                }, DispatcherPriority.Background);
+                var entries = await Task.Run(async () =>
+                {
+                    var logEntries = await _logParserService.ParseLogFilesAsync(files);
+                    return logEntries;
+                });
+                var logEntriesArr = entries as LogEntry[] ?? entries.ToArray();
+                var processedEntries = await Task.Run(() =>
+                {
+                    var processed = new List<LogEntry>(logEntriesArr.Length);
+                    foreach (var entry in logEntriesArr)
+                    {
+                        entry.OpenFileCommand = ExternalOpenFileCommand;
+                        processed.Add(entry);
+                    }
+                    return processed;
+                });
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    LogEntries = processedEntries.ToList();
+                    FilteredLogEntries = processedEntries.ToList();
+                    UpdateErrorLogEntries();
+                    UpdateLogStatistics();
+                    StatusMessage = $"Loaded {LogEntries.Count} log entries from {files.Count()} files";
+                    SelectedTabIndex = 0;
+                    IsLoading = false;
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка загрузки файлов логов");
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    StatusMessage = $"Error: {ex.Message}";
+                    IsLoading = false;
+                });
+            }
+        }
+
+        [RelayCommand]
+        private async Task LoadDirectory()
+        {
+            try
+            {
+                var dir = await _filePickerService.PickDirectoryAsync();
+                if (string.IsNullOrEmpty(dir)) return;
+                StatusMessage = $"Opening directory {dir}...";
+                IsLoading = true;
+                FileStatus = dir;
+                IsDashboardVisible = true;
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    LogEntries.Clear();
+                    FilteredLogEntries.Clear();
+                    ErrorLogEntries.Clear();
+                }, DispatcherPriority.Background);
+                var entries = await Task.Run(async () =>
+                {
+                    var logEntries = await _logParserService.ParseLogDirectoryAsync(dir);
+                    return logEntries;
+                });
+                var logEntriesArr = entries as LogEntry[] ?? entries.ToArray();
+                var processedEntries = await Task.Run(() =>
+                {
+                    var processed = new List<LogEntry>(logEntriesArr.Length);
+                    foreach (var entry in logEntriesArr)
+                    {
+                        entry.OpenFileCommand = ExternalOpenFileCommand;
+                        processed.Add(entry);
+                    }
+                    return processed;
+                });
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    LogEntries = processedEntries.ToList();
+                    FilteredLogEntries = processedEntries.ToList();
+                    UpdateErrorLogEntries();
+                    UpdateLogStatistics();
+                    StatusMessage = $"Loaded {LogEntries.Count} log entries from directory {dir}";
+                    SelectedTabIndex = 0;
+                    IsLoading = false;
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка загрузки логов из папки");
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    StatusMessage = $"Error: {ex.Message}";
+                    IsLoading = false;
+                });
             }
         }
     }
