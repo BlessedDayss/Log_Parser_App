@@ -38,11 +38,11 @@ jobs:
 
       - id: version
         run: |
-          dotnet-gitversion /showvariable FullSemVer | ForEach-Object {
+          dotnet gitversion /showvariable FullSemVer | ForEach-Object {
             echo "FULL_SEM_VER=$($_)" >> $Env:GITHUB_OUTPUT
           }
         shell: pwsh
-
+      
       - name: SonarCloud Begin
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

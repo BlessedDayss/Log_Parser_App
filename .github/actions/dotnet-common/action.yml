@@ -1,9 +1,10 @@
-﻿name: dotnet-common
+﻿# .github/actions/dotnet-common/action.yml
 
-description: "Shared .NET SDK, tools install, and NuGet caching"
+name: dotnet-common
+description: Shared .NET SDK, tools install, and NuGet caching
 
 runs:
-  using: "composite"
+  using: composite
   steps:
     - name: Setup .NET SDK
       uses: actions/setup-dotnet@v4
@@ -21,10 +22,17 @@ runs:
     - name: Install global tools
       shell: pwsh
       run: |
+        # Правильный пакет для GitVersion:
+        dotnet tool install --global GitVersion.Tool
         dotnet tool install --global dotnet-sonarscanner
-        dotnet tool install --global gitversion.tool
 
-    - name: Add global tools to PATH
+    - name: Add .NET global tools to PATH (Windows)
+      if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        echo "${HOME}/.dotnet/tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        Add-Content -Path $Env:GITHUB_PATH -Value "$Env:USERPROFILE\.dotnet\tools"
+
+    - name: Add .NET global tools to PATH (Linux/Mac)
+      if: runner.os != 'Windows'
+      run: |
+        echo "${HOME}/.dotnet/tools" >> $GITHUB_PATH
