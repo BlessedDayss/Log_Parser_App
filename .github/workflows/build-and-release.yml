@@ -4,7 +4,7 @@ name: CI + Release
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
 
 permissions:
@@ -37,16 +37,17 @@ jobs:
       - uses: ./.github/actions/dotnet-common
 
       - id: version
+        name: Determine version
+        shell: pwsh
         run: |
           gitversion /showvariable FullSemVer | ForEach-Object {
             echo "FULL_SEM_VER=$($_)" >> $Env:GITHUB_OUTPUT
           }
-        shell: pwsh
-      
+
       - name: SonarCloud Begin
+        shell: pwsh
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        shell: pwsh
         run: |
           $args = @(
             "/k:${{ env.SONAR_PROJ }}",
@@ -57,13 +58,17 @@ jobs:
           )
           dotnet sonarscanner begin @args
 
-      - run: dotnet restore
+      - name: Restore
         shell: pwsh
+        run: dotnet restore
 
-      - run: dotnet build -c Release --no-restore
+      - name: Build
         shell: pwsh
+        run: dotnet build -c Release --no-restore
 
-      - run: |
+      - name: Test (with coverage fallback)
+        shell: pwsh
+        run: |
           if (Test-Path "./Log_Parser_App.Tests/Log_Parser_App.Tests.csproj") {
             dotnet test ./Log_Parser_App.Tests/Log_Parser_App.Tests.csproj `
               --no-build -c Release `
@@ -71,21 +76,20 @@ jobs:
               /p:CoverletOutputFormat=opencover `
               /p:CoverletOutput=./coverage/coverage.opencover.xml
           } else {
-            echo "Test project not found. Skipping tests."
+            Write-Host "Test project not found. Skipping tests."
           }
-        shell: pwsh
 
       - name: SonarCloud End
+        shell: pwsh
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: dotnet sonarscanner end /d:sonar.login=$Env:SONAR_TOKEN
-        shell: pwsh
 
   release:
     name: Publish Release
     needs: ci
-    runs-on: windows-latest
     if: github.ref == 'refs/heads/main'
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -93,31 +97,32 @@ jobs:
 
       - uses: ./.github/actions/dotnet-common
 
-      - name: GitVersion (reapply)
-        id: ver
+      - id: ver
+        name: Reapply version
+        shell: pwsh
         run: |
           gitversion /showvariable FullSemVer | ForEach-Object {
             echo "FULL_SEM_VER=$($_)" >> $Env:GITHUB_OUTPUT
           }
-        shell: pwsh
 
-      - run: dotnet publish ./Log_Parser_App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish/
+      - name: Publish single-file exe
         shell: pwsh
+        run: dotnet publish ./Log_Parser_App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish/
 
-      - id: rel
+      - name: Create GitHub Release
+        id: rel
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ steps.ver.outputs.FULL_SEM_VER }}
           release_name: Release v${{ steps.ver.outputs.FULL_SEM_VER }}
-          body: "Automated release of version v${{ steps.ver.outputs.FULL_SEM_VER }}"
+          body: Automated release of version v${{ steps.ver.outputs.FULL_SEM_VER }}
           draft: false
           prerelease: false
 
       - name: Upload release asset
-        run: |
-          gh release upload v${{ steps.ver.outputs.FULL_SEM_VER }} publish/Log_Parser_App.exe#Log_Parser_App_v${{ steps.ver.outputs.FULL_SEM_VER }}.exe --clobber
+        shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: pwsh
+        run: gh release upload v${{ steps.ver.outputs.FULL_SEM_VER }} publish/Log_Parser_App.exe#Log_Parser_App_v${{ steps.ver.outputs.FULL_SEM_VER }}.exe --clobber
