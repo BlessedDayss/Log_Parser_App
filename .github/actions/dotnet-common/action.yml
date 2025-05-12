@@ -23,3 +23,8 @@ runs:
       run: |
         dotnet tool install --global dotnet-sonarscanner
         dotnet tool install --global gitversion.tool
+
+    - name: Add global tools to PATH
+      shell: pwsh
+      run: |
+        echo "${HOME}/.dotnet/tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
