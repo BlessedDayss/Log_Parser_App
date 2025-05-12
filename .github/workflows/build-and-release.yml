@@ -1,0 +1,123 @@
+﻿# .github/workflows/build-and-release.yml
+
+name: CI + Release
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  checks: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: 8.0.x
+  SONAR_ORG: blesseddayss
+  SONAR_PROJ: BlessedDayss_Log_Parser_App
+  PROJECT_NAME: Log_Parser_App
+
+jobs:
+  ci:
+    name: Build, Test, Analyze
+    runs-on: windows-latest
+    outputs:
+      version: ${{ steps.version.outputs.FULL_SEM_VER }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/dotnet-common
+
+      - id: version
+        run: |
+          dotnet gitversion /showvariable FullSemVer | ForEach-Object {
+            echo "FULL_SEM_VER=$($_)" >> $Env:GITHUB_OUTPUT
+          }
+        shell: pwsh
+
+      - name: SonarCloud Begin
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        shell: pwsh
+        run: |
+          $args = @(
+            "/k:${{ env.SONAR_PROJ }}",
+            "/o:${{ env.SONAR_ORG }}",
+            "/d:sonar.login=$Env:SONAR_TOKEN",
+            "/d:sonar.host.url=https://sonarcloud.io",
+            "/d:sonar.cs.opencover.reportsPaths=coverage/coverage.opencover.xml"
+          )
+          dotnet sonarscanner begin @args
+
+      - run: dotnet restore
+        shell: pwsh
+
+      - run: dotnet build -c Release --no-restore
+        shell: pwsh
+
+      - run: |
+          if (Test-Path "./Log_Parser_App.Tests/Log_Parser_App.Tests.csproj") {
+            dotnet test ./Log_Parser_App.Tests/Log_Parser_App.Tests.csproj `
+              --no-build -c Release `
+              /p:CollectCoverage=true `
+              /p:CoverletOutputFormat=opencover `
+              /p:CoverletOutput=./coverage/coverage.opencover.xml
+          } else {
+            echo "Test project not found. Skipping tests."
+          }
+        shell: pwsh
+
+      - name: SonarCloud End
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: dotnet sonarscanner end /d:sonar.login=$Env:SONAR_TOKEN
+        shell: pwsh
+
+  release:
+    name: Publish Release
+    needs: ci
+    runs-on: windows-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/dotnet-common
+
+      - name: GitVersion (reapply)
+        id: ver
+        run: |
+          dotnet gitversion /showvariable FullSemVer | ForEach-Object {
+            echo "FULL_SEM_VER=$($_)" >> $Env:GITHUB_OUTPUT
+          }
+        shell: pwsh
+
+      - run: dotnet publish ./Log_Parser_App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish/
+        shell: pwsh
+
+      - id: rel
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.ver.outputs.FULL_SEM_VER }}
+          release_name: Release v${{ steps.ver.outputs.FULL_SEM_VER }}
+          body: "Automated release of version v${{ steps.ver.outputs.FULL_SEM_VER }}"
+          draft: false
+          prerelease: false
+
+      - name: Upload release asset
+        run: |
+          gh release upload v${{ steps.ver.outputs.FULL_SEM_VER }} publish/Log_Parser_App.exe#Log_Parser_App_v${{ steps.ver.outputs.FULL_SEM_VER }}.exe --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
