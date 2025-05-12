@@ -96,7 +96,7 @@ jobs:
       - name: GitVersion (reapply)
         id: ver
         run: |
-          dotnet gitversion /showvariable FullSemVer | ForEach-Object {
+          dotnet-gitversion /showvariable FullSemVer | ForEach-Object {
             echo "FULL_SEM_VER=$($_)" >> $Env:GITHUB_OUTPUT
           }
         shell: pwsh
