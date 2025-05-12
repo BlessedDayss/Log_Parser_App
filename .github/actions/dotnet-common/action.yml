@@ -22,7 +22,6 @@ runs:
     - name: Install global tools
       shell: pwsh
       run: |
-        # Правильный пакет для GitVersion:
         dotnet tool install --global GitVersion.Tool
         dotnet tool install --global dotnet-sonarscanner
 
@@ -30,9 +29,10 @@ runs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        Add-Content -Path $Env:GITHUB_PATH -Value "$Env:USERPROFILE\.dotnet\tools"
+        Add-Content -Path $Env:GITHUB_PATH -Value "$Env:USERPROFILE\\.dotnet\\tools"
 
     - name: Add .NET global tools to PATH (Linux/Mac)
       if: runner.os != 'Windows'
+      shell: bash
       run: |
         echo "${HOME}/.dotnet/tools" >> $GITHUB_PATH
