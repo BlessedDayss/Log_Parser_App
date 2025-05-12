@@ -35,6 +35,5 @@
     <ItemGroup>
       <Content Include=".github\actions\dotnet-common\action.yml" />
       <Content Include=".github\workflows\build-and-release.yml" />
-      <Content Include=".github\workflows\_ci.yml" />
     </ItemGroup>
 </Project>
