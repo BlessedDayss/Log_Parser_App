@@ -29,30 +29,24 @@ jobs:
     outputs:
       FULL_SEM_VER: ${{ steps.version.outputs.fullSemVer }}
     steps:
-      # 1. Checkout & SDK install
+      # 1. Checkout & SDK
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      # 2. Trust nuget.org SSL cert on Windows runner
-      - name: Trust nuget.org certificate
-        shell: pwsh
-        run: |
-          # import and trust the SSL certificate for api.nuget.org
-          yes | certmgr -ssl -m https://api.nuget.org :contentReference[oaicite:0]{index=0}
-
-      # 3. Restore & Build
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore --ignore-failed-sources
 
+      # 3. Build
       - name: Build solution
         run: dotnet build --no-restore -c Release
 
-      # 4. Run tests with coverage (PowerShell line-continuations)
       - name: Run tests with coverage
         shell: pwsh
         run: |
@@ -62,9 +56,11 @@ jobs:
             /p:CoverletOutputFormat=opencover `
             /p:CoverletOutput=coverage.opencover.xml
 
-      # 5. GitVersion for semantic tagging
+      # 5. GitVersion
       - name: Install GitVersion action
         uses: gittools/actions/gitversion/setup@v3.2.1
+        with:
+          versionSpec: '5.x'
 
       - name: Determine semantic version
         id: version
@@ -72,15 +68,14 @@ jobs:
         with:
           useConfigFile: true
 
-      # 6. Install SonarScanner for .NET (working v4.10.0)
       - name: Install dotnet-sonarscanner
         shell: pwsh
         run: |
-          dotnet tool install --global dotnet-sonarscanner --version 4.10.0 :contentReference[oaicite:1]{index=1}
+          dotnet tool install --global dotnet-sonarscanner --version 4.10.0
       - name: Add global tools to PATH
         run: echo "$Env:USERPROFILE\.dotnet\tools" >> $GITHUB_PATH
 
-      # 7. SonarCloud Begin (with strict Quality Gate, duplication threshold, exclusions)
+      # 7. SonarCloud Begin
       - name: SonarCloud Begin
         shell: pwsh
         env:
@@ -96,7 +91,7 @@ jobs:
             /d:sonar.duplicatedBlocksThreshold=10 `
             /d:sonar.qualitygate.wait=true
 
-      # 8. SonarCloud End (always run to finalize analysis)
+      # 8. SonarCloud End
       - name: SonarCloud End
         if: always()
         shell: pwsh
@@ -115,6 +110,8 @@ jobs:
       # 1. Checkout & SDK
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v3
@@ -145,7 +142,6 @@ jobs:
           draft: false
           prerelease: false
 
-      # 4. Upload the .exe artifact
       - name: Upload executable
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
