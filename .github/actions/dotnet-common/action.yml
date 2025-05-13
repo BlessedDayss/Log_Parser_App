@@ -107,7 +107,7 @@ jobs:
 
       - uses: ./.github/actions/dotnet-common
 
-      # Install GitVersion
+      # Install GitVersion 
       - name: Install GitVersion
         uses: gittools/actions/gitversion/setup@v0.9.15
         with:
@@ -139,5 +139,3 @@ jobs:
       - name: Upload release asset
         shell: pwsh
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload v${{ steps.ver.outputs.fullSemVer }} publish/Log_Parser_App.exe#Log_Parser_App_v${{ steps.ver.outputs.fullSemVer }}.exe --clobber
