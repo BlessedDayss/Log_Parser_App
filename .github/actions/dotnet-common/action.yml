@@ -34,16 +34,16 @@ jobs:
 
       - uses: ./.github/actions/dotnet-common
 
-      # Install GitVersion
+      # Install GitVersion Action (v3.2.1) to get GitVersion tool 5.x
       - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v0.9.15
+        uses: gittools/actions/gitversion/setup@v3.2.1
         with:
           versionSpec: '5.x'
       
       # Execute GitVersion
       - name: Determine Version
         id: version
-        uses: gittools/actions/gitversion/execute@v0.9.15
+        uses: gittools/actions/gitversion/execute@v3.2.1
         with:
           useConfigFile: true
       
@@ -107,16 +107,16 @@ jobs:
 
       - uses: ./.github/actions/dotnet-common
 
-      # Install GitVersion 
+      # Install GitVersion (same Action tag as in CI)
       - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v0.9.15
+        uses: gittools/actions/gitversion/setup@v3.2.1
         with:
           versionSpec: '5.x'
       
-      # Execute GitVersion 
+      # Execute GitVersion
       - name: Determine Version
         id: ver
-        uses: gittools/actions/gitversion/execute@v0.9.15
+        uses: gittools/actions/gitversion/execute@v3.2.1
         with:
           useConfigFile: true
 
@@ -139,3 +139,5 @@ jobs:
       - name: Upload release asset
         shell: pwsh
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload v${{ steps.ver.outputs.fullSemVer }} publish/Log_Parser_App.exe#Log_Parser_App_v${{ steps.ver.outputs.fullSemVer }}.exe --clobber
