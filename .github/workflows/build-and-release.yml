@@ -29,25 +29,30 @@ jobs:
     outputs:
       FULL_SEM_VER: ${{ steps.version.outputs.fullSemVer }}
     steps:
-      # 1. Checkout & SDK
+      # 1. Checkout & SDK install
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      # 2. Restore & Build
+      # 2. Trust nuget.org SSL cert on Windows runner
+      - name: Trust nuget.org certificate
+        shell: pwsh
+        run: |
+          # import and trust the SSL certificate for api.nuget.org
+          yes | certmgr -ssl -m https://api.nuget.org :contentReference[oaicite:0]{index=0}
+
+      # 3. Restore & Build
       - name: Restore dependencies
         run: dotnet restore
 
       - name: Build solution
         run: dotnet build --no-restore -c Release
 
-      # 3. Test with coverage
+      # 4. Run tests with coverage (PowerShell line-continuations)
       - name: Run tests with coverage
         shell: pwsh
         run: |
@@ -55,13 +60,11 @@ jobs:
             -c Release --no-build `
             /p:CollectCoverage=true `
             /p:CoverletOutputFormat=opencover `
-            /p:CoverletOutput=coverage/coverage.opencover.xml
+            /p:CoverletOutput=coverage.opencover.xml
 
-      # 4. GitVersion
+      # 5. GitVersion for semantic tagging
       - name: Install GitVersion action
         uses: gittools/actions/gitversion/setup@v3.2.1
-        with:
-          versionSpec: '5.x'
 
       - name: Determine semantic version
         id: version
@@ -69,13 +72,20 @@ jobs:
         with:
           useConfigFile: true
 
-      # 5. SonarCloud Begin
+      # 6. Install SonarScanner for .NET (working v4.10.0)
+      - name: Install dotnet-sonarscanner
+        shell: pwsh
+        run: |
+          dotnet tool install --global dotnet-sonarscanner --version 4.10.0 :contentReference[oaicite:1]{index=1}
+      - name: Add global tools to PATH
+        run: echo "$Env:USERPROFILE\.dotnet\tools" >> $GITHUB_PATH
+
+      # 7. SonarCloud Begin (with strict Quality Gate, duplication threshold, exclusions)
       - name: SonarCloud Begin
         shell: pwsh
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          dotnet tool install --global dotnet-sonarscanner --version 5.11.0
           dotnet sonarscanner begin `
             /k:${{ env.SONAR_PROJ }} `
             /o:${{ env.SONAR_ORG }} `
@@ -86,7 +96,7 @@ jobs:
             /d:sonar.duplicatedBlocksThreshold=10 `
             /d:sonar.qualitygate.wait=true
 
-      # 6. SonarCloud End
+      # 8. SonarCloud End (always run to finalize analysis)
       - name: SonarCloud End
         if: always()
         shell: pwsh
@@ -98,23 +108,22 @@ jobs:
 
   release:
     name: Publish Release
-    runs-on: windows-latest
     needs: sonar
     if: needs.sonar.result == 'success' && github.ref == 'refs/heads/main'
+    runs-on: windows-latest
     steps:
       # 1. Checkout & SDK
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      # 2. Publish single-file exe
+      # 2. Publish single-file executable
       - name: Publish executable
+        shell: pwsh
         run: |
           dotnet publish ./Log_Parser_App.csproj `
             -c Release `
@@ -132,12 +141,11 @@ jobs:
         with:
           tag_name: v${{ needs.sonar.outputs.FULL_SEM_VER }}
           release_name: Release v${{ needs.sonar.outputs.FULL_SEM_VER }}
-          body: |
-            Automated release of version v${{ needs.sonar.outputs.FULL_SEM_VER }}
+          body: Automated release of version v${{ needs.sonar.outputs.FULL_SEM_VER }}
           draft: false
           prerelease: false
 
-      # 4. Upload artifact
+      # 4. Upload the .exe artifact
       - name: Upload executable
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
