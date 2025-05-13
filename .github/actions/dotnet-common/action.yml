@@ -107,13 +107,13 @@ jobs:
 
       - uses: ./.github/actions/dotnet-common
 
-      # Install GitVersion (same as in ci)
+      # Install GitVersion (та же версия, что и в CI)
       - name: Install GitVersion
         uses: gittools/actions/gitversion/setup@v0.9.15
         with:
           versionSpec: '5.x'
       
-      # Execute GitVersion (same as in ci)
+      # Execute GitVersion (та же версия, что и в CI)
       - name: Determine Version
         id: ver
         uses: gittools/actions/gitversion/execute@v0.9.15
