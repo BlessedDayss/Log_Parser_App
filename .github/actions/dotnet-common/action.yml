@@ -1,38 +1,145 @@
-﻿# .github/actions/dotnet-common/action.yml
+﻿# .github/workflows/build-and-release.yml
 
-name: dotnet-common
-description: Shared .NET SDK, tools install, and NuGet caching
+name: CI + Release
 
-runs:
-  using: composite
-  steps:
-    - name: Setup .NET SDK
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
+on:
+  push:
+    branches: [ main ]
+  pull_request:
 
-    - name: Cache NuGet packages
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.nuget/packages
-          ~/.dotnet/tools/.store
-        key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  checks: write
 
-    - name: Install global tools
-      shell: pwsh
-      run: |
-        dotnet tool install --global GitVersion.Tool
-        dotnet tool install --global dotnet-sonarscanner
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
-    - name: Add .NET global tools to PATH (Windows)
-      if: runner.os == 'Windows'
-      shell: pwsh
-      run: |
-        Add-Content -Path $Env:GITHUB_PATH -Value "$Env:USERPROFILE\\.dotnet\\tools"
+env:
+  DOTNET_VERSION: 8.0.x
+  SONAR_ORG: blesseddayss
+  SONAR_PROJ: BlessedDayss_Log_Parser_App
+  PROJECT_NAME: Log_Parser_App
 
-    - name: Add .NET global tools to PATH (Linux/Mac)
-      if: runner.os != 'Windows'
-      shell: bash
-      run: |
-        echo "${HOME}/.dotnet/tools" >> $GITHUB_PATH
+jobs:
+  ci:
+    name: Build, Test, Analyze
+    runs-on: windows-latest
+    outputs:
+      version: ${{ steps.version.outputs.FULL_SEM_VER }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/dotnet-common
+
+      # Install GitVersion
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v0.9.15
+        with:
+          versionSpec: '5.x'
+      
+      # Execute GitVersion
+      - name: Determine Version
+        id: version
+        uses: gittools/actions/gitversion/execute@v0.9.15
+        with:
+          useConfigFile: true
+      
+      # Display the version for debugging
+      - name: Display GitVersion outputs
+        run: |
+          echo "FullSemVer: ${{ steps.version.outputs.fullSemVer }}"
+          echo "SemVer: ${{ steps.version.outputs.semVer }}"
+          echo "MajorMinorPatch: ${{ steps.version.outputs.majorMinorPatch }}"
+
+      - name: SonarCloud Begin
+        shell: pwsh
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          $args = @(
+            "/k:${{ env.SONAR_PROJ }}",
+            "/o:${{ env.SONAR_ORG }}",
+            "/d:sonar.login=$Env:SONAR_TOKEN",
+            "/d:sonar.host.url=https://sonarcloud.io",
+            "/d:sonar.cs.opencover.reportsPaths=coverage/coverage.opencover.xml"
+          )
+          dotnet sonarscanner begin @args
+
+      - name: Restore
+        shell: pwsh
+        run: dotnet restore
+
+      - name: Build
+        shell: pwsh
+        run: dotnet build -c Release --no-restore
+
+      - name: Test (with coverage fallback)
+        shell: pwsh
+        run: |
+          if (Test-Path "./Log_Parser_App.Tests/Log_Parser_App.Tests.csproj") {
+            dotnet test ./Log_Parser_App.Tests/Log_Parser_App.Tests.csproj `
+              --no-build -c Release `
+              /p:CollectCoverage=true `
+              /p:CoverletOutputFormat=opencover `
+              /p:CoverletOutput=./coverage/coverage.opencover.xml
+          } else {
+            Write-Host "Test project not found. Skipping tests."
+          }
+
+      - name: SonarCloud End
+        shell: pwsh
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: dotnet sonarscanner end /d:sonar.login=$Env:SONAR_TOKEN
+
+  release:
+    name: Publish Release
+    needs: ci
+    if: github.ref == 'refs/heads/main'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/dotnet-common
+
+      # Install GitVersion
+      - name: Install GitVersion
+        uses: GitTools/GitVersion/setup@v0.10.2
+        with:
+          versionSpec: '5.x'
+      
+      # Execute GitVersion
+      - name: Determine Version
+        id: ver
+        uses: GitTools/GitVersion/execute@v0.10.2
+        with:
+          useConfigFile: true
+
+      - name: Publish single-file exe
+        shell: pwsh
+        run: dotnet publish ./Log_Parser_App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish/
+
+      - name: Create GitHub Release
+        id: rel
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.ver.outputs.fullSemVer }}
+          release_name: Release v${{ steps.ver.outputs.fullSemVer }}
+          body: Automated release of version v${{ steps.ver.outputs.fullSemVer }}
+          draft: false
+          prerelease: false
+
+      - name: Upload release asset
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload v${{ steps.ver.outputs.fullSemVer }} publish/Log_Parser_App.exe#Log_Parser_App_v${{ steps.ver.outputs.fullSemVer }}.exe --clobber

@@ -1,0 +1,6864 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net5.0</TargetFramework>
+    <RootNamespace>Log_Parser_App</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../ViewModels/LogTabViewModel.cs" />
+    <Compile Include="../Services/ITabManager.cs" />
+    <Compile Include="../Services/TabManager.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.config" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.bat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psm1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.psd1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+ 
