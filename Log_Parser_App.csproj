@@ -33,7 +33,6 @@
         <PackageReference Include="NLog" Version="5.0.0" />
     </ItemGroup>
     <ItemGroup>
-      <Content Include=".github\actions\dotnet-common\action.yml" />
       <Content Include=".github\workflows\build-and-release.yml" />
     </ItemGroup>
 </Project>
