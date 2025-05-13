@@ -1,6 +1,4 @@
-﻿# .github/workflows/build-and-release.yml
-
-name: CI + Release
+﻿name: CI + Release
 
 on:
   push:
@@ -109,16 +107,16 @@ jobs:
 
       - uses: ./.github/actions/dotnet-common
 
-      # Install GitVersion
+      # Install GitVersion (same as in ci)
       - name: Install GitVersion
-        uses: GitTools/GitVersion/setup@v0.10.2
+        uses: gittools/actions/gitversion/setup@v0.9.15
         with:
           versionSpec: '5.x'
       
-      # Execute GitVersion
+      # Execute GitVersion (same as in ci)
       - name: Determine Version
         id: ver
-        uses: GitTools/GitVersion/execute@v0.10.2
+        uses: gittools/actions/gitversion/execute@v0.9.15
         with:
           useConfigFile: true
 
