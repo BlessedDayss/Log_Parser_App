@@ -36,13 +36,25 @@ jobs:
 
       - uses: ./.github/actions/dotnet-common
 
-      - id: version
-        name: Determine version
-        shell: pwsh
+      # Install GitVersion
+      - name: Install GitVersion
+        uses: GitTools/GitVersion/setup@v0.10.2
+        with:
+          versionSpec: '5.x'
+      
+      # Execute GitVersion
+      - name: Determine Version
+        id: version
+        uses: GitTools/GitVersion/execute@v0.10.2
+        with:
+          useConfigFile: true
+      
+      # Display the version for debugging
+      - name: Display GitVersion outputs
         run: |
-          gitversion /showvariable FullSemVer | ForEach-Object {
-            echo "FULL_SEM_VER=$($_)" >> $Env:GITHUB_OUTPUT
-          }
+          echo "FullSemVer: ${{ steps.version.outputs.fullSemVer }}"
+          echo "SemVer: ${{ steps.version.outputs.semVer }}"
+          echo "MajorMinorPatch: ${{ steps.version.outputs.majorMinorPatch }}"
 
       - name: SonarCloud Begin
         shell: pwsh
@@ -97,13 +109,18 @@ jobs:
 
       - uses: ./.github/actions/dotnet-common
 
-      - id: ver
-        name: Reapply version
-        shell: pwsh
-        run: |
-          gitversion /showvariable FullSemVer | ForEach-Object {
-            echo "FULL_SEM_VER=$($_)" >> $Env:GITHUB_OUTPUT
-          }
+      # Install GitVersion
+      - name: Install GitVersion
+        uses: GitTools/GitVersion/setup@v0.10.2
+        with:
+          versionSpec: '5.x'
+      
+      # Execute GitVersion
+      - name: Determine Version
+        id: ver
+        uses: GitTools/GitVersion/execute@v0.10.2
+        with:
+          useConfigFile: true
 
       - name: Publish single-file exe
         shell: pwsh
@@ -115,9 +132,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ steps.ver.outputs.FULL_SEM_VER }}
-          release_name: Release v${{ steps.ver.outputs.FULL_SEM_VER }}
-          body: Automated release of version v${{ steps.ver.outputs.FULL_SEM_VER }}
+          tag_name: v${{ steps.ver.outputs.fullSemVer }}
+          release_name: Release v${{ steps.ver.outputs.fullSemVer }}
+          body: Automated release of version v${{ steps.ver.outputs.fullSemVer }}
           draft: false
           prerelease: false
 
@@ -125,4 +142,4 @@ jobs:
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload v${{ steps.ver.outputs.FULL_SEM_VER }} publish/Log_Parser_App.exe#Log_Parser_App_v${{ steps.ver.outputs.FULL_SEM_VER }}.exe --clobber
+        run: gh release upload v${{ steps.ver.outputs.fullSemVer }} publish/Log_Parser_App.exe#Log_Parser_App_v${{ steps.ver.outputs.fullSemVer }}.exe --clobber
