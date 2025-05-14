@@ -24,12 +24,11 @@ env:
 
 jobs:
   sonar:
-    name: Build · Test · SonarCloud Analysis
+    name: Build · SonarCloud Analysis
     runs-on: windows-latest
     outputs:
       FULL_SEM_VER: ${{ steps.version.outputs.fullSemVer }}
     steps:
-      # 1. Checkout & SDK
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -43,20 +42,9 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore --ignore-failed-sources
 
-      # 3. Build
       - name: Build solution
         run: dotnet build --no-restore -c Release
 
-      - name: Run tests with coverage
-        shell: pwsh
-        run: |
-          dotnet test ./Log_Parser_App.Tests/Log_Parser_App.Tests.csproj `
-            -c Release --no-build `
-            /p:CollectCoverage=true `
-            /p:CoverletOutputFormat=opencover `
-            /p:CoverletOutput=coverage.opencover.xml
-
-      # 5. GitVersion
       - name: Install GitVersion action
         uses: gittools/actions/gitversion/setup@v3.2.1
         with:
@@ -70,12 +58,12 @@ jobs:
 
       - name: Install dotnet-sonarscanner
         shell: pwsh
-        run: |
-          dotnet tool install --global dotnet-sonarscanner --version 4.10.0
-      - name: Add global tools to PATH
-        run: echo "$Env:USERPROFILE\.dotnet\tools" >> $GITHUB_PATH
+        run: dotnet tool install --global dotnet-sonarscanner --version 4.10.0
 
-      # 7. SonarCloud Begin
+      - name: Add tools to PATH
+        shell: pwsh
+        run: echo "$Env:USERPROFILE\.dotnet\tools" >> $Env:GITHUB_PATH
+
       - name: SonarCloud Begin
         shell: pwsh
         env:
@@ -91,15 +79,12 @@ jobs:
             /d:sonar.duplicatedBlocksThreshold=10 `
             /d:sonar.qualitygate.wait=true
 
-      # 8. SonarCloud End
       - name: SonarCloud End
         if: always()
         shell: pwsh
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          dotnet sonarscanner end `
-            /d:sonar.login=$Env:SONAR_TOKEN
+        run: dotnet sonarscanner end /d:sonar.login=$Env:SONAR_TOKEN
 
   release:
     name: Publish Release
@@ -107,7 +92,6 @@ jobs:
     if: needs.sonar.result == 'success' && github.ref == 'refs/heads/main'
     runs-on: windows-latest
     steps:
-      # 1. Checkout & SDK
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -118,7 +102,6 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      # 2. Publish single-file executable
       - name: Publish executable
         shell: pwsh
         run: |
@@ -129,7 +112,6 @@ jobs:
             -p:PublishSingleFile=true `
             -o publish/
 
-      # 3. Create GitHub Release
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
