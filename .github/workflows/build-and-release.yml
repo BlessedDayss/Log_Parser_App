@@ -60,9 +60,8 @@ jobs:
         shell: pwsh
         run: dotnet tool install --global dotnet-sonarscanner --version 4.10.0
 
-      - name: Add tools to PATH
-        shell: pwsh
-        run: echo "$Env:USERPROFILE\.dotnet\tools" >> $Env:GITHUB_PATH
+      - name: Add .NET global tools to PATH
+        run: echo "${{ runner.env.USERPROFILE }}\\.dotnet\\tools" >> $GITHUB_PATH
 
       - name: SonarCloud Begin
         shell: pwsh
