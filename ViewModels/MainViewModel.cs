@@ -46,6 +46,9 @@ namespace Log_Parser_App.ViewModels
         private bool _isDarkTheme;
 
         [ObservableProperty]
+        private bool _isMultiFileModeActive = false;
+
+        [ObservableProperty]
         private int _selectedTabIndex = 0;
 
         private ObservableCollection<TabViewModel> _fileTabs = new();
@@ -55,20 +58,35 @@ namespace Log_Parser_App.ViewModels
             set { _fileTabs = value; OnPropertyChanged(); }
         }
 
+        public ObservableCollection<LogEntry> AllErrorLogEntries { get; } = new();
+
         private TabViewModel? _selectedTab;
         public TabViewModel? SelectedTab
         {
             get => _selectedTab;
             set
             {
-                if (SetProperty(ref _selectedTab, value) && value != null)
+                if (SetProperty(ref _selectedTab, value))
                 {
-                    LogEntries = value.LogEntries;
-                    FilteredLogEntries = value.LogEntries;
-                    UpdateErrorLogEntries();
-                    UpdateLogStatistics();
-                    FilePath = value.FilePath;
-                    FileStatus = value.Title;
+                    if (value != null)
+                    {
+                        LogEntries = value.LogEntries;
+                        FilteredLogEntries = value.LogEntries;
+                        UpdateErrorLogEntries();
+                        UpdateLogStatistics();
+                        FilePath = value.FilePath;
+                        FileStatus = value.Title;
+                    }
+                    else
+                    {
+                        LogEntries = new List<LogEntry>();
+                        FilteredLogEntries = new List<LogEntry>();
+                        UpdateErrorLogEntries();
+                        UpdateLogStatistics();
+                        FilePath = string.Empty;
+                        FileStatus = "No file selected";
+                        IsDashboardVisible = !FileTabs.Any();
+                    }
                 }
             }
         }
@@ -404,7 +422,15 @@ namespace Log_Parser_App.ViewModels
                 await LoadFileToTab(file);
             }
             
+            UpdateMultiFileModeStatus();
+            _logger.LogInformation("[LoadFilesAsync] After UpdateMultiFileModeStatus. IsMultiFileModeActive: {IsActive}", IsMultiFileModeActive);
+            UpdateAllErrorLogEntries();
             IsLoading = false;
+            StatusMessage = $"Finished processing {files.Count()} files. {FileTabs.Count(t => files.Contains(t.FilePath))} new tab(s) added.";
+            if (FileTabs.Any() && SelectedTab == null)
+            {
+                SelectedTab = FileTabs.LastOrDefault(t => files.Contains(t.FilePath)) ?? FileTabs.LastOrDefault();
+            }
         }
         
         private async Task LoadFileToTab(string filePath)
@@ -471,7 +497,7 @@ namespace Log_Parser_App.ViewModels
             _logger.LogInformation("Attempting to load directory: {DirectoryPath}", dir);
             StatusMessage = $"Opening directory {Path.GetFileName(dir)}...";
             IsLoading = true;
-            FileStatus = $"Dir: {Path.GetFileName(dir)}"; // Keep a general status for the directory operation
+            FileStatus = $"Dir: {Path.GetFileName(dir)}";
             IsDashboardVisible = true;
 
             try
@@ -486,50 +512,47 @@ namespace Log_Parser_App.ViewModels
                         StatusMessage = $"No '*.txt' files found in directory {Path.GetFileName(dir)}.";
                         IsLoading = false;
                     });
+                    UpdateMultiFileModeStatus();
+                    _logger.LogInformation("[LoadDirectoryAsync - No files found or error block] After UpdateMultiFileModeStatus. IsMultiFileModeActive: {IsActive}", IsMultiFileModeActive);
+                    UpdateAllErrorLogEntries();
                     return;
                 }
 
                 _logger.LogInformation("Found {FileCount} '*.txt' files in {DirectoryPath}. Loading up to 10.", files.Count, dir);
-
-                // We will reuse LoadFileToTab for each file.
-                // This ensures consistent behavior with single file loading including error handling per file.
+                
                 foreach (var file in files)
                 {
-                    // Check if the file is already opened to avoid duplicates
                     if (FileTabs.Any(tab => tab.FilePath == file))
                     {
                         _logger.LogInformation("File {FilePath} is already open. Selecting existing tab.", file);
                         var existingTab = FileTabs.First(tab => tab.FilePath == file);
-                        // Ensure selection happens on UI thread if it triggers UI updates directly
                         await Dispatcher.UIThread.InvokeAsync(() => SelectedTab = existingTab);
                         continue;
                     }
                     
                     _logger.LogInformation("Loading file {FilePath} from directory {DirectoryPath}", file, dir);
-                    await LoadFileToTab(file); // LoadFileToTab already handles UI updates and status messages per file
+                    await LoadFileToTab(file);
                 }
                 
-                // After all files are processed (or attempted)
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    // Update status to reflect directory operation completion if needed,
-                    // though LoadFileToTab updates status for the last loaded file.
-                    // Perhaps a summary status message is good here.
-                    var successfullyLoadedTabs = FileTabs.Count(t => files.Contains(t.FilePath));
-                    StatusMessage = $"Finished loading files from directory {Path.GetFileName(dir)}. Loaded {successfullyLoadedTabs} new tab(s).";
+                    var successfullyLoadedTabsCount = files.Count(f => FileTabs.Any(t => t.FilePath == f));
+                    StatusMessage = $"Finished loading files from directory {Path.GetFileName(dir)}. Loaded {successfullyLoadedTabsCount} new tab(s).";
                     IsLoading = false; 
-                    // Select the last added tab from the directory, if any new ones were added.
-                    var lastAddedTab = FileTabs.LastOrDefault(t => files.Contains(t.FilePath));
-                    if (lastAddedTab != null)
+                    
+                    var lastAddedTabFromDir = FileTabs.LastOrDefault(t => files.Contains(t.FilePath));
+                    if (lastAddedTabFromDir != null)
                     {
-                        SelectedTab = lastAddedTab;
+                        SelectedTab = lastAddedTabFromDir;
                     }
                     else if (!FileTabs.Any() && SelectedTab == null)
                     {
-                        // If no tabs were loaded from dir and no tabs existed before
                         FileStatus = "No file selected";
                         IsDashboardVisible = false;
                     }
+                    UpdateMultiFileModeStatus();
+                    _logger.LogInformation("[LoadDirectoryAsync - No files found or error block] After UpdateMultiFileModeStatus. IsMultiFileModeActive: {IsActive}", IsMultiFileModeActive);
+                    UpdateAllErrorLogEntries();
                 });
             }
             catch (UnauthorizedAccessException ex)
@@ -539,6 +562,9 @@ namespace Log_Parser_App.ViewModels
                 {
                     StatusMessage = $"Error: Access denied to {Path.GetFileName(dir)}.";
                     IsLoading = false;
+                    UpdateMultiFileModeStatus();
+                    _logger.LogInformation("[LoadDirectoryAsync - UnauthorizedAccessException] After UpdateMultiFileModeStatus. IsMultiFileModeActive: {IsActive}", IsMultiFileModeActive);
+                    UpdateAllErrorLogEntries();
                 });
             }
             catch (DirectoryNotFoundException ex)
@@ -548,6 +574,9 @@ namespace Log_Parser_App.ViewModels
                 {
                     StatusMessage = $"Error: Directory {Path.GetFileName(dir)} not found.";
                     IsLoading = false;
+                    UpdateMultiFileModeStatus();
+                    _logger.LogInformation("[LoadDirectoryAsync - DirectoryNotFoundException] After UpdateMultiFileModeStatus. IsMultiFileModeActive: {IsActive}", IsMultiFileModeActive);
+                    UpdateAllErrorLogEntries();
                 });
             }
             catch (Exception ex)
@@ -557,6 +586,9 @@ namespace Log_Parser_App.ViewModels
                 {
                     StatusMessage = $"Error processing directory {Path.GetFileName(dir)}: {ex.Message}";
                     IsLoading = false;
+                    UpdateMultiFileModeStatus();
+                    _logger.LogInformation("[LoadDirectoryAsync - Exception] After UpdateMultiFileModeStatus. IsMultiFileModeActive: {IsActive}", IsMultiFileModeActive);
+                    UpdateAllErrorLogEntries();
                 });
             }
         }
@@ -566,20 +598,34 @@ namespace Log_Parser_App.ViewModels
         {
             if (tab == null) return;
             
+            var tabIndex = FileTabs.IndexOf(tab);
             FileTabs.Remove(tab);
             
-            // Если закрыли текущую вкладку, выбираем другую
             if (SelectedTab == tab)
             {
-                SelectedTab = FileTabs.FirstOrDefault();
-                if (SelectedTab != null)
+                SelectedTab = FileTabs.Count > tabIndex ? FileTabs[tabIndex] : FileTabs.LastOrDefault();
+            }
+
+            if (SelectedTab == null && FileTabs.Any())
+            {
+                 SelectedTab = FileTabs.FirstOrDefault();
+            }
+            else if (!FileTabs.Any())
+            {
+                 SelectedTab = null;
+            }
+
+            if (SelectedTab != null) {
+                foreach (var t in FileTabs)
                 {
-                    foreach (var t in FileTabs)
-                    {
-                        t.IsSelected = (t == SelectedTab);
-                    }
+                    t.IsSelected = (t == SelectedTab);
                 }
             }
+            
+            UpdateMultiFileModeStatus();
+            _logger.LogInformation("[CloseTab] After UpdateMultiFileModeStatus. IsMultiFileModeActive: {IsActive}", IsMultiFileModeActive);
+            UpdateAllErrorLogEntries();
+            _logger.LogInformation("Closed tab: {TabTitle}. Remaining tabs: {Count}", tab.Title, FileTabs.Count);
         }
 
         [RelayCommand]
@@ -637,7 +683,6 @@ namespace Log_Parser_App.ViewModels
                 ErrorTrendSeries = stats.ErrorTrendSeries;
                 SourcesDistributionSeries = stats.SourcesDistributionSeries;
                 LogStatistics = stats.LogStatistics;
-                // Оси и метки тоже присваиваем если нужно
                 TimeAxis = stats.TimeAxis;
                 CountAxis = stats.CountAxis;
                 DaysAxis = stats.DaysAxis;
@@ -1129,7 +1174,6 @@ namespace Log_Parser_App.ViewModels
         {
             if (tab == null) return;
             
-            // Обновляем свойство IsSelected для каждой вкладки
             foreach (var t in FileTabs)
             {
                 t.IsSelected = (t == tab);
@@ -1143,6 +1187,43 @@ namespace Log_Parser_App.ViewModels
         {
             IsDashboardVisible = !IsDashboardVisible;
             _logger.LogInformation("Видимость дашборда изменена на: {Visibility}", IsDashboardVisible);
+        }
+
+        private void UpdateMultiFileModeStatus()
+        {
+            var previousState = IsMultiFileModeActive;
+            IsMultiFileModeActive = FileTabs.Count > 1;
+            _logger.LogInformation("UpdateMultiFileModeStatus executed. FileTabs.Count: {Count}. IsMultiFileModeActive changed from {Previous} to {Current}", 
+                                 FileTabs.Count, previousState, IsMultiFileModeActive);
+        }
+
+        private void UpdateAllErrorLogEntries()
+        {
+            AllErrorLogEntries.Clear();
+            if (IsMultiFileModeActive)
+            {
+                _logger.LogDebug("[UpdateAllErrorLogEntries] Starting to collect errors. FileTabs.Count: {FileTabsCount}", FileTabs.Count);
+                var allErrors = new List<LogEntry>();
+                foreach (var tab in FileTabs)
+                {
+                    _logger.LogDebug("[UpdateAllErrorLogEntries] Processing tab: '{TabTitle}'. Total entries in this tab: {LogEntriesCount}", tab.Title, tab.LogEntries.Count);
+                    var tabErrors = tab.LogEntries.Where(e => e.Level == "ERROR").ToList();
+                    _logger.LogDebug("[UpdateAllErrorLogEntries] Found {ErrorCount} errors in tab: '{TabTitle}'", tabErrors.Count, tab.Title);
+                    foreach (var error in tabErrors)
+                    {
+                        error.SourceTabTitle = tab.Title; // Set the source tab title
+                        allErrors.Add(error);
+                    }
+                }
+                _logger.LogDebug("[UpdateAllErrorLogEntries] Total errors collected from all tabs: {TotalErrorCount}", allErrors.Count);
+                allErrors.Sort((x, y) => x.Timestamp.CompareTo(y.Timestamp));
+                foreach (var error in allErrors)
+                {
+                    AllErrorLogEntries.Add(error);
+                }
+            }
+            _logger.LogInformation("AllErrorLogEntries updated. Count: {Count}. Active: {IsMultiFileModeActive}", AllErrorLogEntries.Count, IsMultiFileModeActive);
+            OnPropertyChanged(nameof(AllErrorLogEntries)); // Notify UI about changes to this collection
         }
     }
 }

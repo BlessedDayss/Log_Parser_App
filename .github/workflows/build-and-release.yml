@@ -1,4 +1,4 @@
-﻿name: CI + Sonar + Release
+﻿name: CI + Release
 
 on:
   push:
@@ -7,24 +7,18 @@ on:
     branches: [ main ]
 
 permissions:
-  contents: write
-  checks: write
-  pull-requests: write
-  id-token: write
-
+  contents: write 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
   DOTNET_VERSION: 8.0.x
-  SONAR_ORG: blesseddayss
-  SONAR_PROJ: BlessedDayss_Log_Parser_App
   PROJECT_NAME: Log_Parser_App
 
 jobs:
-  sonar:
-    name: Build · SonarCloud Analysis
+  build_and_version:
+    name: Build and Determine Version
     runs-on: windows-latest
     outputs:
       FULL_SEM_VER: ${{ steps.version.outputs.fullSemVer }}
@@ -54,57 +48,20 @@ jobs:
         run: dotnet restore ${{ env.PROJECT_NAME }}.csproj
         working-directory: ./${{ env.PROJECT_NAME }}
 
-      - name: Install dotnet-sonarscanner
-        shell: pwsh
-        run: dotnet tool install --global dotnet-sonarscanner --version 5.15.0
-
-      - name: Add .NET global tools to GITHUB_PATH
-        shell: pwsh
-        run: echo "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-      - name: SonarCloud Begin
-        shell: pwsh
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          dotnet sonarscanner begin `
-            /k:"${{ env.SONAR_PROJ }}" `
-            /o:"${{ env.SONAR_ORG }}" `
-            /d:sonar.token="${{ env.SONAR_TOKEN }}" `
-            /d:sonar.host.url="https://sonarcloud.io" `
-            /d:sonar.sources="." `
-            /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" `
-            /d:sonar.coverage.exclusions="**/Migrations/**,**/*Tests*/**,**/*.designer.cs,**/*AssemblyInfo.cs" `
-            /d:sonar.cpd.exclusions="**/*.generated.cs,**/Migrations/**,**/*Tests*/**,**/*.designer.cs,**/*AssemblyInfo.cs" `
-            /d:sonar.qualitygate.wait=true `
-            /d:sonar.pullrequest.key="${{ github.event.pull_request.number }}" `
-            /d:sonar.pullrequest.branch="${{ github.event.pull_request.head.ref }}" `
-            /d:sonar.pullrequest.base="${{ github.event.pull_request.base.ref }}"
-        working-directory: ./${{ env.PROJECT_NAME }}
-
-      - name: Build solution for Sonar analysis
+      - name: Build solution
         run: dotnet build --no-restore -c Release ${{ env.PROJECT_NAME }}.csproj
-        working-directory: ./${{ env.PROJECT_NAME }}
-
-      - name: SonarCloud End
-        if: always()
-        shell: pwsh
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: dotnet sonarscanner end /d:sonar.token="${{ env.SONAR_TOKEN }}"
         working-directory: ./${{ env.PROJECT_NAME }}
 
   release:
     name: Publish Release
-    needs: sonar
-    if: needs.sonar.result == 'success' && github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: build_and_version
+    if: needs.build_and_version.result == 'success' && github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: windows-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # Необходимо для консистентности, хотя версия берется из needs
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
@@ -128,11 +85,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ needs.sonar.outputs.FULL_SEM_VER }}
-          release_name: Release v${{ needs.sonar.outputs.FULL_SEM_VER }}
-          body: Automated release of version v${{ needs.sonar.outputs.FULL_SEM_VER }}
+          tag_name: v${{ needs.build_and_version.outputs.FULL_SEM_VER }}
+          release_name: Release v${{ needs.build_and_version.outputs.FULL_SEM_VER }}
+          body: Automated release of version v${{ needs.build_and_version.outputs.FULL_SEM_VER }}
           draft: false
-          prerelease: ${{ contains(needs.sonar.outputs.FULL_SEM_VER, '-') }}
+          prerelease: ${{ contains(needs.build_and_version.outputs.FULL_SEM_VER, '-') }}
 
       - name: Upload executable to Release
         uses: actions/upload-release-asset@v1
@@ -141,5 +98,5 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./publish/${{ env.PROJECT_NAME }}.exe
-          asset_name: ${{ env.PROJECT_NAME }}-${{ needs.sonar.outputs.FULL_SEM_VER }}.exe
+          asset_name: ${{ env.PROJECT_NAME }}-${{ needs.build_and_version.outputs.FULL_SEM_VER }}.exe
           asset_content_type: application/octet-stream
