@@ -6,7 +6,7 @@ namespace Log_Parser_App.Services
 	using Log_Parser_App.Models;
 	using Log_Parser_App.Models.Interfaces;
 	using Microsoft.Extensions.Logging;
-
+	using System.IO; // Required for Path and Directory operations
 
 	public partial class LogParserService(ILogger<LogParserService> logger, ILogLineParser lineParser, ILogFileLoader fileLoader, ILogFilesLoader filesLoader) : ILogParserService
 	{
@@ -24,8 +24,14 @@ namespace Log_Parser_App.Services
 		}
 
 
-		public async Task<IEnumerable<LogEntry>> ParseLogDirectoryAsync(string directoryPath, string searchPattern = "*.log") {
-			var lines = await filesLoader.LoadLinesFromDirectoryAsync(directoryPath, searchPattern);
+		public async Task<IEnumerable<LogEntry>> ParseLogDirectoryAsync(string directoryPath, string searchPattern = "*.log", int? maxFilesToParse = null) {
+			var allFilePaths = Directory.EnumerateFiles(directoryPath, searchPattern, SearchOption.TopDirectoryOnly);
+            
+            var filesToParse = maxFilesToParse.HasValue 
+                ? allFilePaths.Take(maxFilesToParse.Value)
+                : allFilePaths;
+
+            var lines = await filesLoader.LoadLinesAsync(filesToParse);
 			return ParseLines(lines);
 		}
 
