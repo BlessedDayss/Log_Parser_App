@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
+using Avalonia.Interactivity;
 using Log_Parser_App.ViewModels;
 using System;
 using NLog;
@@ -17,6 +18,9 @@ public partial class MainWindow : Window
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
     private DateTime _lastTapTime = DateTime.MinValue;
     private object? _lastTappedItem = null;
+
+    // Добавляем свойство для доступа к MainView из XAML
+    public MainViewModel? MainViewModel => (DataContext as MainWindowViewModel)?.MainView;
 
     public MainWindow()
     {
@@ -99,6 +103,27 @@ public partial class MainWindow : Window
                 _lastTapTime = now;
                 _lastTappedItem = entry;
             }
+        }
+    }
+
+    // Обработка выбора вкладки
+    public void SelectTab(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button button && button.CommandParameter is Models.TabViewModel tab 
+            && DataContext is MainWindowViewModel viewModel)
+        {
+            viewModel.MainView.SelectTabCommand.Execute(tab);
+        }
+    }
+    
+    // Обработка закрытия вкладки
+    public void CloseTab(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button button && button.CommandParameter is Models.TabViewModel tab
+            && DataContext is MainWindowViewModel viewModel)
+        {
+            viewModel.MainView.CloseTabCommand.Execute(tab);
+            e.Handled = true; // Предотвращаем всплытие события
         }
     }
 }

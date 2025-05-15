@@ -513,4 +513,20 @@ public partial class MainWindowViewModel : ViewModelBase
         _logger.LogInformation($"Toggling dashboard visibility. Current state: {IsDashboardVisible}");
         IsDashboardVisible = !IsDashboardVisible;
     });
+
+    public ICommand SelectTabCommand => new RelayCommand<TabViewModel>(tab =>
+    {
+        if (tab != null)
+        {
+            MainView.SelectTabCommand.Execute(tab);
+        }
+    });
+
+    public ICommand CloseTabCommand => new RelayCommand<TabViewModel>(tab =>
+    {
+        if (tab != null)
+        {
+            MainView.CloseTabCommand.Execute(tab);
+        }
+    });
 }
