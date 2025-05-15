@@ -348,7 +348,7 @@ namespace Log_Parser_App.ViewModels
 
                 await Task.Run(() =>
                 {
-                    var errorEntries = processedEntries.Where(e => e.Level == "ERROR").ToList();
+                    var errorEntries = processedEntries.Where(e => e.Level.Equals("Error", StringComparison.OrdinalIgnoreCase)).ToList();
                     Parallel.ForEach(errorEntries, entry =>
                     {
                         try
@@ -659,7 +659,7 @@ namespace Log_Parser_App.ViewModels
 
         private void UpdateErrorLogEntries()
         {
-            var errors = LogEntries.Where(e => e.Level == "ERROR").ToList();
+            var errors = LogEntries.Where(e => e.Level.Equals("Error", StringComparison.OrdinalIgnoreCase)).ToList();
             ErrorLogEntries = errors;
             _logger.LogInformation("Updated ErrorLogEntries collection with {Count} entries", ErrorLogEntries.Count);
             OnPropertyChanged(nameof(ErrorLogEntries));
@@ -716,7 +716,7 @@ namespace Log_Parser_App.ViewModels
 
         private (int ErrorCount, int WarningCount, int InfoCount, int OtherCount, double ErrorPercent, double WarningPercent, double InfoPercent, double OtherPercent, ISeries[] LevelsOverTimeSeries, ISeries[] TopErrorsSeries, ISeries[] LogDistributionSeries, ISeries[] TimeHeatmapSeries, ISeries[] ErrorTrendSeries, ISeries[] SourcesDistributionSeries, LogStatistics LogStatistics, Axis[] TimeAxis, Axis[] CountAxis, Axis[] DaysAxis, Axis[] HoursAxis, Axis[] SourceAxis, Axis[] ErrorMessageAxis) CalculateStatisticsAndCharts(List<LogEntry> logEntries)
         {
-            int errorCount = logEntries.Count(e => e.Level == "ERROR");
+            int errorCount = logEntries.Count(e => e.Level.Equals("Error", StringComparison.OrdinalIgnoreCase));
             int warningCount = logEntries.Count(e => e.Level == "WARNING");
             int infoCount = logEntries.Count(e => e.Level == "INFO");
             int otherCount = logEntries.Count - errorCount - warningCount - infoCount;
@@ -823,7 +823,7 @@ namespace Log_Parser_App.ViewModels
             {
                 var endTime = time.AddMinutes(tickInterval);
                 var entries = logEntries.Where(e => e.Timestamp >= time && e.Timestamp < endTime).ToList();
-                var errorC = entries.Count(e => e.Level == "ERROR");
+                var errorC = entries.Count(e => e.Level.Equals("Error", StringComparison.OrdinalIgnoreCase));
                 var warningC = entries.Count(e => e.Level == "WARNING");
                 var infoC = entries.Count(e => e.Level == "INFO");
                 var totalC = entries.Count;
@@ -942,7 +942,7 @@ namespace Log_Parser_App.ViewModels
                 }
             } : Array.Empty<ISeries>();
             var topErrors = logEntries
-                .Where(e => e.Level == "ERROR")
+                .Where(e => e.Level.Equals("Error", StringComparison.OrdinalIgnoreCase))
                 .GroupBy(e => e.Message)
                 .Select(g => new { Message = g.Key, Count = g.Count() })
                 .OrderByDescending(x => x.Count)
@@ -1415,7 +1415,7 @@ namespace Log_Parser_App.ViewModels
                 foreach (var tab in FileTabs)
                 {
                     _logger.LogDebug("[UpdateAllErrorLogEntries] Processing tab: '{TabTitle}'. Total entries in this tab: {LogEntriesCount}", tab.Title, tab.LogEntries.Count);
-                    var tabErrors = tab.LogEntries.Where(e => e.Level == "ERROR").ToList();
+                    var tabErrors = tab.LogEntries.Where(e => e.Level.Equals("Error", StringComparison.OrdinalIgnoreCase)).ToList();
                     _logger.LogDebug("[UpdateAllErrorLogEntries] Found {ErrorCount} errors in tab: '{TabTitle}'", tabErrors.Count, tab.Title);
                     foreach (var error in tabErrors)
                     {
