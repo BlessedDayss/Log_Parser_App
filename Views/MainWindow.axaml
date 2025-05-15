@@ -419,7 +419,7 @@
                                     <Button Content="✔️ Apply Filters" Classes="apply-filters-button" Command="{Binding ApplyFiltersCommand}" Padding="10,4" FontSize="12" Margin="0" />
                                     <Button Content="🔄 Reset Filters" Classes="reset-filters-button" Command="{Binding ResetFiltersCommand}" Padding="10,4" FontSize="12" Margin="0" />
                                 </StackPanel>
-                                <ItemsControl ItemsSource="{Binding FilterCriteria}">
+                                <ItemsControl ItemsSource="{Binding FilterCriteria}" Grid.Row="0" Margin="0, 45, 0, 0">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
                                             <StackPanel Orientation="Vertical" Spacing="6" />
@@ -448,19 +448,15 @@
                                                         <TextBox IsVisible="{Binding !ShowValueComboBox}"
                                                                 Text="{Binding Value}"
                                                                 Watermark="Value"
-                                                                VerticalAlignment="Center"/>
+                                                                MinWidth="150"/>
                                                     </Panel>
-                                                    <Button Grid.Column="3"
-                                                            Content="✓"
-                                                            Command="{Binding ParentViewModel.ApplyFilterCriterionCommand}"
+                                                    <Button Grid.Column="3" 
+                                                            Classes="remove-button" 
+                                                            Command="{Binding ParentViewModel.RemoveFilterCriterionCommand}" 
                                                             CommandParameter="{Binding}"
-                                                            Classes="apply-button"
-                                                            Margin="0,0,5,0"/>
-                                                    <Button Grid.Column="4"
-                                                            Content="✕"
-                                                            Command="{Binding ParentViewModel.RemoveFilterCriterionCommand}"
-                                                            CommandParameter="{Binding}"
-                                                            Classes="remove-button"/>
+                                                            Padding="0" Margin="5,0,0,0">
+                                                        <TextBlock Text="🗑️" FontSize="14"/>
+                                                    </Button>
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>
@@ -525,56 +521,62 @@
                                 </ScrollViewer>
                             </Grid>
                         </TabItem>
-                        <TabItem>
-                            <TabItem.Header>
-                                <TextBlock Text="Errors only" FontWeight="SemiBold" FontSize="14" />
-                            </TabItem.Header>
-                            <Grid RowDefinitions="*"> <!-- Single row Grid for DataGrid -->
-                                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                                    <dataGrid:DataGrid ItemsSource="{Binding MainView.ErrorLogEntries}"
-                                              SelectedItem="{Binding MainView.SelectedLogEntry, Mode=TwoWay}"
-                                              Classes="visible"
-                                              CanUserReorderColumns="True"
-                                              IsReadOnly="True"
-                                              GridLinesVisibility="Horizontal"
-                                              BorderThickness="0"
-                                              RowBackground="#2D2E32">
-                                        <dataGrid:DataGrid.Columns>
-                                            <dataGrid:DataGridTextColumn Header="Time" Binding="{Binding Timestamp, StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}" Width="150" />
-                                            <DataGridTemplateColumn Header="Level" Width="130">
-                                                <DataGridTemplateColumn.CellTemplate>
-                                                    <DataTemplate x:DataType="models1:LogEntry">
-                                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
-                                                            <PathIcon Data="{Binding LevelIcon}" Width="16" Height="16" Foreground="{Binding LevelColor}"/>
-                                                            <TextBlock Text="{Binding Level}" VerticalAlignment="Center" Foreground="{Binding LevelColor}"/>
-                                                        </StackPanel>
-                                                    </DataTemplate>
-                                                </DataGridTemplateColumn.CellTemplate>
-                                            </DataGridTemplateColumn>
-                                            <DataGridTemplateColumn Header="Message" Width="*">
-                                                <DataGridTemplateColumn.CellTemplate>
-                                                    <DataTemplate x:DataType="models1:LogEntry">
-                                                        <TextBlock Text="{Binding DisplayMessage}" TextWrapping="Wrap" FontWeight="Normal" FontSize="13"/>
-                                                    </DataTemplate>
-                                                </DataGridTemplateColumn.CellTemplate>
-                                            </DataGridTemplateColumn>
-                                            <DataGridTemplateColumn Header="Recommendations" Width="350">
-                                                        <DataGridTemplateColumn.CellTemplate>
-                                                            <DataTemplate x:DataType="models1:LogEntry">
-                                                                <ItemsControl ItemsSource="{Binding ErrorRecommendations}" IsVisible="{Binding HasRecommendations}">
-                                                                    <ItemsControl.ItemTemplate>
-                                                                        <DataTemplate>
-                                                                            <TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="12" MaxWidth="300"/>
-                                                                        </DataTemplate>
-                                                                    </ItemsControl.ItemTemplate>
-                                                                </ItemsControl>
-                                                            </DataTemplate>
-                                                        </DataGridTemplateColumn.CellTemplate>
-                                                    </DataGridTemplateColumn>
-                                        </dataGrid:DataGrid.Columns>
-                                    </dataGrid:DataGrid>
-                                </ScrollViewer>
-                            </Grid>
+                        <TabItem Header="Errors only">
+                            <DataGrid ItemsSource="{Binding MainView.ErrorLogEntries}"
+                                      SelectedItem="{Binding MainView.SelectedLogEntry}"
+                                      IsReadOnly="True"
+                                      AutoGenerateColumns="False"
+                                      CanUserSortColumns="True"
+                                      CanUserReorderColumns="True"
+                                      GridLinesVisibility="All"
+                                      BorderThickness="1"
+                                      BorderBrush="Gray">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp}" Width="160"/>
+                                    <DataGridTemplateColumn Header="Level" Width="130">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate x:DataType="models1:LogEntry">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                                                    <PathIcon Data="{Binding LevelIcon}" Width="16" Height="16" Foreground="{Binding LevelColor}"/>
+                                                    <TextBlock Text="{Binding Level}" VerticalAlignment="Center" Foreground="{Binding LevelColor}"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*"/>
+                                    <DataGridTextColumn Header="Recommendation" Binding="{Binding Recommendation}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </TabItem>
+                        <!-- New TabItem for Errors in All -->
+                        <TabItem Header="Errors in All"
+                                 IsVisible="{Binding MainView.IsMultiFileModeActive}">
+                            <DataGrid ItemsSource="{Binding MainView.AllErrorLogEntries}"
+                                      SelectedItem="{Binding MainView.SelectedLogEntry}"
+                                      IsReadOnly="True"
+                                      AutoGenerateColumns="False"
+                                      CanUserSortColumns="True"
+                                      CanUserReorderColumns="True"
+                                      GridLinesVisibility="All"
+                                      BorderThickness="1"
+                                      BorderBrush="Gray">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp}" Width="160"/>
+                                    <DataGridTemplateColumn Header="Level" Width="130">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate x:DataType="models1:LogEntry">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                                                    <PathIcon Data="{Binding LevelIcon}" Width="16" Height="16" Foreground="{Binding LevelColor}"/>
+                                                    <TextBlock Text="{Binding Level}" VerticalAlignment="Center" Foreground="{Binding LevelColor}"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="3*"/>
+                                    <DataGridTextColumn Header="Source File" Binding="{Binding SourceTabTitle}" Width="2*"/> 
+                                    <DataGridTextColumn Header="Recommendation" Binding="{Binding Recommendation}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
                         </TabItem>
                     </TabControl>
                 </Grid>

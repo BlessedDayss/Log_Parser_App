@@ -45,39 +45,56 @@ namespace Log_Parser_App.Services
 			var logEntries = new List<LogEntry>();
 			var lastErrorEntryByFile = new Dictionary<string, LogEntry?>();
 			var lineNumberByFile = new Dictionary<string, int>();
-			var errorKeywords = new[] { "error", "exception", "not found" };
+			var errorKeywords = new[] { "error", "exception", "not found", "failed", "timeout", "critical", "fatal" };
 			var timeRegex = new System.Text.RegularExpressions.Regex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}");
 			foreach (var (filePath, line) in lines) {
 				lineNumberByFile.TryAdd(filePath, 0);
 				lineNumberByFile[filePath]++;
 				int lineNumber = lineNumberByFile[filePath];
-				bool isLogLine = lineParser.IsLogLine(line);
-				bool isErrorLine = errorKeywords.Any(k => line.Contains(k, System.StringComparison.OrdinalIgnoreCase));
-				if (isLogLine) {
+				
+				bool containsErrorKeyword = errorKeywords.Any(k => line.Contains(k, System.StringComparison.OrdinalIgnoreCase));
+
+				if (lineParser.IsLogLine(line)) {
 					var entry = lineParser.Parse(line, lineNumber, filePath);
 					if (entry == null)
 						continue;
-					if (isErrorLine)
+                    
+					if (containsErrorKeyword) 
+                    {
 						entry.Level = "ERROR";
+                    }
+
 					logEntries.Add(entry);
-					if (entry.Level.Trim().Equals(ErrorLevel, System.StringComparison.InvariantCultureIgnoreCase))
+					if (entry.Level.Trim().Equals(ErrorLevel, System.StringComparison.OrdinalIgnoreCase))
 						lastErrorEntryByFile[filePath] = entry;
 					else
 						lastErrorEntryByFile[filePath] = null;
 				} else {
-					if (lastErrorEntryByFile.TryGetValue(filePath, out var lastErrorEntry) && lastErrorEntry != null) {
+					bool handledAsStackTrace = false;
+                    if (lastErrorEntryByFile.TryGetValue(filePath, out var lastErrorEntry) && lastErrorEntry != null) {
 						if (!timeRegex.IsMatch(line)) {
 							AppendStackTrace(lastErrorEntry, line);
+                            handledAsStackTrace = true;
 						}
-					} else {
-						logEntries.Add(new LogEntry {
-							Timestamp = System.DateTime.Now,
-							Level = "INFO",
-							Message = line,
-							FilePath = filePath,
-							LineNumber = lineNumber
-						});
 					}
+                    
+                    if (!handledAsStackTrace) {
+                        string levelForUnparsedLine = containsErrorKeyword ? "ERROR" : "INFO";
+                        logEntries.Add(new LogEntry {
+                            Timestamp = System.DateTime.Now,
+                            Level = levelForUnparsedLine, 
+                            Message = line.Trim(),
+                            RawData = line,
+                            FilePath = filePath,
+                            LineNumber = lineNumber
+                        });
+                        
+                        if (levelForUnparsedLine == "ERROR") {
+                            lastErrorEntryByFile[filePath] = logEntries.LastOrDefault(le => le.FilePath == filePath && le.LineNumber == lineNumber);
+                        } else {
+                            lastErrorEntryByFile[filePath] = null;
+                        }
+                    }
 				}
 			}
 			_logger.LogDebug($"[ParseLines] Parsed logEntries count: {logEntries.Count}");

@@ -138,6 +138,10 @@ namespace Log_Parser_App.Models
         public string? FilePath { get; set; }
         public int? LineNumber { get; set; }
 
+        public string? SourceTabTitle { get; set; }
+
+        public string? Recommendation { get; set; }
+
         public System.Windows.Input.ICommand? OpenFileCommand { get; set; }
 
         public string DisplayMessage
