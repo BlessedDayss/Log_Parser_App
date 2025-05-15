@@ -16,6 +16,9 @@ using LiveChartsCore.Defaults;
 using SkiaSharp;
 using System.Collections.Generic;
 using Log_Parser_App.Models.Interfaces;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia;
 
 namespace Log_Parser_App.ViewModels
 {
@@ -44,6 +47,31 @@ namespace Log_Parser_App.ViewModels
 
         [ObservableProperty]
         private int _selectedTabIndex = 0;
+
+        private ObservableCollection<TabViewModel> _fileTabs = new();
+        public ObservableCollection<TabViewModel> FileTabs
+        {
+            get => _fileTabs;
+            set { _fileTabs = value; OnPropertyChanged(); }
+        }
+
+        private TabViewModel? _selectedTab;
+        public TabViewModel? SelectedTab
+        {
+            get => _selectedTab;
+            set
+            {
+                if (SetProperty(ref _selectedTab, value) && value != null)
+                {
+                    LogEntries = value.LogEntries;
+                    FilteredLogEntries = value.LogEntries;
+                    UpdateErrorLogEntries();
+                    UpdateLogStatistics();
+                    FilePath = value.FilePath;
+                    FileStatus = value.Title;
+                }
+            }
+        }
 
         private List<LogEntry> _logEntries = new();
         public List<LogEntry> LogEntries
@@ -340,18 +368,165 @@ namespace Log_Parser_App.ViewModels
         {
             try
             {
-                var file = await _fileService.PickLogFileAsync();
-                if (file == null) return;
-                LastOpenedFilePath = file;
-
-                // Используем наш оптимизированный метод загрузки файла
-                await LoadFileAsync(file);
+                var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop ? desktop.MainWindow : null;
+                var files = await _filePickerService.PickFilesAsync(mainWindow);
+                if (files == null || !files.Any()) return;
+                await LoadFilesAsync(files);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ошибка выбора и загрузки файла логов");
-                StatusMessage = $"Error: {ex.Message}";
+                _logger.LogError(ex, "Ошибка загрузки файлов логов");
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    StatusMessage = $"Error: {ex.Message}";
+                    IsLoading = false;
+                });
+            }
+        }
+
+        private async Task LoadFilesAsync(IEnumerable<string> files)
+        {
+            StatusMessage = $"Opening {files.Count()} files...";
+            IsLoading = true;
+            FileStatus = $"{files.Count()} files";
+            IsDashboardVisible = true;
+            
+            foreach (var file in files)
+            {
+                // Check if the file is already opened
+                if (FileTabs.Any(tab => tab.FilePath == file))
+                {
+                    var existingTab = FileTabs.First(tab => tab.FilePath == file);
+                    SelectedTab = existingTab;
+                    continue;
+                }
+                
+                await LoadFileToTab(file);
+            }
+            
+            IsLoading = false;
+        }
+        
+        private async Task LoadFileToTab(string filePath)
+        {
+            try
+            {
+                var entries = await Task.Run(async () =>
+                {
+                    var logEntries = await _logParserService.ParseLogFileAsync(filePath);
+                    return logEntries;
+                });
+                
+                var logEntriesArr = entries as LogEntry[] ?? entries.ToArray();
+                var processedEntries = await Task.Run(() =>
+                {
+                    var processed = new List<LogEntry>(logEntriesArr.Length);
+                    foreach (var entry in logEntriesArr)
+                    {
+                        entry.OpenFileCommand = ExternalOpenFileCommand;
+                        processed.Add(entry);
+                    }
+                    return processed;
+                });
+                
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    var title = Path.GetFileName(filePath);
+                    var newTab = new TabViewModel(filePath, title, processedEntries.ToList());
+                    FileTabs.Add(newTab);
+                    SelectedTab = newTab;
+                    StatusMessage = $"Loaded {processedEntries.Count} log entries from {title}";
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error loading file: {filePath}");
+                StatusMessage = $"Error loading {Path.GetFileName(filePath)}: {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task LoadDirectory()
+        {
+            try
+            {
+                var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop ? desktop.MainWindow : null;
+                var dir = await _filePickerService.PickDirectoryAsync(mainWindow);
+                if (string.IsNullOrEmpty(dir)) return;
+                await LoadDirectoryAsync(dir);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading directory");
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    StatusMessage = $"Error: {ex.Message}";
+                    IsLoading = false;
+                });
+            }
+        }
+        
+        private async Task LoadDirectoryAsync(string dir)
+        {
+            StatusMessage = $"Opening directory {dir}...";
+            IsLoading = true;
+            FileStatus = dir;
+            IsDashboardVisible = true;
+            
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                LogEntries.Clear();
+                FilteredLogEntries.Clear();
+                ErrorLogEntries.Clear();
+            }, DispatcherPriority.Background);
+            
+            var entries = await Task.Run(async () =>
+            {
+                var logEntries = await _logParserService.ParseLogDirectoryAsync(dir);
+                return logEntries;
+            });
+            
+            var logEntriesArr = entries as LogEntry[] ?? entries.ToArray();
+            var processedEntries = await Task.Run(() =>
+            {
+                var processed = new List<LogEntry>(logEntriesArr.Length);
+                foreach (var entry in logEntriesArr)
+                {
+                    entry.OpenFileCommand = ExternalOpenFileCommand;
+                    processed.Add(entry);
+                }
+                return processed;
+            });
+            
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var dirName = new DirectoryInfo(dir).Name;
+                var newTab = new TabViewModel(dir, $"Dir: {dirName}", processedEntries.ToList());
+                FileTabs.Add(newTab);
+                SelectedTab = newTab;
+                StatusMessage = $"Loaded {processedEntries.Count} log entries from directory {dirName}";
                 IsLoading = false;
+            });
+        }
+        
+        [RelayCommand]
+        private void CloseTab(TabViewModel tab)
+        {
+            if (tab == null) return;
+            
+            FileTabs.Remove(tab);
+            
+            // Если закрыли текущую вкладку, выбираем другую
+            if (SelectedTab == tab)
+            {
+                SelectedTab = FileTabs.FirstOrDefault();
+                if (SelectedTab != null)
+                {
+                    foreach (var t in FileTabs)
+                    {
+                        t.IsSelected = (t == SelectedTab);
+                    }
+                }
             }
         }
 
@@ -823,7 +998,8 @@ namespace Log_Parser_App.ViewModels
         {
             try
             {
-                var files = await _filePickerService.PickFilesAsync();
+                var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop ? desktop.MainWindow : null;
+                var files = await _filePickerService.PickFilesAsync(mainWindow);
                 if (files == null || !files.Any()) return;
                 StatusMessage = $"Opening {files.Count()} files...";
                 IsLoading = true;
@@ -874,58 +1050,47 @@ namespace Log_Parser_App.ViewModels
         }
 
         [RelayCommand]
-        private async Task LoadDirectory()
+        private async Task ShowFilePickerContextMenu()
         {
             try
             {
-                var dir = await _filePickerService.PickDirectoryAsync();
-                if (string.IsNullOrEmpty(dir)) return;
-                StatusMessage = $"Opening directory {dir}...";
-                IsLoading = true;
-                FileStatus = dir;
-                IsDashboardVisible = true;
-                await Dispatcher.UIThread.InvokeAsync(() =>
+                var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop ? desktop.MainWindow : null;
+                var result = await _filePickerService.ShowFilePickerContextMenuAsync(mainWindow);
+                if (result.Files != null && result.Files.Any())
                 {
-                    LogEntries.Clear();
-                    FilteredLogEntries.Clear();
-                    ErrorLogEntries.Clear();
-                }, DispatcherPriority.Background);
-                var entries = await Task.Run(async () =>
+                    await LoadFilesAsync(result.Files);
+                }
+                else if (!string.IsNullOrEmpty(result.Directory))
                 {
-                    var logEntries = await _logParserService.ParseLogDirectoryAsync(dir);
-                    return logEntries;
-                });
-                var logEntriesArr = entries as LogEntry[] ?? entries.ToArray();
-                var processedEntries = await Task.Run(() =>
-                {
-                    var processed = new List<LogEntry>(logEntriesArr.Length);
-                    foreach (var entry in logEntriesArr)
-                    {
-                        entry.OpenFileCommand = ExternalOpenFileCommand;
-                        processed.Add(entry);
-                    }
-                    return processed;
-                });
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    LogEntries = processedEntries.ToList();
-                    FilteredLogEntries = processedEntries.ToList();
-                    UpdateErrorLogEntries();
-                    UpdateLogStatistics();
-                    StatusMessage = $"Loaded {LogEntries.Count} log entries from directory {dir}";
-                    SelectedTabIndex = 0;
-                    IsLoading = false;
-                });
+                    await LoadDirectoryAsync(result.Directory);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ошибка загрузки логов из папки");
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    StatusMessage = $"Error: {ex.Message}";
-                    IsLoading = false;
-                });
+                _logger.LogError(ex, "Error showing file picker context menu");
+                StatusMessage = $"Error: {ex.Message}";
             }
+        }
+
+        [RelayCommand]
+        private void SelectTab(TabViewModel tab)
+        {
+            if (tab == null) return;
+            
+            // Обновляем свойство IsSelected для каждой вкладки
+            foreach (var t in FileTabs)
+            {
+                t.IsSelected = (t == tab);
+            }
+            
+            SelectedTab = tab;
+        }
+
+        [RelayCommand]
+        private void ToggleDashboardVisibility()
+        {
+            IsDashboardVisible = !IsDashboardVisible;
+            _logger.LogInformation("Видимость дашборда изменена на: {Visibility}", IsDashboardVisible);
         }
     }
 }

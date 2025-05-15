@@ -25,6 +25,7 @@
         <!-- Converters -->
         <converters:BoolToBrushConverter x:Key="BoolToBrushConverter" />
         <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+        <converters:BoolToTabColorConverter x:Key="BoolToTabColorConverter" />
         
         <!-- Color/Brush Resources -->
         <SolidColorBrush x:Key="BackgroundBrush" Color="#1A1C21" />
@@ -227,6 +228,25 @@
             <Setter Property="Background" Value="#36544E" />
             <Setter Property="Foreground" Value="#5BF15B" />
         </Style>
+        
+        <Style Selector="Button.icon-button-small">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="2" />
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0.15"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        
+        <Style Selector="Button.icon-button-small:pointerover">
+            <Setter Property="Background" Value="#444444" />
+        </Style>
     </Window.Styles>
 
     <Panel>
@@ -239,7 +259,7 @@
             </Grid.RowDefinitions>
             
             <Border Grid.Row="0" 
-                    Padding="16" 
+                    Padding="16 8" 
                     Background="#262729"
                     Margin="0">
                 <Grid>
@@ -251,66 +271,65 @@
                     
                     <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
                         <Button Classes="icon-button" 
-                                ToolTip.Tip="Load file"
-                                Command="{Binding MainView.LoadFileCommand}">
+                                ToolTip.Tip="File options"
+                                Command="{Binding MainView.ShowFilePickerContextMenuCommand}">
                             <TextBlock Text="📁" FontSize="18" />
                         </Button>
                         <Button Classes="icon-button" 
                                 ToolTip.Tip="Dashboard"
-                                Command="{Binding ToggleDashboardVisibilityCommand}">
+                                Command="{Binding MainView.ToggleDashboardVisibilityCommand}">
                             <TextBlock Text="📊" FontSize="18" />
                         </Button>
                     </StackPanel>
+
+                    <Grid Grid.Column="1">
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" 
+                                     VerticalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding MainView.FileTabs}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Background="{Binding IsSelected, Converter={StaticResource BoolToTabColorConverter}}"
+                                                Padding="10 5" 
+                                                Margin="0 0 2 0" 
+                                                CornerRadius="4 4 0 0"
+                                                BorderThickness="0"
+                                                Click="SelectTab"
+                                                CommandParameter="{Binding}">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" 
+                                                           Text="{Binding Title}" 
+                                                           VerticalAlignment="Center"
+                                                           Margin="0 0 10 0"/>
+                                                <Button Grid.Column="1"
+                                                        Classes="icon-button-small"
+                                                        Click="CloseTab"
+                                                        CommandParameter="{Binding}">
+                                                    <TextBlock Text="✕" FontSize="10"/>
+                                                </Button>
+                                            </Grid>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
                     
-                    <TextBlock Grid.Column="1" 
+                    <TextBlock Grid.Column="2" 
                                Text="{Binding MainView.FileStatus}" 
                                VerticalAlignment="Center" 
-                               HorizontalAlignment="Center"
+                               HorizontalAlignment="Right"
+                               Margin="10 0 0 0"
                                Foreground="#CCCCCC"
                                FontSize="14" />
-                    
-                    <StackPanel Grid.Column="2" 
-                                Orientation="Vertical" 
-                                HorizontalAlignment="Right"
-                                Spacing="4"
-                                Margin="0,0,8,0">
-                        
-                        <StackPanel Orientation="Horizontal" 
-                                    HorizontalAlignment="Center" 
-                                    Spacing="4">
-                            <Border Width="24" Height="24" 
-                                    Background="#0078D7" 
-                                    CornerRadius="4"
-                                    Margin="0">
-                                <TextBlock Text="S" 
-                                           FontWeight="Bold" 
-                                           FontSize="14"
-                                           Foreground="White" 
-                                           HorizontalAlignment="Center" 
-                                           VerticalAlignment="Center"/>
-                            </Border>
-                            
-                            <Border Background="#FFCC00" 
-                                    CornerRadius="3" 
-                                    Padding="6,2" 
-                                    VerticalAlignment="Center">
-                                <TextBlock Text="{Binding AppVersion}" 
-                                           FontSize="14" 
-                                           FontWeight="Medium"
-                                           Foreground="#333333"/>
-                            </Border>
-                        </StackPanel>
-                        
-                        <Button Content="Check for updates" 
-                                Background="Transparent"
-                                BorderThickness="0"
-                                Padding="0"
-                                Foreground="#AAAAAA"
-                                FontSize="12"
-                                HorizontalAlignment="Center"
-                                HorizontalContentAlignment="Center"
-                                Command="{Binding CheckForUpdatesAsyncCommand}"/>
-                    </StackPanel>
                 </Grid>
             </Border>
             
@@ -579,7 +598,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="Log Analysis Dashboard" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" />
-                            <Button Grid.Column="1" Classes="icon-button" Command="{Binding ToggleDashboardVisibilityCommand}" ToolTip.Tip="Close Dashboard">
+                            <Button Grid.Column="1" Classes="icon-button" Command="{Binding MainView.ToggleDashboardVisibilityCommand}" ToolTip.Tip="Close Dashboard">
                                 <TextBlock Text="✖" FontSize="16" />
                             </Button>
                             <Button Grid.Column="2" Classes="icon-button" Command="{Binding MainView.LoadFileCommand}" ToolTip.Tip="Load New File">

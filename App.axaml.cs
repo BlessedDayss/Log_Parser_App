@@ -126,9 +126,8 @@ public partial class App : Application
                 provider.GetRequiredService<SimpleLogLineParser>()
             })
         );
-        // FilePickerService с MainWindow
-        services.AddSingleton<Log_Parser_App.Models.Interfaces.IFilePickerService>(provider =>
-            new Log_Parser_App.Services.FilePickerService((Window?)App.MainWindow!));
+        // FilePickerService registration updated
+        services.AddSingleton<Log_Parser_App.Models.Interfaces.IFilePickerService, Log_Parser_App.Services.FilePickerService>();
         
         // Регистрируем сервис ассоциаций файлов
         services.AddSingleton<IFileAssociationService, WindowsFileAssociationService>();
