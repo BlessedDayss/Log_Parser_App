@@ -468,45 +468,97 @@ namespace Log_Parser_App.ViewModels
         
         private async Task LoadDirectoryAsync(string dir)
         {
-            StatusMessage = $"Opening directory {dir}...";
+            _logger.LogInformation("Attempting to load directory: {DirectoryPath}", dir);
+            StatusMessage = $"Opening directory {Path.GetFileName(dir)}...";
             IsLoading = true;
-            FileStatus = dir;
+            FileStatus = $"Dir: {Path.GetFileName(dir)}"; // Keep a general status for the directory operation
             IsDashboardVisible = true;
-            
-            await Dispatcher.UIThread.InvokeAsync(() =>
+
+            try
             {
-                LogEntries.Clear();
-                FilteredLogEntries.Clear();
-                ErrorLogEntries.Clear();
-            }, DispatcherPriority.Background);
-            
-            var entries = await Task.Run(async () =>
-            {
-                var logEntries = await _logParserService.ParseLogDirectoryAsync(dir);
-                return logEntries;
-            });
-            
-            var logEntriesArr = entries as LogEntry[] ?? entries.ToArray();
-            var processedEntries = await Task.Run(() =>
-            {
-                var processed = new List<LogEntry>(logEntriesArr.Length);
-                foreach (var entry in logEntriesArr)
+                var files = Directory.EnumerateFiles(dir, "*.txt", SearchOption.TopDirectoryOnly).Take(10).ToList();
+
+                if (!files.Any())
                 {
-                    entry.OpenFileCommand = ExternalOpenFileCommand;
-                    processed.Add(entry);
+                    _logger.LogWarning("No '*.txt' files found in directory: {DirectoryPath}", dir);
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        StatusMessage = $"No '*.txt' files found in directory {Path.GetFileName(dir)}.";
+                        IsLoading = false;
+                    });
+                    return;
                 }
-                return processed;
-            });
-            
-            await Dispatcher.UIThread.InvokeAsync(() =>
+
+                _logger.LogInformation("Found {FileCount} '*.txt' files in {DirectoryPath}. Loading up to 10.", files.Count, dir);
+
+                // We will reuse LoadFileToTab for each file.
+                // This ensures consistent behavior with single file loading including error handling per file.
+                foreach (var file in files)
+                {
+                    // Check if the file is already opened to avoid duplicates
+                    if (FileTabs.Any(tab => tab.FilePath == file))
+                    {
+                        _logger.LogInformation("File {FilePath} is already open. Selecting existing tab.", file);
+                        var existingTab = FileTabs.First(tab => tab.FilePath == file);
+                        // Ensure selection happens on UI thread if it triggers UI updates directly
+                        await Dispatcher.UIThread.InvokeAsync(() => SelectedTab = existingTab);
+                        continue;
+                    }
+                    
+                    _logger.LogInformation("Loading file {FilePath} from directory {DirectoryPath}", file, dir);
+                    await LoadFileToTab(file); // LoadFileToTab already handles UI updates and status messages per file
+                }
+                
+                // After all files are processed (or attempted)
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    // Update status to reflect directory operation completion if needed,
+                    // though LoadFileToTab updates status for the last loaded file.
+                    // Perhaps a summary status message is good here.
+                    var successfullyLoadedTabs = FileTabs.Count(t => files.Contains(t.FilePath));
+                    StatusMessage = $"Finished loading files from directory {Path.GetFileName(dir)}. Loaded {successfullyLoadedTabs} new tab(s).";
+                    IsLoading = false; 
+                    // Select the last added tab from the directory, if any new ones were added.
+                    var lastAddedTab = FileTabs.LastOrDefault(t => files.Contains(t.FilePath));
+                    if (lastAddedTab != null)
+                    {
+                        SelectedTab = lastAddedTab;
+                    }
+                    else if (!FileTabs.Any() && SelectedTab == null)
+                    {
+                        // If no tabs were loaded from dir and no tabs existed before
+                        FileStatus = "No file selected";
+                        IsDashboardVisible = false;
+                    }
+                });
+            }
+            catch (UnauthorizedAccessException ex)
             {
-                var dirName = new DirectoryInfo(dir).Name;
-                var newTab = new TabViewModel(dir, $"Dir: {dirName}", processedEntries.ToList());
-                FileTabs.Add(newTab);
-                SelectedTab = newTab;
-                StatusMessage = $"Loaded {processedEntries.Count} log entries from directory {dirName}";
-                IsLoading = false;
-            });
+                _logger.LogError(ex, "Access denied to directory: {DirectoryPath}", dir);
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    StatusMessage = $"Error: Access denied to {Path.GetFileName(dir)}.";
+                    IsLoading = false;
+                });
+            }
+            catch (DirectoryNotFoundException ex)
+            {
+                _logger.LogError(ex, "Directory not found: {DirectoryPath}", dir);
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    StatusMessage = $"Error: Directory {Path.GetFileName(dir)} not found.";
+                    IsLoading = false;
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing directory {DirectoryPath}", dir);
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    StatusMessage = $"Error processing directory {Path.GetFileName(dir)}: {ex.Message}";
+                    IsLoading = false;
+                });
+            }
         }
         
         [RelayCommand]
