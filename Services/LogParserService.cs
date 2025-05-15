@@ -47,12 +47,13 @@ namespace Log_Parser_App.Services
 			var lineNumberByFile = new Dictionary<string, int>();
 			var errorKeywords = new[] { "error", "exception", "not found", "failed", "timeout", "critical", "fatal" };
 			var timeRegex = new System.Text.RegularExpressions.Regex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}");
+			var errorWordRegex = new System.Text.RegularExpressions.Regex(@"\\berror\\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 			foreach (var (filePath, line) in lines) {
 				lineNumberByFile.TryAdd(filePath, 0);
 				lineNumberByFile[filePath]++;
 				int lineNumber = lineNumberByFile[filePath];
 				
-				bool containsErrorKeyword = errorKeywords.Any(k => line.Contains(k, System.StringComparison.OrdinalIgnoreCase));
+				bool containsErrorKeyword = errorWordRegex.IsMatch(line) || errorKeywords.Skip(1).Any(k => line.Contains(k, System.StringComparison.OrdinalIgnoreCase));
 
 				if (lineParser.IsLogLine(line)) {
 					var entry = lineParser.Parse(line, lineNumber, filePath);
