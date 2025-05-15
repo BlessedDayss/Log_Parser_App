@@ -412,14 +412,15 @@
                     </Grid.ColumnDefinitions>
                     <TabControl Grid.Column="0" SelectedIndex="{Binding MainView.SelectedTabIndex}">
                         <TabItem Header="All entries">
-                            <Grid RowDefinitions="Auto, *"> 
-                                <!-- Row 0 for Filters -->
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10" Margin="8,0,0,8">
-                                    <Button Content="+ Add Filter" Classes="add-button" Command="{Binding AddFilterCriterionCommand}" Padding="10,4" FontSize="12" MinWidth="0" MinHeight="0" Margin="0" />
-                                    <Button Content="✔️ Apply Filters" Classes="apply-filters-button" Command="{Binding ApplyFiltersCommand}" Padding="10,4" FontSize="12" Margin="0" />
-                                    <Button Content="🔄 Reset Filters" Classes="reset-filters-button" Command="{Binding ResetFiltersCommand}" Padding="10,4" FontSize="12" Margin="0" />
+                            <Grid RowDefinitions="Auto, Auto, *"> 
+                                <!-- Row 0 for Filter Buttons -->
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10" Margin="8,8,0,8" Grid.Row="0">
+                                    <Button Content="+ Add Filter" Classes="add-button" Command="{Binding MainView.AddFilterCriterionCommand}" Padding="10,4" FontSize="12" MinWidth="0" MinHeight="0" Margin="0" />
+                                    <Button Content="✔️ Apply Filters" Classes="apply-filters-button" Command="{Binding MainView.ApplyFiltersCommand}" Padding="10,4" FontSize="12" Margin="0" />
+                                    <Button Content="🔄 Reset Filters" Classes="reset-filters-button" Command="{Binding MainView.ResetFiltersCommand}" Padding="10,4" FontSize="12" Margin="0" />
                                 </StackPanel>
-                                <ItemsControl ItemsSource="{Binding FilterCriteria}" Grid.Row="0" Margin="0, 45, 0, 0">
+                                <!-- Row 1 for Filter Criteria ItemsControl -->
+                                <ItemsControl ItemsSource="{Binding MainView.FilterCriteria}" Grid.Row="1" Margin="8,0,8,8">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
                                             <StackPanel Orientation="Vertical" Spacing="6" />
@@ -430,7 +431,7 @@
                                             <Border Background="#2D2E32" CornerRadius="6" Padding="12 8">
                                                 <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" VerticalAlignment="Center">
                                                     <ComboBox Grid.Column="0"
-                                                              ItemsSource="{Binding ParentViewModel.AvailableFields}"
+                                                              ItemsSource="{Binding AvailableFields}"
                                                               SelectedItem="{Binding SelectedField}"
                                                               MinWidth="150"
                                                               Margin="0,0,5,0"/>
@@ -462,8 +463,8 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <!-- Row 1 for DataGrid -->
-                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <!-- Row 2 for DataGrid -->
+                                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                     <DataGrid ItemsSource="{Binding MainView.FilteredLogEntries}"
                                               SelectedItem="{Binding MainView.SelectedLogEntry, Mode=TwoWay}"
                                               Classes="visible"

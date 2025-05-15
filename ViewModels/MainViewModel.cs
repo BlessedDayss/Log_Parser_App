@@ -148,6 +148,28 @@ namespace Log_Parser_App.ViewModels
         [ObservableProperty]
         private LogEntry? _selectedLogEntry;
 
+        // Filter Criteria Properties
+        public ObservableCollection<FilterCriterion> FilterCriteria { get; } = new();
+
+        // Example: Define available fields and operators at the MainViewModel level
+        // These would be used to populate the FilterCriterion instances
+        private readonly List<string> _masterAvailableFields = new List<string> { "Timestamp", "Level", "Message", "Source", "RawData", "CorrelationId", "ErrorType" };
+        public Dictionary<string, List<string>> OperatorsByFieldType { get; } = new()
+        {
+            { "Timestamp", new List<string> { "Equals", "Before", "After", "Between" } },
+            { "Level", new List<string> { "Equals", "Not Equals" } },
+            { "Message", new List<string> { "Contains", "Equals", "StartsWith", "EndsWith", "Regex Not Contains" } },
+            { "Source", new List<string> { "Equals", "Contains" } },
+            { "RawData", new List<string> { "Contains", "Regex" } },
+            { "CorrelationId", new List<string> { "Equals" } },
+            { "ErrorType", new List<string> { "Equals", "Contains" } }
+        };
+        public Dictionary<string, ObservableCollection<string>> AvailableValuesByField { get; } = new()
+        {
+            { "Level", new ObservableCollection<string> { "ERROR", "INFO", "WARNING" } }
+            // Other fields might not have predefined values, or they could be populated dynamically
+        };
+
         // LiveCharts - Графики
         [ObservableProperty]
         private ISeries[] _levelsOverTimeSeries = Array.Empty<ISeries>();
@@ -1001,11 +1023,197 @@ namespace Log_Parser_App.ViewModels
         }
 
         [RelayCommand]
-        private static void ApplyFilters()
+        private async Task ApplyFilters()
         {
-            // Implementation of ApplyFilters method
-            // This method should filter LogEntries and result in FilteredLogEntries
-            // ... existing code ...
+            if (LogEntries.Count == 0)
+            {
+                StatusMessage = "No log entries to filter";
+                return;
+            }
+            if (FilterCriteria.Count == 0 || FilterCriteria.Any(c => string.IsNullOrWhiteSpace(c.SelectedField) || string.IsNullOrWhiteSpace(c.SelectedOperator) || c.Value == null))
+            {
+                StatusMessage = "Please configure all filter criteria completely";
+                // Optionally, if no filters are defined, show all logs
+                if (FilterCriteria.Count == 0)
+                {
+                    FilteredLogEntries = LogEntries.ToList();
+                     _logger.LogDebug("No filters defined, showing all {Count} log entries.", LogEntries.Count);
+                    OnPropertyChanged(nameof(FilteredLogEntries));
+                    StatusMessage = "Displaying all log entries.";
+                }
+                return;
+            }
+            StatusMessage = "Applying filters...";
+            IsLoading = true;
+            try
+            {
+                var entriesToFilter = LogEntries;
+                await Task.Run(() =>
+                {
+                    IEnumerable<LogEntry> currentlyFiltered = entriesToFilter;
+                    foreach (var criterion in FilterCriteria)
+                    {
+                        if (string.IsNullOrWhiteSpace(criterion.SelectedField) ||
+                            string.IsNullOrWhiteSpace(criterion.SelectedOperator) ||
+                            criterion.Value == null) // Allow empty string for value, but not null if operator needs it
+                        {
+                            _logger.LogWarning("Skipping incomplete filter criterion: Field='{Field}', Operator='{Operator}', Value='{Value}'",
+                                criterion.SelectedField, criterion.SelectedOperator, criterion.Value);
+                            continue;
+                        }
+                        currentlyFiltered = ApplySingleFilterCriterion(currentlyFiltered, criterion);
+                    }
+                    var filteredEntriesList = currentlyFiltered.ToList();
+                    Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        FilteredLogEntries = filteredEntriesList;
+                        StatusMessage = $"Filters applied. Displaying {FilteredLogEntries.Count} entries.";
+                        _logger.LogInformation("Filters applied. Displaying {Count} entries.", FilteredLogEntries.Count);
+                    });
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error applying filters");
+                StatusMessage = $"Error applying filters: {ex.Message}";
+            }
+            finally
+            {
+                Dispatcher.UIThread.InvokeAsync(() => IsLoading = false);
+            }
+        }
+
+        [RelayCommand]
+        private async Task ResetFilters()
+        {
+            if (LogEntries.Count == 0)
+            {
+                StatusMessage = "No log entries to reset filters on.";
+                return;
+            }
+            StatusMessage = "Resetting filters...";
+            IsLoading = true;
+            try
+            {
+                await Task.Run(() =>
+                {
+                    var allEntries = LogEntries.ToList();
+                    Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        FilterCriteria.Clear(); // Also clear the criteria themselves
+                        FilteredLogEntries = allEntries;
+                        StatusMessage = $"Filters reset. Displaying {FilteredLogEntries.Count} entries.";
+                         _logger.LogInformation("Filters reset. Displaying {Count} log entries.", FilteredLogEntries.Count);
+                    });
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error resetting filters");
+                StatusMessage = $"Error resetting filters: {ex.Message}";
+            }
+            finally
+            {
+                 Dispatcher.UIThread.InvokeAsync(() => IsLoading = false);
+            }
+        }
+
+        private IEnumerable<LogEntry> ApplySingleFilterCriterion(IEnumerable<LogEntry> entries, FilterCriterion criterion)
+        {
+            _logger.LogDebug("ApplySingleFilterCriterion called. Field: {Field}, Operator: {Operator}, Value: '{Value}'. Initial entry count: {InitialCount}", 
+                             criterion.SelectedField, criterion.SelectedOperator, criterion.Value, entries.Count());
+
+            if (string.IsNullOrWhiteSpace(criterion.SelectedField) || 
+                string.IsNullOrWhiteSpace(criterion.SelectedOperator) ||
+                criterion.Value == null) 
+            {
+                _logger.LogWarning("Incomplete criterion. Field: {Field}, Op: {Op}, Val: {Val}. Returning original entries.", 
+                                 criterion.SelectedField, criterion.SelectedOperator, criterion.Value);
+                return entries;
+            }
+
+            Func<LogEntry, string?> getEntryValue;
+            switch (criterion.SelectedField)
+            {
+                case "Timestamp":
+                    getEntryValue = e => e.Timestamp.ToString("o");
+                    _logger.LogTrace("Using Timestamp field. Formatted entry value example: {ExampleVal}", entries.FirstOrDefault()?.Timestamp.ToString("o"));
+                    break;
+                case "Level":
+                    getEntryValue = e => e.Level;
+                    _logger.LogTrace("Using Level field. Entry value example: {ExampleVal}", entries.FirstOrDefault()?.Level);
+                    break;
+                case "Message":
+                    getEntryValue = e => e.Message;
+                    _logger.LogTrace("Using Message field.");
+                    break;
+                case "Source":
+                    getEntryValue = e => e.Source;
+                     _logger.LogTrace("Using Source field.");
+                    break;
+                case "RawData":
+                    getEntryValue = e => e.RawData;
+                    _logger.LogTrace("Using RawData field.");
+                    break;
+                case "CorrelationId":
+                    getEntryValue = e => e.CorrelationId;
+                    _logger.LogTrace("Using CorrelationId field.");
+                    break;
+                case "ErrorType":
+                    getEntryValue = e => e.ErrorType;
+                    _logger.LogTrace("Using ErrorType field.");
+                    break;
+                default:
+                    _logger.LogWarning("Unsupported field for filtering: {Field}. Returning original entries.", criterion.SelectedField);
+                    return entries;
+            }
+
+            var filterValue = criterion.Value;
+            _logger.LogTrace("Filter value to compare: '{FilterVal}'", filterValue);
+
+            IEnumerable<LogEntry> result = entries; // Default to original if no specific operator matches
+
+            if (criterion.SelectedField == "Timestamp" && DateTime.TryParse(filterValue, out var dateValue))
+            {
+                _logger.LogTrace("Timestamp field with parsable date: {DateVal}", dateValue);
+                result = criterion.SelectedOperator switch
+                {
+                    "Equals" => entries.Where(e => e.Timestamp.Date == dateValue.Date),
+                    "Before" => entries.Where(e => e.Timestamp < dateValue),
+                    "After" => entries.Where(e => e.Timestamp > dateValue),
+                    _ => entries 
+                };
+                _logger.LogDebug("Timestamp operator '{Operator}' applied. Result count: {Count}", criterion.SelectedOperator, result.Count());
+                return result;
+            }
+            
+            _logger.LogTrace("Applying general string-based operator: {Operator}", criterion.SelectedOperator);
+            result = criterion.SelectedOperator switch
+            {
+                "Equals" => entries.Where(e => {
+                    var entryVal = getEntryValue(e) ?? string.Empty;
+                    bool comparisonResult = entryVal.Equals(filterValue, StringComparison.OrdinalIgnoreCase);
+                    // _logger.LogTrace("Comparing (Equals): '{EntryVal}' with '{FilterVal}' -> {Result}", entryVal, filterValue, comparisonResult); // Can be too verbose
+                    return comparisonResult;
+                }),
+                "Not Equals" => entries.Where(e => !(getEntryValue(e) ?? string.Empty).Equals(filterValue, StringComparison.OrdinalIgnoreCase)),
+                "Contains" => entries.Where(e => (getEntryValue(e) ?? string.Empty).Contains(filterValue, StringComparison.OrdinalIgnoreCase)),
+                "StartsWith" => entries.Where(e => (getEntryValue(e) ?? string.Empty).StartsWith(filterValue, StringComparison.OrdinalIgnoreCase)),
+                "EndsWith" => entries.Where(e => (getEntryValue(e) ?? string.Empty).EndsWith(filterValue, StringComparison.OrdinalIgnoreCase)),
+                "Regex Not Contains" => entries.Where(e => {
+                    var entryVal = getEntryValue(e) ?? string.Empty;
+                    try { return !System.Text.RegularExpressions.Regex.IsMatch(entryVal, filterValue, System.Text.RegularExpressions.RegexOptions.IgnoreCase); }
+                    catch (ArgumentException ex) { _logger.LogWarning(ex, "Invalid regex pattern for Not Contains: {Pattern}", filterValue); return true; }
+                }),
+                "Regex" => entries.Where(e => { 
+                    var entryVal = getEntryValue(e) ?? string.Empty;
+                    try { return System.Text.RegularExpressions.Regex.IsMatch(entryVal, filterValue, System.Text.RegularExpressions.RegexOptions.IgnoreCase); }
+                    catch (ArgumentException ex) { _logger.LogWarning(ex, "Invalid regex pattern for Regex: {Pattern}", filterValue); return false; }
+                }),
+                _ => entries
+            };
+            _logger.LogDebug("Operator '{Operator}' for field '{Field}' applied. Result count: {Count}", criterion.SelectedOperator, criterion.SelectedField, result.Count());
+            return result;
         }
 
         [RelayCommand]
@@ -1224,6 +1432,39 @@ namespace Log_Parser_App.ViewModels
             }
             _logger.LogInformation("AllErrorLogEntries updated. Count: {Count}. Active: {IsMultiFileModeActive}", AllErrorLogEntries.Count, IsMultiFileModeActive);
             OnPropertyChanged(nameof(AllErrorLogEntries)); // Notify UI about changes to this collection
+        }
+
+        [RelayCommand]
+        private void AddFilterCriterion()
+        {
+            var newCriterion = new FilterCriterion
+            {
+                ParentViewModel = this,
+                AvailableFields = new ObservableCollection<string>(_masterAvailableFields) 
+                // AvailableOperators will be populated by FilterCriterion based on SelectedField and ParentViewModel.OperatorsByFieldType
+                // AvailableValues will be populated by FilterCriterion based on SelectedField and ParentViewModel.AvailableValuesByField
+            };
+            if (newCriterion.AvailableFields.Any())
+            {
+                newCriterion.SelectedField = newCriterion.AvailableFields.First(); // Auto-select first field
+            }
+            FilterCriteria.Add(newCriterion);
+            _logger.LogDebug("Added new filter criterion. Total criteria: {Count}", FilterCriteria.Count);
+        }
+
+        [RelayCommand]
+        private void RemoveFilterCriterion(FilterCriterion? criterion)
+        {
+            if (criterion != null)
+            {
+                FilterCriteria.Remove(criterion);
+                ApplyFilters(); // Re-apply filters after removing one
+                _logger.LogDebug("Removed filter criterion. Total criteria: {Count}", FilterCriteria.Count);
+            }
+            else
+            {
+                _logger.LogWarning("Attempted to remove a null filter criterion.");
+            }
         }
     }
 }
