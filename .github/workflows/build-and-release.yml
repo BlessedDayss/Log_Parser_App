@@ -51,6 +51,8 @@ jobs:
           $projectFilePath = Join-Path $env:GITHUB_WORKSPACE '${{ env.PROJECT_NAME }}' '${{ env.PROJECT_NAME }}.csproj'
           Write-Host "Inspecting file: $projectFilePath"
           if (Test-Path $projectFilePath) {
+            Write-Host "--- .NET Info on Runner ---"
+            dotnet --info
             Write-Host "--- First 20 lines of $projectFilePath ---"
             Get-Content $projectFilePath -TotalCount 20
             Write-Host "--- Last 50 lines of $projectFilePath ---"
