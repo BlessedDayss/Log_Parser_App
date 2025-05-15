@@ -7,7 +7,8 @@ on:
     branches: [ main ]
 
 permissions:
-  contents: write 
+  contents: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -44,6 +45,29 @@ jobs:
         with:
           useConfigFile: false
 
+      - name: Display csproj file content for debugging
+        shell: pwsh
+        run: |
+          $projectFilePath = Join-Path $env:GITHUB_WORKSPACE '${{ env.PROJECT_NAME }}' '${{ env.PROJECT_NAME }}.csproj'
+          Write-Host "Inspecting file: $projectFilePath"
+          if (Test-Path $projectFilePath) {
+            Write-Host "--- First 20 lines of $projectFilePath ---"
+            Get-Content $projectFilePath -TotalCount 20
+            Write-Host "--- Last 50 lines of $projectFilePath ---"
+            Get-Content $projectFilePath -Tail 50
+            Write-Host "--- Attempting to parse $projectFilePath as XML (on runner) ---"
+            try {
+              $xml = New-Object System.Xml.XmlDocument
+              $xml.Load($projectFilePath)
+              Write-Host "XML parsing on runner successful."
+            } catch {
+              Write-Host "XML parsing on runner FAILED: $($_.Exception.ToString())"
+            }
+          } else {
+            Write-Host "File not found on runner: $projectFilePath"
+          }
+        working-directory: ${{ github.workspace }}
+
       - name: Restore dependencies
         run: dotnet restore ${{ env.PROJECT_NAME }}.csproj
         working-directory: ./${{ env.PROJECT_NAME }}
@@ -61,7 +85,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Необходимо для консистентности, хотя версия берется из needs
+          fetch-depth: 0
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
