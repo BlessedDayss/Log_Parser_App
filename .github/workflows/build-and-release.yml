@@ -1,4 +1,3 @@
-﻿# .github/workflows/ci-and-release.yml
 name: CI + Sonar + Release
 
 on:
@@ -11,6 +10,7 @@ permissions:
   contents: write
   checks: write
   pull-requests: write
+  id-token: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -21,6 +21,7 @@ env:
   SONAR_ORG: blesseddayss
   SONAR_PROJ: BlessedDayss_Log_Parser_App
   PROJECT_NAME: Log_Parser_App
+  DOTNET_TOOLS_PATH: ${{ runner.os == 'Windows' && format('{0}\\.dotnet\\tools', env.USERPROFILE) || format('{0}/.dotnet/tools', env.HOME) }}
 
 jobs:
   sonar:
@@ -35,60 +36,89 @@ jobs:
           fetch-depth: 0
 
       - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Restore dependencies
-        run: dotnet restore --ignore-failed-sources
+      - name: Create default GitVersion.yml if not present
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "GitVersion.yml")) {
+            Write-Host "GitVersion.yml not found. Creating a default one for this run."
+            @"
+            mode: Mainline
+            branches:
+              main:
+                tag: ''
+                increment: Patch
+              feature:
+                increment: Minor
+            "@ | Set-Content -Path GitVersion.yml -Encoding UTF8
+          }
+        working-directory: ${{ github.workspace }}
 
-      - name: Build solution
-        run: dotnet build --no-restore -c Release
-
-      - name: Install GitVersion action
-        uses: gittools/actions/gitversion/setup@v3.2.1
+      - name: Install GitVersion tool
+        uses: gittools/actions/gitversion/setup@v1.1.1
         with:
           versionSpec: '5.x'
 
       - name: Determine semantic version
         id: version
-        uses: gittools/actions/gitversion/execute@v3.2.1
+        uses: gittools/actions/gitversion/execute@v1.1.1
         with:
           useConfigFile: true
+          configFilePath: GitVersion.yml
+        working-directory: ${{ github.workspace }}
+
+      - name: Restore dependencies
+        run: dotnet restore ./${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}.csproj
+        working-directory: ${{ github.workspace }}
 
       - name: Install dotnet-sonarscanner
         shell: pwsh
-        run: dotnet tool install --global dotnet-sonarscanner --version 4.10.0
+        run: dotnet tool install --global dotnet-sonarscanner --version 5.15.0
 
-      - name: Add .NET global tools to PATH
-        run: echo "${{ runner.env.USERPROFILE }}\\.dotnet\\tools" >> $GITHUB_PATH
+      - name: Add .NET global tools to GITHUB_PATH
+        shell: pwsh
+        run: echo "${{ env.DOTNET_TOOLS_PATH }}" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: SonarCloud Begin
         shell: pwsh
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           dotnet sonarscanner begin `
-            /k:${{ env.SONAR_PROJ }} `
-            /o:${{ env.SONAR_ORG }} `
-            /d:sonar.login=$Env:SONAR_TOKEN `
-            /d:sonar.cs.opencover.reportsPaths=coverage.opencover.xml `
-            /d:sonar.coverage.exclusions=**/Migrations/** `
-            /d:sonar.cpd.exclusions=**/*.generated.cs `
-            /d:sonar.duplicatedBlocksThreshold=10 `
-            /d:sonar.qualitygate.wait=true
+            /k:"${{ env.SONAR_PROJ }}" `
+            /o:"${{ env.SONAR_ORG }}" `
+            /d:sonar.token="${{ env.SONAR_TOKEN }}" `
+            /d:sonar.host.url="https://sonarcloud.io" `
+            /d:sonar.sources="." `
+            /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" `
+            /d:sonar.coverage.exclusions="**/Migrations/**,**/*Tests*/**,**/*.designer.cs,**/*AssemblyInfo.cs" `
+            /d:sonar.cpd.exclusions="**/*.generated.cs,**/Migrations/**,**/*Tests*/**,**/*.designer.cs,**/*AssemblyInfo.cs" `
+            /d:sonar.qualitygate.wait=true `
+            /d:sonar.pullrequest.key="${{ github.event.pull_request.number }}" `
+            /d:sonar.pullrequest.branch="${{ github.event.pull_request.head.ref }}" `
+            /d:sonar.pullrequest.base="${{ github.event.pull_request.base.ref }}"
+        working-directory: ${{ github.workspace }}/${{ env.PROJECT_NAME }}
+
+      - name: Build solution for Sonar analysis
+        run: dotnet build --no-restore -c Release ./${{ env.PROJECT_NAME }}.csproj
+        working-directory: ${{ github.workspace }}/${{ env.PROJECT_NAME }}
 
       - name: SonarCloud End
         if: always()
         shell: pwsh
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: dotnet sonarscanner end /d:sonar.login=$Env:SONAR_TOKEN
+        run: dotnet sonarscanner end /d:sonar.token="${{ env.SONAR_TOKEN }}"
+        working-directory: ${{ github.workspace }}/${{ env.PROJECT_NAME }}
 
   release:
     name: Publish Release
     needs: sonar
-    if: needs.sonar.result == 'success' && github.ref == 'refs/heads/main'
+    if: needs.sonar.result == 'success' && github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: windows-latest
     steps:
       - name: Checkout repository
@@ -97,19 +127,20 @@ jobs:
           fetch-depth: 0
 
       - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Publish executable
         shell: pwsh
         run: |
-          dotnet publish ./Log_Parser_App.csproj `
+          dotnet publish ./${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}.csproj `
             -c Release `
             -r win-x64 `
             --self-contained true `
             -p:PublishSingleFile=true `
-            -o publish/
+            -o ../../publish # Публикуем в папку publish на один уровень выше папки проекта
+        working-directory: ${{ github.workspace }}/${{ env.PROJECT_NAME }}
 
       - name: Create GitHub Release
         id: create_release
@@ -121,14 +152,14 @@ jobs:
           release_name: Release v${{ needs.sonar.outputs.FULL_SEM_VER }}
           body: Automated release of version v${{ needs.sonar.outputs.FULL_SEM_VER }}
           draft: false
-          prerelease: false
+          prerelease: ${{ contains(needs.sonar.outputs.FULL_SEM_VER, '-') }} # Автоматически определяет предрелиз по наличию '-'
 
-      - name: Upload executable
+      - name: Upload executable to Release
+        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release upload \
-            --repo ${{ github.repository }} \
-            --tag v${{ needs.sonar.outputs.FULL_SEM_VER }} \
-            publish/Log_Parser_App.exe \
-            --clobber
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./publish/${{ env.PROJECT_NAME }}.exe
+          asset_name: ${{ env.PROJECT_NAME }}-${{ needs.sonar.outputs.FULL_SEM_VER }}.exe
+          asset_content_type: application/octet-stream
