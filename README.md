@@ -30,7 +30,7 @@ Log Parser App comes packed with features to streamline your log analysis workfl
 
 ---
 
-![Log Parser App Demo](Assets\Log_Parser_App.gif)
+![Log Parser App Demo](Assets/Log_Parser_App.gif)
 
 ---
 
