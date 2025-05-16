@@ -10,6 +10,8 @@ using System;
 using NLog;
 using System.IO;
 using Avalonia.Input;
+using System.Diagnostics;
+using Log_Parser_App.Models;
 
 namespace Log_Parser_App.Views;
 
@@ -24,38 +26,19 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
-        // Manual alternative to InitializeComponent
-        AvaloniaXamlLoader.Load(this);
+        InitializeComponent();
+        DataContextChanged += OnDataContextChanged;
+#if DEBUG
+        this.AttachDevTools();
+#endif
+    }
 
-        // Логирование запуска окна
-        logger.Info("MainWindow запущен.");
-
-        this.AttachedToVisualTree += (_, _) =>
+    private void OnDataContextChanged(object? sender, EventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
         {
-            if (DataContext is MainWindowViewModel { MainView: not null } vm)
-            {
-                UpdateTheme(vm.MainView.IsDarkTheme);
-
-                vm.MainView.PropertyChanged += (_, args) =>
-                {
-                    if (args.PropertyName == nameof(vm.MainView.IsDarkTheme))
-                    {
-                        UpdateTheme(vm.MainView.IsDarkTheme);
-                    }
-                };
-            }
-            
-            // Попытка обновления версии при успешном обновлении
-            try
-            {
-                UpdateVersion();
-                logger.Info("Версия успешно обновлена.");
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Ошибка при обновлении версии.");
-            }
-        };
+            // vm.Initialize(); // Example if you need to initialize after DataContext is set
+        }
     }
     
     private void UpdateTheme(bool isDarkTheme)
@@ -107,9 +90,9 @@ public partial class MainWindow : Window
     }
 
     // Обработка выбора вкладки
-    public void SelectTab(object sender, RoutedEventArgs e)
+    public void SelectTab(object? sender, RoutedEventArgs e)
     {
-        if (sender is Button button && button.CommandParameter is Models.TabViewModel tab 
+        if (sender is Button button && button.CommandParameter is TabViewModel tab 
             && DataContext is MainWindowViewModel viewModel)
         {
             viewModel.MainView.SelectTabCommand.Execute(tab);
@@ -117,13 +100,35 @@ public partial class MainWindow : Window
     }
     
     // Обработка закрытия вкладки
-    public void CloseTab(object sender, RoutedEventArgs e)
+    public void CloseTab(object? sender, RoutedEventArgs e)
     {
-        if (sender is Button button && button.CommandParameter is Models.TabViewModel tab
+        if (sender is Button button && button.CommandParameter is TabViewModel tab
             && DataContext is MainWindowViewModel viewModel)
         {
             viewModel.MainView.CloseTabCommand.Execute(tab);
             e.Handled = true; // Предотвращаем всплытие события
+        }
+    }
+
+    private void Tab_DoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is Button { CommandParameter: TabViewModel tabViewModel } && DataContext is MainWindowViewModel)
+        {
+            if (!string.IsNullOrEmpty(tabViewModel.FilePath) && File.Exists(tabViewModel.FilePath))
+            {
+                try
+                {
+                    var processStartInfo = new ProcessStartInfo(tabViewModel.FilePath)
+                    {
+                        UseShellExecute = true
+                    };
+                    Process.Start(processStartInfo);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to open file '{tabViewModel.FilePath}': {ex.Message}");
+                }
+            }
         }
     }
 }
