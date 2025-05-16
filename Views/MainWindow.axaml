@@ -299,6 +299,7 @@
                                                 CornerRadius="4 4 0 0"
                                                 BorderThickness="0"
                                                 Click="SelectTab"
+                                                DoubleTapped="Tab_DoubleTapped"
                                                 CommandParameter="{Binding}">
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
