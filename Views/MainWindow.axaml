@@ -489,7 +489,17 @@
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate x:DataType="models1:LogEntry">
                                                         <StackPanel Orientation="Horizontal" Spacing="6">
-                                                            <TextBlock Text="{Binding DisplayMessage}" TextWrapping="Wrap" FontWeight="Normal" FontSize="13"/>
+                                                            <TextBox Text="{Binding DisplayMessage}" 
+                                                                     IsReadOnly="True" 
+                                                                     TextWrapping="Wrap" 
+                                                                     FontWeight="Normal" 
+                                                                     FontSize="13"
+                                                                     Background="Transparent" 
+                                                                     BorderThickness="0" 
+                                                                     CaretBrush="Transparent"
+                                                                     AcceptsReturn="True" 
+                                                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                                                     ScrollViewer.VerticalScrollBarVisibility="Disabled"/>
                                                             <Button Background="Transparent" BorderThickness="0" Padding="0" Margin="4,0,0,0" IsVisible="{Binding StackTrace, Converter={StaticResource NullToVisibilityConverter}}" Command="{Binding ToggleExpandCommand}">
                                                                 <TextBlock Text="🪲" Foreground="#F9A825" FontSize="14"/>
                                                             </Button>
