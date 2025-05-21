@@ -7,16 +7,14 @@ namespace Log_Parser_App.Services
 {
     public class LogFileLoader : ILogFileLoader
     {
-        public async Task<IEnumerable<string>> LoadLinesAsync(string filePath)
+        public async IAsyncEnumerable<string> LoadLinesAsync(string filePath)
         {
-            var lines = new List<string>();
             using var reader = new StreamReader(filePath);
             string? line;
             while ((line = await reader.ReadLineAsync()) != null)
             {
-                lines.Add(line);
+                yield return line;
             }
-            return lines;
         }
     }
-} 
+}
