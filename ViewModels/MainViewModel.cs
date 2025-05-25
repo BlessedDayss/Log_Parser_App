@@ -306,7 +306,7 @@ private async Task LoadFileAsync(string filePath)
                 var parseStopwatch = System.Diagnostics.Stopwatch.StartNew();
                 
                 var entriesList = new List<LogEntry>();
-                await foreach (var entryValue in _logParserService.ParseLogFileAsync(filePath, CancellationToken.None))
+                await foreach (var entryValue in _logParserService.ParseLogFileAsync(filePath, cancellationToken))
                 {
                     entriesList.Add(entryValue);
                 }
