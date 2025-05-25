@@ -15,6 +15,7 @@ using LiveChartsCore.SkiaSharpView.Painting;
 using LiveChartsCore.Defaults;
 using SkiaSharp;
 using System.Collections.Generic;
+using System.Threading; // Corrected
 using Log_Parser_App.Models.Interfaces;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -278,130 +279,139 @@ namespace Log_Parser_App.ViewModels
             }
         }
 
-        private async Task LoadFileAsync(string filePath)
+private async Task LoadFileAsync(string filePath)
+{
+    try
+    {
+        StatusMessage = $"Opening {Path.GetFileName(filePath)}...";
+        IsLoading = true;
+        FileStatus = Path.GetFileName(filePath);
+        IsDashboardVisible = true;
+        _logger.LogInformation("PERF: Начало загрузки файла {FilePath}", filePath);
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            LogEntries.Clear();
+            FilteredLogEntries.Clear();
+            ErrorLogEntries.Clear();
+        }, DispatcherPriority.Background);
+
+        // Выполняем парсинг полностью отдельно от UI-потока
+        var entries = await Task.Run(async () =>
         {
             try
             {
-                StatusMessage = $"Opening {Path.GetFileName(filePath)}...";
-                IsLoading = true;
-                FileStatus = Path.GetFileName(filePath);
-                IsDashboardVisible = true;
-                _logger.LogInformation("PERF: Начало загрузки файла {FilePath}", filePath);
-                var sw = System.Diagnostics.Stopwatch.StartNew();
-
-                await Dispatcher.UIThread.InvokeAsync(() =>
+                _logger.LogDebug("PERF: Начало парсинга файла {FilePath}", filePath);
+                var parseStopwatch = System.Diagnostics.Stopwatch.StartNew();
+                
+                var entriesList = new List<LogEntry>();
+                await foreach (var entryValue in _logParserService.ParseLogFileAsync(filePath, cancellationToken))
                 {
-                    LogEntries.Clear();
-                    FilteredLogEntries.Clear();
-                    ErrorLogEntries.Clear();
-                }, DispatcherPriority.Background);
+                    entriesList.Add(entryValue);
+                }
+                var logEntriesResult = entriesList; // Use this variable below
 
-                // Выполняем парсинг полностью отдельно от UI-потока
-                var entries = await Task.Run(async () =>
-                {
-                    try
-                    {
-                        _logger.LogDebug("PERF: Начало парсинга файла {FilePath}", filePath);
-                        var parseStopwatch = System.Diagnostics.Stopwatch.StartNew();
-                        var logEntries = await _logParserService.ParseLogFileAsync(filePath);
-                        _logger.LogDebug("PERF: Парсинг файла завершен за {ElapsedMs}ms", parseStopwatch.ElapsedMilliseconds);
-                        return logEntries;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Ошибка при парсинге файла {FilePath}", filePath);
-                        throw;
-                    }
-                });
-
-                var logEntries = entries as LogEntry[] ?? entries.ToArray();
-                _logger.LogDebug("PERF: Начало предварительной обработки {Count} записей", logEntries.Length);
-
-                var processedEntries = await Task.Run(() =>
-                {
-                    List<LogEntry> processed = new List<LogEntry>(logEntries.Length);
-                    foreach (var entry in logEntries)
-                    {
-                        try
-                        {
-                            if (!string.IsNullOrEmpty(entry.Message))
-                            {
-                                var lines = entry.Message.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                                var regex = new System.Text.RegularExpressions.Regex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}");
-                                string mainLine = lines.FirstOrDefault(l => !l.TrimStart().StartsWith("at ")) ?? lines[0];
-                                var stackLines = lines.SkipWhile(l => !l.TrimStart().StartsWith("at ")).Where(l => l.TrimStart().StartsWith("at ")).ToList();
-                                entry.Message = mainLine.Trim();
-                                entry.StackTrace = stackLines.Count > 0 ? string.Join("\n", stackLines) : null;
-                            }
-                            entry.OpenFileCommand = ExternalOpenFileCommand;
-                            processed.Add(entry);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Ошибка при обработке записи {LineNumber}", entry.LineNumber);
-                        }
-                    }
-                    return processed;
-                });
-
-                _logger.LogDebug("PERF: Начало обработки рекомендаций для ошибок");
-
-                await Task.Run(() =>
-                {
-                    var errorEntries = processedEntries.Where(e => e.Level.Equals("Error", StringComparison.OrdinalIgnoreCase)).ToList();
-                    Parallel.ForEach(errorEntries, entry =>
-                    {
-                        try
-                        {
-                            _logger.LogTrace("Обработка рекомендаций для ошибки: '{Message}'", entry.Message);
-                            var recommendation = _errorRecommendationService.AnalyzeError(entry.Message);
-                            if (recommendation != null)
-                            {
-                                entry.ErrorType = recommendation.ErrorType;
-                                entry.ErrorDescription = recommendation.Description;
-                                entry.ErrorRecommendations.Clear();
-                                entry.ErrorRecommendations.AddRange(recommendation.Recommendations);
-                            }
-                            else
-                            {
-                                entry.ErrorType = "UnknownError";
-                                entry.ErrorDescription = "Unknown error. Recommendations not found.";
-                                entry.ErrorRecommendations.Clear();
-                                entry.ErrorRecommendations.Add("Check error log for additional information.");
-                                entry.ErrorRecommendations.Add("Contact documentation or support.");
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Ошибка при обработке рекомендаций для записи {LineNumber}", entry.LineNumber);
-                        }
-                    });
-                });
-
-                // Обновляем UI и статистику после полной загрузки
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    LogEntries = processedEntries.ToList();
-                    FilteredLogEntries = processedEntries.ToList();
-                    UpdateErrorLogEntries();
-                    UpdateLogStatistics();
-                    _logger.LogDebug("PERF: Завершение загрузки данных в UI");
-                    _logger.LogInformation("Загружено {Count} записей логов за {ElapsedMs}ms", LogEntries.Count, sw.ElapsedMilliseconds);
-                    StatusMessage = $"Loaded {LogEntries.Count} log entries";
-                    SelectedTabIndex = 0;
-                    IsLoading = false;
-                });
+                _logger.LogDebug("PERF: Парсинг файла завершен за {ElapsedMs}ms", parseStopwatch.ElapsedMilliseconds);
+                return logEntriesResult;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ошибка загрузки файла логов");
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    StatusMessage = $"Error: {ex.Message}";
-                    IsLoading = false;
-                });
+                _logger.LogError(ex, "Ошибка при парсинге файла {FilePath}", filePath);
+                throw;
             }
-        }
+        });
+
+        // var logEntries = entries as LogEntry[] ?? entries.ToArray(); // Old line
+        var loadedLogEntries = entries; // 'entries' is now the List<LogEntry> from Task.Run
+
+        _logger.LogDebug("PERF: Начало предварительной обработки {Count} записей", loadedLogEntries.Count);
+
+        var processedEntries = await Task.Run(() =>
+        {
+            List<LogEntry> processed = new List<LogEntry>(loadedLogEntries.Count);
+            foreach (var entry in loadedLogEntries) // Use loadedLogEntries here
+            {
+                try
+                {
+                    if (!string.IsNullOrEmpty(entry.Message))
+                    {
+                        var lines = entry.Message.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                        var regex = new System.Text.RegularExpressions.Regex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}");
+                        string mainLine = lines.FirstOrDefault(l => !l.TrimStart().StartsWith("at ")) ?? lines[0];
+                        var stackLines = lines.SkipWhile(l => !l.TrimStart().StartsWith("at ")).Where(l => l.TrimStart().StartsWith("at ")).ToList();
+                        entry.Message = mainLine.Trim();
+                        entry.StackTrace = stackLines.Count > 0 ? string.Join("\n", stackLines) : null;
+                    }
+                    entry.OpenFileCommand = ExternalOpenFileCommand;
+                    processed.Add(entry);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Ошибка при обработке записи {LineNumber}", entry.LineNumber);
+                }
+            }
+            return processed;
+        });
+
+        _logger.LogDebug("PERF: Начало обработки рекомендаций для ошибок");
+
+        await Task.Run(() =>
+        {
+            var errorEntries = processedEntries.Where(e => e.Level.Equals("Error", StringComparison.OrdinalIgnoreCase)).ToList();
+            Parallel.ForEach(errorEntries, entry =>
+            {
+                try
+                {
+                    _logger.LogTrace("Обработка рекомендаций для ошибки: '{Message}'", entry.Message);
+                    var recommendation = _errorRecommendationService.AnalyzeError(entry.Message);
+                    if (recommendation != null)
+                    {
+                        entry.ErrorType = recommendation.ErrorType;
+                        entry.ErrorDescription = recommendation.Description;
+                        entry.ErrorRecommendations.Clear();
+                        entry.ErrorRecommendations.AddRange(recommendation.Recommendations);
+                    }
+                    else
+                    {
+                        entry.ErrorType = "UnknownError";
+                        entry.ErrorDescription = "Unknown error. Recommendations not found.";
+                        entry.ErrorRecommendations.Clear();
+                        entry.ErrorRecommendations.Add("Check error log for additional information.");
+                        entry.ErrorRecommendations.Add("Contact documentation or support.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Ошибка при обработке рекомендаций для записи {LineNumber}", entry.LineNumber);
+                }
+            });
+        });
+
+        // Обновляем UI и статистику после полной загрузки
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            LogEntries = processedEntries.ToList(); // Ensure this is a new list if processedEntries is reused
+            FilteredLogEntries = processedEntries.ToList(); // Ensure this is a new list
+            UpdateErrorLogEntries();
+            UpdateLogStatistics();
+            _logger.LogDebug("PERF: Завершение загрузки данных в UI");
+            _logger.LogInformation("Загружено {Count} записей логов за {ElapsedMs}ms", LogEntries.Count, sw.ElapsedMilliseconds);
+            StatusMessage = $"Loaded {LogEntries.Count} log entries";
+            SelectedTabIndex = 0;
+            IsLoading = false;
+        });
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Ошибка загрузки файла логов");
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            StatusMessage = $"Error: {ex.Message}";
+            IsLoading = false;
+        });
+    }
+}
 
         [RelayCommand]
         private async Task LoadFile()
@@ -455,43 +465,44 @@ namespace Log_Parser_App.ViewModels
             }
         }
         
-        private async Task LoadFileToTab(string filePath)
+private async Task LoadFileToTab(string filePath)
+{
+    try
+    {
+        var entriesList = new List<LogEntry>();
+        await foreach (var entryValue in _logParserService.ParseLogFileAsync(filePath, CancellationToken.None))
         {
-            try
-            {
-                var entries = await Task.Run(async () =>
-                {
-                    var logEntries = await _logParserService.ParseLogFileAsync(filePath);
-                    return logEntries;
-                });
-                
-                var logEntriesArr = entries as LogEntry[] ?? entries.ToArray();
-                var processedEntries = await Task.Run(() =>
-                {
-                    var processed = new List<LogEntry>(logEntriesArr.Length);
-                    foreach (var entry in logEntriesArr)
-                    {
-                        entry.OpenFileCommand = ExternalOpenFileCommand;
-                        processed.Add(entry);
-                    }
-                    return processed;
-                });
-                
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    var title = Path.GetFileName(filePath);
-                    var newTab = new TabViewModel(filePath, title, processedEntries.ToList());
-                    FileTabs.Add(newTab);
-                    SelectedTab = newTab;
-                    StatusMessage = $"Loaded {processedEntries.Count} log entries from {title}";
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error loading file: {filePath}");
-                StatusMessage = $"Error loading {Path.GetFileName(filePath)}: {ex.Message}";
-            }
+            entriesList.Add(entryValue);
         }
+        // var logEntriesArr = entries as LogEntry[] ?? entries.ToArray(); // Old logic
+        var logEntriesArr = entriesList.ToArray(); // New logic based on collected list
+
+        var processedEntries = await Task.Run(() =>
+        {
+            var processed = new List<LogEntry>(logEntriesArr.Length);
+            foreach (var entry in logEntriesArr) // Iterate over the array collected from streaming
+            {
+                entry.OpenFileCommand = ExternalOpenFileCommand;
+                processed.Add(entry);
+            }
+            return processed;
+        });
+        
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            var title = Path.GetFileName(filePath);
+            var newTab = new TabViewModel(filePath, title, processedEntries.ToList()); // Use ToList() for safety if processedEntries is modified elsewhere
+            FileTabs.Add(newTab);
+            SelectedTab = newTab;
+            StatusMessage = $"Loaded {processedEntries.Count} log entries from {title}";
+        });
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, $"Error loading file: {filePath}");
+        StatusMessage = $"Error loading {Path.GetFileName(filePath)}: {ex.Message}";
+    }
+}
 
         [RelayCommand]
         private async Task LoadDirectory()
@@ -1298,61 +1309,68 @@ namespace Log_Parser_App.ViewModels
             }
         }
 
-        [RelayCommand]
-        private async Task LoadMultipleFiles()
+[RelayCommand]
+private async Task LoadMultipleFiles()
+{
+    try
+    {
+        var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop ? desktop.MainWindow : null;
+        var files = await _filePickerService.PickFilesAsync(mainWindow);
+        if (files == null || !files.Any()) return;
+
+        StatusMessage = $"Opening {files.Count()} files...";
+        IsLoading = true;
+        FileStatus = $"{files.Count()} files";
+        IsDashboardVisible = true;
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            try
-            {
-                var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop ? desktop.MainWindow : null;
-                var files = await _filePickerService.PickFilesAsync(mainWindow);
-                if (files == null || !files.Any()) return;
-                StatusMessage = $"Opening {files.Count()} files...";
-                IsLoading = true;
-                FileStatus = $"{files.Count()} files";
-                IsDashboardVisible = true;
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    LogEntries.Clear();
-                    FilteredLogEntries.Clear();
-                    ErrorLogEntries.Clear();
-                }, DispatcherPriority.Background);
-                var entries = await Task.Run(async () =>
-                {
-                    var logEntries = await _logParserService.ParseLogFilesAsync(files);
-                    return logEntries;
-                });
-                var logEntriesArr = entries as LogEntry[] ?? entries.ToArray();
-                var processedEntries = await Task.Run(() =>
-                {
-                    var processed = new List<LogEntry>(logEntriesArr.Length);
-                    foreach (var entry in logEntriesArr)
-                    {
-                        entry.OpenFileCommand = ExternalOpenFileCommand;
-                        processed.Add(entry);
-                    }
-                    return processed;
-                });
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    LogEntries = processedEntries.ToList();
-                    FilteredLogEntries = processedEntries.ToList();
-                    UpdateErrorLogEntries();
-                    UpdateLogStatistics();
-                    StatusMessage = $"Loaded {LogEntries.Count} log entries from {files.Count()} files";
-                    SelectedTabIndex = 0;
-                    IsLoading = false;
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Ошибка загрузки файлов логов");
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    StatusMessage = $"Error: {ex.Message}";
-                    IsLoading = false;
-                });
-            }
+            LogEntries.Clear();
+            FilteredLogEntries.Clear();
+            ErrorLogEntries.Clear();
+        }, DispatcherPriority.Background);
+
+        var entriesList = new List<LogEntry>();
+        // Assuming 'files' is an IEnumerable<string> of file paths
+        await foreach (var entryValue in _logParserService.ParseLogFilesAsync(files, CancellationToken.None))
+        {
+            entriesList.Add(entryValue);
         }
+        // var logEntriesArr = entries as LogEntry[] ?? entries.ToArray(); // Old logic
+        var logEntriesArr = entriesList.ToArray(); // New logic
+
+        var processedEntries = await Task.Run(() =>
+        {
+            var processed = new List<LogEntry>(logEntriesArr.Length);
+            foreach (var entry in logEntriesArr) // Iterate over the array
+            {
+                entry.OpenFileCommand = ExternalOpenFileCommand;
+                processed.Add(entry);
+            }
+            return processed;
+        });
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            LogEntries = processedEntries.ToList(); // Use ToList()
+            FilteredLogEntries = processedEntries.ToList(); // Use ToList()
+            UpdateErrorLogEntries();
+            UpdateLogStatistics();
+            StatusMessage = $"Loaded {LogEntries.Count} log entries from {files.Count()} files";
+            SelectedTabIndex = 0;
+            IsLoading = false;
+        });
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Ошибка загрузки файлов логов");
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            StatusMessage = $"Error: {ex.Message}";
+            IsLoading = false;
+        });
+    }
+}
 
         [RelayCommand]
         private async Task ShowFilePickerContextMenu()

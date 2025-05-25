@@ -1,13 +1,14 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Log_Parser_App.Models;
+using System.Threading; // Added
 
 namespace Log_Parser_App.Services
 {
 
     public interface ILogParserService
     {
-        Task<IEnumerable<LogEntry>> ParseLogFileAsync(string filePath);
+        IAsyncEnumerable<LogEntry> ParseLogFileAsync(string filePath, CancellationToken cancellationToken = default); // Changed
         
         Task<IEnumerable<LogEntry>> ExecuteQueryAsync(IEnumerable<LogEntry> logEntries, string query);
         
@@ -17,7 +18,7 @@ namespace Log_Parser_App.Services
         
         Task<IEnumerable<PackageLogEntry>> ParsePackageLogFileAsync(string filePath);
         
-        Task<IEnumerable<LogEntry>> ParseLogFilesAsync(IEnumerable<string> filePaths);
-        Task<IEnumerable<LogEntry>> ParseLogDirectoryAsync(string directoryPath, string searchPattern = "*.log", int? maxFilesToParse = null);
+        IAsyncEnumerable<LogEntry> ParseLogFilesAsync(IEnumerable<string> filePaths, CancellationToken cancellationToken = default); // Changed
+        IAsyncEnumerable<LogEntry> ParseLogDirectoryAsync(string directoryPath, string searchPattern = "*.log", int? maxFilesToParse = null, CancellationToken cancellationToken = default); // Changed
     }
-} 
+}
