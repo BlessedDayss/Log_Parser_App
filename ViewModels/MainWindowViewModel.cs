@@ -62,6 +62,7 @@ public partial class MainWindowViewModel : ViewModelBase
         LoadApplicationVersion();
         
         CheckForUpdatesAsyncCommand = new RelayCommand(async () => await ExecuteCheckForUpdatesAsync());
+        InstallUpdateCommand = new RelayCommand(async () => await ExecuteInstallUpdateAsync());
         // AddFilterCriterionCommand = new RelayCommand(ExecuteAddFilterCriterion); // Removed
         
         IsDashboardVisible = false;
@@ -82,6 +83,7 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     public ICommand CheckForUpdatesAsyncCommand { get; }
+    public ICommand InstallUpdateCommand { get; }
 
     private async Task ExecuteCheckForUpdatesAsync()
     {
@@ -107,27 +109,34 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private async Task InstallUpdateCommand() // This was not in the removal list but seems update-related, not filter related.
+    private async Task ExecuteInstallUpdateAsync()
     {
         try
         {
-            var updateInfo = _updateService == null ? null : await _updateService.CheckForUpdatesAsync(); // Should this be InstallUpdateAsync?
-            if (updateInfo != null) // This logic looks like CheckForUpdates again.
-            {
-                AvailableUpdate = updateInfo;
-                IsUpdateAvailable = true;
-                _logger.LogInformation($"Update available: {updateInfo.Version}");
-                // Actual install logic is missing here, e.g. _updateService.InstallUpdateAsync(updateInfo);
-            }
-            else
+            if (_updateService == null)
+                return;
+
+            var updateInfo = AvailableUpdate ?? await _updateService.CheckForUpdatesAsync();
+
+            if (updateInfo == null)
             {
                 IsUpdateAvailable = false;
                 _logger.LogInformation("Application is up to date");
+                return;
+            }
+
+            AvailableUpdate = updateInfo;
+            IsUpdateAvailable = true;
+
+            var filePath = await _updateService.DownloadUpdateAsync(updateInfo);
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                await _updateService.InstallUpdateAsync(filePath);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking for updates"); // Should be "Error installing update"
+            _logger.LogError(ex, "Error installing update");
             IsUpdateAvailable = false;
         }
     }
