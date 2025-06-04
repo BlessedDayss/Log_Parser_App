@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Log_Parser_App.Models;
+using Log_Parser_App.Models.Interfaces;
 using Microsoft.Extensions.Logging;
 using System.Text.Json.Serialization;
 using Avalonia;

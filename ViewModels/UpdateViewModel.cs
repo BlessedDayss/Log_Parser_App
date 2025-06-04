@@ -4,16 +4,15 @@ using System;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Log_Parser_App.Models;
-using Log_Parser_App.Services;
+using Log_Parser_App.Models.Interfaces;
 using Microsoft.Extensions.Logging;
 
 
-	public partial class UpdateViewModel
-
-
-(IUpdateService updateService, ILogger<UpdateViewModel> logger) : ViewModelBase
+	public partial class UpdateViewModel : ViewModelBase
 	{
+		private readonly IUpdateService _updateService;
+		private readonly ILogger<UpdateViewModel> _logger;
+
 		[ObservableProperty]
 		private bool _isCheckingForUpdates;
 		[ObservableProperty]
@@ -23,9 +22,20 @@ using Microsoft.Extensions.Logging;
 		[ObservableProperty]
 		private int _downloadProgress;
 		[ObservableProperty]
-		private string _statusMessage = "Ready to check for updates";
+		private string _statusMessage = "Checking for updates...";
 		[ObservableProperty]
 		private UpdateInfo? _availableUpdate;
+
+		public UpdateViewModel(IUpdateService updateService, ILogger<UpdateViewModel> logger)
+		{
+			_updateService = updateService;
+			_logger = logger;
+			CheckForUpdatesCommand = new AsyncRelayCommand(CheckForUpdatesAsync);
+			DownloadAndUpdateCommand = new AsyncRelayCommand(DownloadUpdateAndInstallAsync, CanDownloadUpdateAndInstall);
+		}
+
+		public IAsyncRelayCommand CheckForUpdatesCommand { get; }
+		public IAsyncRelayCommand DownloadAndUpdateCommand { get; }
 
 		private bool IsUpdateValid() {
 			return AvailableUpdate != null && AvailableUpdate.Version > new Version(0, 0, 0);
@@ -33,41 +43,36 @@ using Microsoft.Extensions.Logging;
 
 		public async Task CheckForUpdatesOnStartupAsync() {
 			try {
-				logger.LogInformation("Checking for updates on startup");
+				_logger.LogInformation("Checking for updates on startup");
 				await CheckForUpdatesAsync();
 				if (IsUpdateValid()) {
-					logger.LogInformation("Update available: {Version}", AvailableUpdate?.Version);
+					_logger.LogInformation("Update available: {Version}", AvailableUpdate?.Version);
 				} else {
 					AvailableUpdate = null;
 				}
 			} catch (Exception ex) {
-				logger.LogError(ex, "Error checking for updates on startup");
+				_logger.LogError(ex, "Error checking for updates on startup");
 			}
 		}
 
 		public async Task AutoUpdateAsync() {
 			try {
-				logger.LogInformation("Starting auto update process");
+				_logger.LogInformation("Starting auto update process");
 				await CheckForUpdatesAsync();
 				if (AvailableUpdate == null) {
-					logger.LogInformation("No updates available");
+					_logger.LogInformation("No updates available");
 					return;
 				}
-				string filePath = await DownloadUpdateAsync();
+				string? filePath = await _updateService.DownloadUpdateAsync(AvailableUpdate, null);
 				if (string.IsNullOrEmpty(filePath)) {
-					logger.LogWarning("Download failed or was cancelled");
+					_logger.LogWarning("Download failed or was cancelled");
 					return;
 				}
-				await InstallUpdateAsync(filePath);
+				await _updateService.InstallUpdateAsync(filePath);
 			} catch (Exception ex) {
-				logger.LogError(ex, "Auto update failed");
+				_logger.LogError(ex, "Auto update failed");
 				StatusMessage = $"Ошибка: {ex.Message}";
 			}
-		}
-
-		[RelayCommand]
-		private async Task CheckForUpdates() {
-			await CheckForUpdatesAsync();
 		}
 
 		private async Task CheckForUpdatesAsync() {
@@ -76,75 +81,71 @@ using Microsoft.Extensions.Logging;
 			IsCheckingForUpdates = true;
 			StatusMessage = "Checking for updates...";
 			try {
-				AvailableUpdate = await updateService.CheckForUpdatesAsync();
-				if (AvailableUpdate != null && AvailableUpdate.Version != new Version(0, 0, 0)) {
+				AvailableUpdate = await _updateService.CheckForUpdatesAsync();
+				if (AvailableUpdate != null && AvailableUpdate.Version != new Version(0, 0, 0) && AvailableUpdate.Version > _updateService.GetCurrentVersion()) {
 					StatusMessage = $"Update available: {AvailableUpdate.Version}";
 				} else {
 					StatusMessage = "Installed version is up to date";
 					AvailableUpdate = null;
 				}
 			} catch (Exception ex) {
-				logger.LogError(ex, "Failed to check for updates");
+				_logger.LogError(ex, "Failed to check for updates");
 				StatusMessage = $"Failed to check for updates: {ex.Message}";
+				AvailableUpdate = null;
 			} finally {
 				IsCheckingForUpdates = false;
+				DownloadAndUpdateCommand.NotifyCanExecuteChanged();
 			}
 		}
 
-		[RelayCommand]
-		private async Task DownloadUpdate() {
-			await DownloadUpdateAsync();
+		private bool CanDownloadUpdateAndInstall()
+		{
+			return AvailableUpdate != null && !IsCheckingForUpdates;
 		}
 
-		private async Task<string> DownloadUpdateAsync() {
-			if (IsDownloadingUpdate || AvailableUpdate == null)
-				return string.Empty;
-			IsDownloadingUpdate = true;
-			DownloadProgress = 0;
+		private async Task DownloadUpdateAndInstallAsync()
+		{
+			if (AvailableUpdate == null || string.IsNullOrEmpty(AvailableUpdate.DownloadUrl))
+			{
+				_logger.LogWarning("Download/Install called but AvailableUpdate or DownloadUrl is null.");
+				StatusMessage = "Update information is missing.";
+				return;
+			}
+
 			StatusMessage = "Downloading update...";
-			try {
-				var progress = new Progress<int>(percent => {
+			DownloadProgress = 0;
+			string? downloadedFilePath = null;
+			try
+			{
+				var progressIndicator = new Progress<int>(percent => {
 					DownloadProgress = percent;
 					StatusMessage = $"Downloading update... {percent}%";
 				});
-				string filePath = await updateService.DownloadUpdateAsync(AvailableUpdate, progress);
-				StatusMessage = "Download complete";
-				return filePath;
+				downloadedFilePath = await _updateService.DownloadUpdateAsync(AvailableUpdate, progressIndicator);
+
+				if (string.IsNullOrEmpty(downloadedFilePath))
+				{
+					StatusMessage = "Failed to download update.";
+					_logger.LogError("Downloaded file path is null or empty.");
+					return;
+				}
+
+				StatusMessage = "Installing update...";
+				DownloadProgress = 100; 
+
+				bool installResult = await _updateService.InstallUpdateAsync(downloadedFilePath);
+				if (installResult)
+				{
+					StatusMessage = "Update installed. Application will restart.";
+					_logger.LogInformation("Update successfully initiated, application should restart.");
+				} else {
+					StatusMessage = "Failed to install update.";
+					_logger.LogError("Update installation failed.");
+				}
 			} catch (Exception ex) {
-				logger.LogError(ex, "Failed to download update");
-				StatusMessage = $"Failed: {ex.Message}";
-				return string.Empty;
-			} finally {
-				IsDownloadingUpdate = false;
+				_logger.LogError(ex, "Error downloading or installing update");
+				StatusMessage = $"Error during update process: {ex.Message}";
 			}
 		}
-
-		[RelayCommand]
-		private async Task InstallUpdate() {
-			if (AvailableUpdate == null)
-				return;
-			var filePath = await DownloadUpdateAsync();
-			if (string.IsNullOrEmpty(filePath))
-				return;
-			await InstallUpdateAsync(filePath);
-		}
-
-		private async Task InstallUpdateAsync(string filePath) {
-			if (IsInstallingUpdate)
-				return;
-			IsInstallingUpdate = true;
-			StatusMessage = "Installing update...";
-			try {
-				bool result = await updateService.InstallUpdateAsync(filePath);
-				StatusMessage = result ? "Update installed successfully" : "Update installation failed";
-			} catch (Exception ex) {
-				logger.LogError(ex, "Failed to install update");
-				StatusMessage = $"Failed: {ex.Message}";
-			} finally {
-				IsInstallingUpdate = false;
-			}
-		}
-
 	}
-
 }

@@ -26,6 +26,8 @@
         <converters:BoolToBrushConverter x:Key="BoolToBrushConverter" />
         <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
         <converters:BoolToTabColorConverter x:Key="BoolToTabColorConverter" />
+        <converters:TabToVisibilityConverter x:Key="TabToVisibilityConv" />
+        <converters:StringShortenerConverter x:Key="StringShortenerConverter" />
         
         <!-- Color/Brush Resources -->
         <SolidColorBrush x:Key="BackgroundBrush" Color="#1A1C21" />
@@ -280,6 +282,11 @@
                                 Command="{Binding MainView.ToggleDashboardVisibilityCommand}">
                             <TextBlock Text="📊" FontSize="18" />
                         </Button>
+                        <Button Classes="icon-button" 
+                                ToolTip.Tip="Load IIS Log File(s)"
+                                Command="{Binding MainView.LoadIISLogFileCommand}">
+                            <TextBlock Text="IIS" FontSize="16" FontWeight="Bold" />
+                        </Button>
                     </StackPanel>
 
                     <Grid Grid.Column="1">
@@ -414,122 +421,176 @@
                     <TabControl Grid.Column="0" SelectedIndex="{Binding MainView.SelectedTabIndex}">
                         <TabItem Header="All entries">
                             <Grid RowDefinitions="Auto, Auto, *"> 
-                                <!-- Row 0 for Filter Buttons -->
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10" Margin="8,8,0,8" Grid.Row="0">
-                                    <Button Content="+ Add Filter" Classes="add-button" Command="{Binding MainView.AddFilterCriterionCommand}" Padding="10,4" FontSize="12" MinWidth="0" MinHeight="0" Margin="0" />
-                                    <Button Content="✔️ Apply Filters" Classes="apply-filters-button" Command="{Binding MainView.ApplyFiltersCommand}" Padding="10,4" FontSize="12" Margin="0" />
-                                    <Button Content="🔄 Reset Filters" Classes="reset-filters-button" Command="{Binding MainView.ResetFiltersCommand}" Padding="10,4" FontSize="12" Margin="0" />
-                                </StackPanel>
-                                <!-- Row 1 for Filter Criteria ItemsControl -->
-                                <ItemsControl ItemsSource="{Binding MainView.FilterCriteria}" Grid.Row="1" Margin="8,0,8,8">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <StackPanel Orientation="Vertical" Spacing="6" />
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="models1:FilterCriterion">
-                                            <Border Background="#2D2E32" CornerRadius="6" Padding="12 8">
-                                                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" VerticalAlignment="Center">
-                                                    <ComboBox Grid.Column="0"
-                                                              ItemsSource="{Binding AvailableFields}"
-                                                              SelectedItem="{Binding SelectedField}"
-                                                              MinWidth="150"
-                                                              Margin="0,0,5,0"/>
-                                                    <ComboBox Grid.Column="1"
-                                                              ItemsSource="{Binding AvailableOperators}"
-                                                              SelectedItem="{Binding SelectedOperator}"
-                                                              MinWidth="100"
-                                                              Margin="0,0,5,0"/>
-                                                    <Panel Grid.Column="2" Margin="0,0,5,0">
-                                                        <ComboBox IsVisible="{Binding ShowValueComboBox}"
-                                                                 ItemsSource="{Binding AvailableValues}"
-                                                                 SelectedItem="{Binding Value}"
-                                                                 PlaceholderText="Select a value"
-                                                                 MinWidth="150"/>
-                                                        <TextBox IsVisible="{Binding !ShowValueComboBox}"
-                                                                Text="{Binding Value}"
-                                                                Watermark="Value"
-                                                                MinWidth="150"/>
-                                                    </Panel>
-                                                    <Button Grid.Column="3" 
-                                                            Classes="remove-button" 
-                                                            Command="{Binding ParentViewModel.RemoveFilterCriterionCommand}" 
-                                                            CommandParameter="{Binding}"
-                                                            Padding="0" Margin="5,0,0,0">
-                                                        <TextBlock Text="🗑️" FontSize="14"/>
-                                                    </Button>
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                                <!-- Row 2 for DataGrid -->
-                                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                                    <DataGrid ItemsSource="{Binding MainView.FilteredLogEntries}"
-                                              SelectedItem="{Binding MainView.SelectedLogEntry, Mode=TwoWay}"
-                                              Classes="visible"
-                                              CanUserReorderColumns="True"
-                                              IsReadOnly="True"
-                                              GridLinesVisibility="Horizontal"
-                                              BorderThickness="0"
-                                              RowBackground="#2D2E32">
-                                        <DataGrid.Columns>
-                                            <DataGridTextColumn Header="Time" Binding="{Binding Timestamp, StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}" Width="150" />
-                                            <DataGridTemplateColumn Header="Level" Width="130">
-                                                <DataGridTemplateColumn.CellTemplate>
-                                                    <DataTemplate x:DataType="models1:LogEntry">
-                                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
-                                                            <PathIcon Data="{Binding LevelIcon}" Width="16" Height="16" Foreground="{Binding LevelColor}"/>
-                                                            <TextBlock Text="{Binding Level}" VerticalAlignment="Center" Foreground="{Binding LevelColor}"/>
-                                                        </StackPanel>
-                                                    </DataTemplate>
-                                                </DataGridTemplateColumn.CellTemplate>
-                                            </DataGridTemplateColumn>
-                                            <DataGridTemplateColumn Header="Message" Width="*">
-                                                <DataGridTemplateColumn.CellTemplate>
-                                                    <DataTemplate x:DataType="models1:LogEntry">
-                                                        <StackPanel Orientation="Horizontal" Spacing="6">
-                                                            <TextBox Text="{Binding DisplayMessage}" 
-                                                                     IsReadOnly="True" 
-                                                                     TextWrapping="Wrap" 
-                                                                     FontWeight="Normal" 
-                                                                     FontSize="13"
-                                                                     Background="Transparent" 
-                                                                     BorderThickness="0" 
-                                                                     CaretBrush="Transparent"
-                                                                     AcceptsReturn="True" 
-                                                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                                                     ScrollViewer.VerticalScrollBarVisibility="Disabled"/>
-                                                            <Button Background="Transparent" BorderThickness="0" Padding="0" Margin="4,0,0,0" IsVisible="{Binding StackTrace, Converter={StaticResource NullToVisibilityConverter}}" Command="{Binding ToggleExpandCommand}">
-                                                                <TextBlock Text="🪲" Foreground="#F9A825" FontSize="14"/>
-                                                            </Button>
-                                                        </StackPanel>
-                                                    </DataTemplate>
-                                                </DataGridTemplateColumn.CellTemplate>
-                                            </DataGridTemplateColumn>
-                                            <DataGridTemplateColumn Header="Recommendations" Width="350">
-                                                        <DataGridTemplateColumn.CellTemplate>
-                                                            <DataTemplate x:DataType="models1:LogEntry">
-                                                                <ItemsControl ItemsSource="{Binding ErrorRecommendations}" IsVisible="{Binding HasRecommendations}">
-                                                                    <ItemsControl.ItemTemplate>
-                                                                        <DataTemplate>
-                                                                            <TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="12" MaxWidth="300"/>
-                                                                        </DataTemplate>
-                                                                    </ItemsControl.ItemTemplate>
-                                                                </ItemsControl>
-                                                            </DataTemplate>
-                                                        </DataGridTemplateColumn.CellTemplate>
-                                                    </DataGridTemplateColumn>
-                                        </DataGrid.Columns>
-                                        <DataGrid.RowDetailsTemplate>
-                                            <DataTemplate x:DataType="models1:LogEntry">
-                                                <Border Background="#232323" Padding="12" Margin="0,0,0,4" CornerRadius="6" IsVisible="{Binding IsExpanded}">
-                                                    <TextBlock Text="{Binding StackTrace}" Foreground="#F5F5F7" FontFamily="Consolas" FontSize="13" TextWrapping="Wrap"/>
+                                <!-- Region for Standard Log Filters -->
+                                <StackPanel IsVisible="{Binding MainView.SelectedTab.IsThisTabStandard}" Grid.Row="0" Grid.RowSpan="2"> 
+                                    <!-- Row 0 for Filter Buttons -->
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10" Margin="8,8,0,8">
+                                        <Button Content="+ Add Filter" Classes="add-button" Command="{Binding MainView.AddFilterCriterionCommand}" Padding="10,4" FontSize="12" MinWidth="0" MinHeight="0" Margin="0" />
+                                        <Button Content="✔️ Apply Filters" Classes="apply-filters-button" Command="{Binding MainView.ApplyFiltersCommand}" Padding="10,4" FontSize="12" Margin="0" />
+                                        <Button Content="🔄 Reset Filters" Classes="reset-filters-button" Command="{Binding MainView.ResetFiltersCommand}" Padding="10,4" FontSize="12" Margin="0" />
+                                    </StackPanel>
+                                    <!-- Row 1 for Filter Criteria ItemsControl -->
+                                    <ItemsControl ItemsSource="{Binding MainView.FilterCriteria}" Margin="8,0,8,8">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Vertical" Spacing="6" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="models1:FilterCriterion">
+                                                <Border Background="#2D2E32" CornerRadius="6" Padding="12 8">
+                                                    <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" VerticalAlignment="Center">
+                                                        <ComboBox Grid.Column="0"
+                                                                  ItemsSource="{Binding AvailableFields}"
+                                                                  SelectedItem="{Binding SelectedField}"
+                                                                  MinWidth="150"
+                                                                  Margin="0,0,5,0"/>
+                                                        <ComboBox Grid.Column="1"
+                                                                  ItemsSource="{Binding AvailableOperators}"
+                                                                  SelectedItem="{Binding SelectedOperator}"
+                                                                  MinWidth="100"
+                                                                  Margin="0,0,5,0"/>
+                                                        <Panel Grid.Column="2" Margin="0,0,5,0">
+                                                            <ComboBox IsVisible="{Binding ShowValueComboBox}"
+                                                                      ItemsSource="{Binding AvailableValues}"
+                                                                      SelectedItem="{Binding Value}"
+                                                                      PlaceholderText="Select a value"
+                                                                      MinWidth="150"/>
+                                                            <TextBox IsVisible="{Binding !ShowValueComboBox}"
+                                                                     Text="{Binding Value}"
+                                                                     Watermark="Value"
+                                                                     MinWidth="150"/>
+                                                        </Panel>
+                                                        <Button Grid.Column="3" 
+                                                                Classes="remove-button" 
+                                                                Command="{Binding ParentViewModel.RemoveFilterCriterionCommand}" 
+                                                                CommandParameter="{Binding}"
+                                                                Padding="0" Margin="5,0,0,0">
+                                                            <TextBlock Text="🗑️" FontSize="14"/>
+                                                        </Button>
+                                                    </Grid>
                                                 </Border>
                                             </DataTemplate>
-                                        </DataGrid.RowDetailsTemplate>
-                                    </DataGrid>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel> 
+
+                                <!-- Region for IIS Log Filters -->
+                                <StackPanel IsVisible="{Binding MainView.SelectedTab.IsThisTabIIS}" Grid.Row="0" Grid.RowSpan="2"> 
+                                    <!-- Row 0 for IIS Filter Buttons -->
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10" Margin="8,8,0,8">
+                                        <Button Content="+ Add IIS Filter" Classes="add-button" Command="{Binding MainView.SelectedTab.AddIISFilterCriterionCommand}" Padding="10,4" FontSize="12" MinWidth="0" MinHeight="0" Margin="0" />
+                                        <Button Content="✔️ Apply IIS Filters" Classes="apply-filters-button" Command="{Binding MainView.SelectedTab.ApplyIISFiltersCommand}" Padding="10,4" FontSize="12" Margin="0" />
+                                        <Button Content="🔄 Reset IIS Filters" Classes="reset-filters-button" Command="{Binding MainView.SelectedTab.ResetIISFiltersCommand}" Padding="10,4" FontSize="12" Margin="0" />
+                                    </StackPanel>
+                                    <!-- Row 1 for IIS Filter Criteria ItemsControl -->
+                                    <ItemsControl ItemsSource="{Binding MainView.SelectedTab.IISFilterCriteria}" Margin="8,0,8,8">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Vertical" Spacing="6" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="models1:IISFilterCriterion">
+                                                <Border Background="#2D2E32" CornerRadius="6" Padding="12 8">
+                                                    <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" VerticalAlignment="Center">
+                                                        <ComboBox Grid.Column="0"
+                                                                  ItemsSource="{Binding AvailableFields}" 
+                                                                  SelectedItem="{Binding SelectedField}"
+                                                                  MinWidth="150"
+                                                                  Margin="0,0,5,0"/>
+                                                        <ComboBox Grid.Column="1"
+                                                                  ItemsSource="{Binding AvailableOperators}"
+                                                                  SelectedItem="{Binding SelectedOperator}"
+                                                                  MinWidth="100"
+                                                                  Margin="0,0,5,0"/>
+                                                        <Panel Grid.Column="2" Margin="0,0,5,0">
+                                                            <ComboBox IsVisible="{Binding ShowValueComboBox}"
+                                                                      ItemsSource="{Binding AvailableValues}"
+                                                                      SelectedItem="{Binding Value}"
+                                                                      PlaceholderText="Select a value"
+                                                                      MinWidth="150"/>
+                                                            <TextBox IsVisible="{Binding !ShowValueComboBox}"
+                                                                     Text="{Binding Value}"
+                                                                     Watermark="Value"
+                                                                     MinWidth="150"/>
+                                                        </Panel>
+                                                        <Button Grid.Column="3" 
+                                                                Classes="remove-button" 
+                                                                Command="{Binding ParentViewModel.RemoveIISFilterCriterionCommand}" 
+                                                                CommandParameter="{Binding}"
+                                                                Padding="0" Margin="5,0,0,0">
+                                                            <TextBlock Text="🗑️" FontSize="14"/>
+                                                        </Button>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+
+                                <!-- Row 2 for DataGrid -->
+                                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                    <Panel x:Name="dataGridsPanel" DataContext="{Binding MainView}"> 
+                                        <!-- Standard LogEntry DataGrid -->
+                                        <DataGrid ItemsSource="{Binding FilteredLogEntries}" 
+                                                  SelectedItem="{Binding SelectedLogEntry, Mode=TwoWay}" 
+                                                  IsVisible="{Binding SelectedTab.IsThisTabStandard}" 
+                                                  Classes="standard-log-grid"
+                                                  CanUserReorderColumns="True"
+                                                  CanUserSortColumns="True"
+                                                  SelectionMode="Extended"
+                                                  BorderThickness="0"
+                                                  GridLinesVisibility="Horizontal"
+                                                  HorizontalGridLinesBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp, StringFormat='yyyy-MM-dd HH:mm:ss.fff'}" Width="1.5*"/>
+                                                <DataGridTemplateColumn Header="Level" Width="Auto">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate x:DataType="models1:LogEntry">
+                                                            <Border Background="{Binding Level, Converter={StaticResource LogLevelToBrushConverter}}" 
+                                                                    CornerRadius="3" 
+                                                                    Padding="5,2" 
+                                                                    HorizontalAlignment="Center" 
+                                                                    MinWidth="60">
+                                                                <TextBlock Text="{Binding Level}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontSize="10" FontWeight="Bold"/>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                                <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="5*"/>
+                                                <DataGridTextColumn Header="Source" Binding="{Binding Source, Converter={StaticResource StringShortenerConverter}, ConverterParameter=50}" Width="2*"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+
+                                        <!-- IISLogEntry DataGrid -->
+                                        <DataGrid ItemsSource="{Binding SelectedTab.FilteredIISLogEntries}" 
+                                                  IsVisible="{Binding SelectedTab.IsThisTabIIS}"  
+                                                  Classes="iis-log-grid"
+                                                  CanUserReorderColumns="True"
+                                                  IsReadOnly="True"
+                                                  BorderThickness="0"
+                                                  GridLinesVisibility="Horizontal"
+                                                  HorizontalGridLinesBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                                                  SelectionMode="Extended">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="date" Binding="{Binding DateTime, StringFormat='yyyy-MM-dd'}" x:DataType="models1:IISLogEntry"/>
+                                                <DataGridTextColumn Header="time" Binding="{Binding DateTime, StringFormat='HH:mm:ss'}" x:DataType="models1:IISLogEntry"/>
+                                                <DataGridTextColumn Header="s-ip" Binding="{Binding ServerIPAddress}" x:DataType="models1:IISLogEntry"/>
+                                                <DataGridTextColumn Header="cs-method" Binding="{Binding Method}" x:DataType="models1:IISLogEntry"/>
+                                                <DataGridTextColumn Header="cs-uri-stem" Binding="{Binding UriStem}" x:DataType="models1:IISLogEntry"/>
+                                                <DataGridTextColumn Header="cs-uri-query" Binding="{Binding UriQuery}" x:DataType="models1:IISLogEntry"/>
+                                                <DataGridTextColumn Header="s-port" Binding="{Binding ServerPort}" x:DataType="models1:IISLogEntry"/>
+                                                <DataGridTextColumn Header="cs-username" Binding="{Binding UserName}" x:DataType="models1:IISLogEntry"/>
+                                                <DataGridTextColumn Header="c-ip" Binding="{Binding ClientIPAddress}" x:DataType="models1:IISLogEntry"/>
+                                                <DataGridTextColumn Header="cs(User-Agent)" Binding="{Binding UserAgent}" Width="2*" x:DataType="models1:IISLogEntry"/>
+                                                <DataGridTextColumn Header="cs(Referer)" Binding="{Binding Referer}" Width="2*" x:DataType="models1:IISLogEntry"/>
+                                                <DataGridTextColumn Header="sc-status" Binding="{Binding HttpStatus}" x:DataType="models1:IISLogEntry"/>
+                                                <DataGridTextColumn Header="sc-win32-status" Binding="{Binding Win32Status}" x:DataType="models1:IISLogEntry"/>
+                                                <DataGridTextColumn Header="time-taken" Binding="{Binding TimeTaken}" x:DataType="models1:IISLogEntry"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </Panel>
                                 </ScrollViewer>
                             </Grid>
                         </TabItem>
@@ -616,7 +677,7 @@
                                 <TextBlock Text="✖" FontSize="16" />
                             </Button>
                             <Button Grid.Column="2" Classes="icon-button" Command="{Binding MainView.LoadFileCommand}" ToolTip.Tip="Load New File">
-                                <TextBlock Text="📂" FontSize="16" />
+                                <TextBlock Text="��" FontSize="16" />
                             </Button>
                         </Grid>
                     </Border>

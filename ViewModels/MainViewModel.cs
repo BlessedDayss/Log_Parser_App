@@ -30,6 +30,7 @@ namespace Log_Parser_App.ViewModels
         private readonly IFileService _fileService;
         private readonly IErrorRecommendationService _errorRecommendationService;
         private readonly IFilePickerService _filePickerService;
+        private readonly IIISLogParserService _iisLogParserService;
 
         [ObservableProperty]
         private string _statusMessage = "Ready to work";
@@ -67,30 +68,51 @@ namespace Log_Parser_App.ViewModels
             get => _selectedTab;
             set
             {
+                if (_selectedTab != null)
+                {
+                    _selectedTab.PropertyChanged -= SelectedTab_PropertyChanged;
+                }
+
                 if (SetProperty(ref _selectedTab, value))
                 {
-                    if (value != null)
+                    OnPropertyChanged(nameof(IsCurrentTabIIS)); 
+                    if (_selectedTab != null)
                     {
-                        LogEntries = value.LogEntries;
-                        FilteredLogEntries = value.LogEntries;
-                        UpdateErrorLogEntries();
-                        UpdateLogStatistics();
-                        FilePath = value.FilePath;
-                        FileStatus = value.Title;
+                        _selectedTab.PropertyChanged += SelectedTab_PropertyChanged;
+                        FilePath = _selectedTab.FilePath;
+                        FileStatus = _selectedTab.Title;
+                        // UpdateLogStatistics will be called due to PropertyChanged event if counts change, 
+                        // or immediately if the tab type dictates a full refresh.
                     }
                     else
                     {
-                        LogEntries = new List<LogEntry>();
-                        FilteredLogEntries = new List<LogEntry>();
-                        UpdateErrorLogEntries();
-                        UpdateLogStatistics();
                         FilePath = string.Empty;
                         FileStatus = "No file selected";
                         IsDashboardVisible = !FileTabs.Any();
                     }
+                    UpdateLogStatistics(); // Call this to refresh stats when tab selection changes
                 }
             }
         }
+
+        private void SelectedTab_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (SelectedTab != null && SelectedTab.IsThisTabIIS)
+            {
+                if (e.PropertyName == nameof(TabViewModel.IIS_TotalCount) ||
+                    e.PropertyName == nameof(TabViewModel.IIS_ErrorCount) ||
+                    e.PropertyName == nameof(TabViewModel.IIS_InfoCount) ||
+                    e.PropertyName == nameof(TabViewModel.IIS_RedirectCount))
+                {
+                    UpdateLogStatistics();
+                }
+            }
+            // For standard logs, existing mechanisms (e.g., ApplyFiltersCommand directly calling UpdateLogStatistics) should handle updates.
+            // Or, if TabViewModel for standard logs also exposed aggregated counts via PropertyChanged, we could listen here too.
+        }
+
+        // Property to indicate if the current tab is an IIS log
+        public bool IsCurrentTabIIS => SelectedTab?.LogType == LogFormatType.IIS;
 
         private List<LogEntry> _logEntries = new();
         public List<LogEntry> LogEntries
@@ -222,13 +244,15 @@ namespace Log_Parser_App.ViewModels
             ILogger<MainViewModel> logger,
             IFileService fileService,
             IErrorRecommendationService errorRecommendationService,
-            IFilePickerService filePickerService)
+            IFilePickerService filePickerService,
+            IIISLogParserService iisLogParserService)
         {
             _logParserService = logParserService;
             _logger = logger;
             _fileService = fileService;
             _errorRecommendationService = errorRecommendationService;
             _filePickerService = filePickerService;
+            _iisLogParserService = iisLogParserService;
 
             InitializeErrorRecommendationService();
 
@@ -279,139 +303,139 @@ namespace Log_Parser_App.ViewModels
             }
         }
 
-private async Task LoadFileAsync(string filePath)
-{
-    try
-    {
-        StatusMessage = $"Opening {Path.GetFileName(filePath)}...";
-        IsLoading = true;
-        FileStatus = Path.GetFileName(filePath);
-        IsDashboardVisible = true;
-        _logger.LogInformation("PERF: Начало загрузки файла {FilePath}", filePath);
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-
-        await Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            LogEntries.Clear();
-            FilteredLogEntries.Clear();
-            ErrorLogEntries.Clear();
-        }, DispatcherPriority.Background);
-
-        // Выполняем парсинг полностью отдельно от UI-потока
-        var entries = await Task.Run(async () =>
+        private async Task LoadFileAsync(string filePath)
         {
             try
             {
-                _logger.LogDebug("PERF: Начало парсинга файла {FilePath}", filePath);
-                var parseStopwatch = System.Diagnostics.Stopwatch.StartNew();
-                
-                var entriesList = new List<LogEntry>();
-                await foreach (var entryValue in _logParserService.ParseLogFileAsync(filePath, CancellationToken.None))
-                {
-                    entriesList.Add(entryValue);
-                }
-                var logEntriesResult = entriesList; // Use this variable below
+                StatusMessage = $"Opening {Path.GetFileName(filePath)}...";
+                IsLoading = true;
+                FileStatus = Path.GetFileName(filePath);
+                IsDashboardVisible = true;
+                _logger.LogInformation("PERF: Начало загрузки файла {FilePath}", filePath);
+                var sw = System.Diagnostics.Stopwatch.StartNew();
 
-                _logger.LogDebug("PERF: Парсинг файла завершен за {ElapsedMs}ms", parseStopwatch.ElapsedMilliseconds);
-                return logEntriesResult;
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    LogEntries.Clear();
+                    FilteredLogEntries.Clear();
+                    ErrorLogEntries.Clear();
+                }, DispatcherPriority.Background);
+
+                // Выполняем парсинг полностью отдельно от UI-потока
+                var entries = await Task.Run(async () =>
+                {
+                    try
+                    {
+                        _logger.LogDebug("PERF: Начало парсинга файла {FilePath}", filePath);
+                        var parseStopwatch = System.Diagnostics.Stopwatch.StartNew();
+                        
+                        var entriesList = new List<LogEntry>();
+                        await foreach (var entryValue in _logParserService.ParseLogFileAsync(filePath, CancellationToken.None))
+                        {
+                            entriesList.Add(entryValue);
+                        }
+                        var logEntriesResult = entriesList; // Use this variable below
+
+                        _logger.LogDebug("PERF: Парсинг файла завершен за {ElapsedMs}ms", parseStopwatch.ElapsedMilliseconds);
+                        return logEntriesResult;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Ошибка при парсинге файла {FilePath}", filePath);
+                        throw;
+                    }
+                });
+
+                // var logEntries = entries as LogEntry[] ?? entries.ToArray(); // Old line
+                var loadedLogEntries = entries; // 'entries' is now the List<LogEntry> from Task.Run
+
+                _logger.LogDebug("PERF: Начало предварительной обработки {Count} записей", loadedLogEntries.Count);
+
+                var processedEntries = await Task.Run(() =>
+                {
+                    List<LogEntry> processed = new List<LogEntry>(loadedLogEntries.Count);
+                    foreach (var entry in loadedLogEntries) // Use loadedLogEntries here
+                    {
+                        try
+                        {
+                            if (!string.IsNullOrEmpty(entry.Message))
+                            {
+                                var lines = entry.Message.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                                var regex = new System.Text.RegularExpressions.Regex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}");
+                                string mainLine = lines.FirstOrDefault(l => !l.TrimStart().StartsWith("at ")) ?? lines[0];
+                                var stackLines = lines.SkipWhile(l => !l.TrimStart().StartsWith("at ")).Where(l => l.TrimStart().StartsWith("at ")).ToList();
+                                entry.Message = mainLine.Trim();
+                                entry.StackTrace = stackLines.Count > 0 ? string.Join("\n", stackLines) : null;
+                            }
+                            entry.OpenFileCommand = ExternalOpenFileCommand;
+                            processed.Add(entry);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Ошибка при обработке записи {LineNumber}", entry.LineNumber);
+                        }
+                    }
+                    return processed;
+                });
+
+                _logger.LogDebug("PERF: Начало обработки рекомендаций для ошибок");
+
+                await Task.Run(() =>
+                {
+                    var errorEntries = processedEntries.Where(e => e.Level.Equals("Error", StringComparison.OrdinalIgnoreCase)).ToList();
+                    Parallel.ForEach(errorEntries, entry =>
+                    {
+                        try
+                        {
+                            _logger.LogTrace("Обработка рекомендаций для ошибки: '{Message}'", entry.Message);
+                            var recommendation = _errorRecommendationService.AnalyzeError(entry.Message);
+                            if (recommendation != null)
+                            {
+                                entry.ErrorType = recommendation.ErrorType;
+                                entry.ErrorDescription = recommendation.Description;
+                                entry.ErrorRecommendations.Clear();
+                                entry.ErrorRecommendations.AddRange(recommendation.Recommendations);
+                            }
+                            else
+                            {
+                                entry.ErrorType = "UnknownError";
+                                entry.ErrorDescription = "Unknown error. Recommendations not found.";
+                                entry.ErrorRecommendations.Clear();
+                                entry.ErrorRecommendations.Add("Check error log for additional information.");
+                                entry.ErrorRecommendations.Add("Contact documentation or support.");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Ошибка при обработке рекомендаций для записи {LineNumber}", entry.LineNumber);
+                        }
+                    });
+                });
+
+                // Обновляем UI и статистику после полной загрузки
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    LogEntries = processedEntries.ToList(); // Ensure this is a new list if processedEntries is reused
+                    FilteredLogEntries = processedEntries.ToList(); // Ensure this is a new list
+                    UpdateErrorLogEntries();
+                    UpdateLogStatistics();
+                    _logger.LogDebug("PERF: Завершение загрузки данных в UI");
+                    _logger.LogInformation("Загружено {Count} записей логов за {ElapsedMs}ms", LogEntries.Count, sw.ElapsedMilliseconds);
+                    StatusMessage = $"Loaded {LogEntries.Count} log entries";
+                    SelectedTabIndex = 0;
+                    IsLoading = false;
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ошибка при парсинге файла {FilePath}", filePath);
-                throw;
+                _logger.LogError(ex, "Ошибка загрузки файла логов");
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    StatusMessage = $"Error: {ex.Message}";
+                    IsLoading = false;
+                });
             }
-        });
-
-        // var logEntries = entries as LogEntry[] ?? entries.ToArray(); // Old line
-        var loadedLogEntries = entries; // 'entries' is now the List<LogEntry> from Task.Run
-
-        _logger.LogDebug("PERF: Начало предварительной обработки {Count} записей", loadedLogEntries.Count);
-
-        var processedEntries = await Task.Run(() =>
-        {
-            List<LogEntry> processed = new List<LogEntry>(loadedLogEntries.Count);
-            foreach (var entry in loadedLogEntries) // Use loadedLogEntries here
-            {
-                try
-                {
-                    if (!string.IsNullOrEmpty(entry.Message))
-                    {
-                        var lines = entry.Message.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                        var regex = new System.Text.RegularExpressions.Regex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}");
-                        string mainLine = lines.FirstOrDefault(l => !l.TrimStart().StartsWith("at ")) ?? lines[0];
-                        var stackLines = lines.SkipWhile(l => !l.TrimStart().StartsWith("at ")).Where(l => l.TrimStart().StartsWith("at ")).ToList();
-                        entry.Message = mainLine.Trim();
-                        entry.StackTrace = stackLines.Count > 0 ? string.Join("\n", stackLines) : null;
-                    }
-                    entry.OpenFileCommand = ExternalOpenFileCommand;
-                    processed.Add(entry);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Ошибка при обработке записи {LineNumber}", entry.LineNumber);
-                }
-            }
-            return processed;
-        });
-
-        _logger.LogDebug("PERF: Начало обработки рекомендаций для ошибок");
-
-        await Task.Run(() =>
-        {
-            var errorEntries = processedEntries.Where(e => e.Level.Equals("Error", StringComparison.OrdinalIgnoreCase)).ToList();
-            Parallel.ForEach(errorEntries, entry =>
-            {
-                try
-                {
-                    _logger.LogTrace("Обработка рекомендаций для ошибки: '{Message}'", entry.Message);
-                    var recommendation = _errorRecommendationService.AnalyzeError(entry.Message);
-                    if (recommendation != null)
-                    {
-                        entry.ErrorType = recommendation.ErrorType;
-                        entry.ErrorDescription = recommendation.Description;
-                        entry.ErrorRecommendations.Clear();
-                        entry.ErrorRecommendations.AddRange(recommendation.Recommendations);
-                    }
-                    else
-                    {
-                        entry.ErrorType = "UnknownError";
-                        entry.ErrorDescription = "Unknown error. Recommendations not found.";
-                        entry.ErrorRecommendations.Clear();
-                        entry.ErrorRecommendations.Add("Check error log for additional information.");
-                        entry.ErrorRecommendations.Add("Contact documentation or support.");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Ошибка при обработке рекомендаций для записи {LineNumber}", entry.LineNumber);
-                }
-            });
-        });
-
-        // Обновляем UI и статистику после полной загрузки
-        await Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            LogEntries = processedEntries.ToList(); // Ensure this is a new list if processedEntries is reused
-            FilteredLogEntries = processedEntries.ToList(); // Ensure this is a new list
-            UpdateErrorLogEntries();
-            UpdateLogStatistics();
-            _logger.LogDebug("PERF: Завершение загрузки данных в UI");
-            _logger.LogInformation("Загружено {Count} записей логов за {ElapsedMs}ms", LogEntries.Count, sw.ElapsedMilliseconds);
-            StatusMessage = $"Loaded {LogEntries.Count} log entries";
-            SelectedTabIndex = 0;
-            IsLoading = false;
-        });
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "Ошибка загрузки файла логов");
-        await Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            StatusMessage = $"Error: {ex.Message}";
-            IsLoading = false;
-        });
-    }
-}
+        }
 
         [RelayCommand]
         private async Task LoadFile()
@@ -465,44 +489,44 @@ private async Task LoadFileAsync(string filePath)
             }
         }
         
-private async Task LoadFileToTab(string filePath)
-{
-    try
-    {
-        var entriesList = new List<LogEntry>();
-        await foreach (var entryValue in _logParserService.ParseLogFileAsync(filePath, CancellationToken.None))
+        private async Task LoadFileToTab(string filePath)
         {
-            entriesList.Add(entryValue);
-        }
-        // var logEntriesArr = entries as LogEntry[] ?? entries.ToArray(); // Old logic
-        var logEntriesArr = entriesList.ToArray(); // New logic based on collected list
-
-        var processedEntries = await Task.Run(() =>
-        {
-            var processed = new List<LogEntry>(logEntriesArr.Length);
-            foreach (var entry in logEntriesArr) // Iterate over the array collected from streaming
+            try
             {
-                entry.OpenFileCommand = ExternalOpenFileCommand;
-                processed.Add(entry);
+                var entriesList = new List<LogEntry>();
+                await foreach (var entryValue in _logParserService.ParseLogFileAsync(filePath, CancellationToken.None))
+                {
+                    entriesList.Add(entryValue);
+                }
+                // var logEntriesArr = entries as LogEntry[] ?? entries.ToArray(); // Old logic
+                var logEntriesArr = entriesList.ToArray(); // New logic based on collected list
+
+                var processedEntries = await Task.Run(() =>
+                {
+                    var processed = new List<LogEntry>(logEntriesArr.Length);
+                    foreach (var entry in logEntriesArr) // Iterate over the array collected from streaming
+                    {
+                        entry.OpenFileCommand = ExternalOpenFileCommand;
+                        processed.Add(entry);
+                    }
+                    return processed;
+                });
+                
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    var title = Path.GetFileName(filePath);
+                    var newTab = new TabViewModel(filePath, title, processedEntries.ToList()); // Use ToList() for safety if processedEntries is modified elsewhere
+                    FileTabs.Add(newTab);
+                    SelectedTab = newTab;
+                    StatusMessage = $"Loaded {processedEntries.Count} log entries from {title}";
+                });
             }
-            return processed;
-        });
-        
-        await Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            var title = Path.GetFileName(filePath);
-            var newTab = new TabViewModel(filePath, title, processedEntries.ToList()); // Use ToList() for safety if processedEntries is modified elsewhere
-            FileTabs.Add(newTab);
-            SelectedTab = newTab;
-            StatusMessage = $"Loaded {processedEntries.Count} log entries from {title}";
-        });
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, $"Error loading file: {filePath}");
-        StatusMessage = $"Error loading {Path.GetFileName(filePath)}: {ex.Message}";
-    }
-}
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error loading file: {filePath}");
+                StatusMessage = $"Error loading {Path.GetFileName(filePath)}: {ex.Message}";
+            }
+        }
 
         [RelayCommand]
         private async Task LoadDirectory()
@@ -676,9 +700,9 @@ private async Task LoadFileToTab(string filePath)
             OnPropertyChanged(nameof(ErrorLogEntries));
         }
 
-        private async void UpdateLogStatistics()
+        private void UpdateLogStatistics()
         {
-            if (LogEntries.Count == 0)
+            if (SelectedTab == null)
             {
                 ErrorCount = 0;
                 WarningCount = 0;
@@ -688,19 +712,26 @@ private async Task LoadFileToTab(string filePath)
                 WarningPercent = 0;
                 InfoPercent = 0;
                 OtherPercent = 0;
-                LevelsOverTimeSeries = Array.Empty<ISeries>();
-                TopErrorsSeries = Array.Empty<ISeries>();
-                LogDistributionSeries = Array.Empty<ISeries>();
-                TimeHeatmapSeries = Array.Empty<ISeries>();
-                ErrorTrendSeries = Array.Empty<ISeries>();
-                SourcesDistributionSeries = Array.Empty<ISeries>();
+                LogStatistics = new LogStatistics();
+                ClearAllCharts();
                 return;
             }
-            _logger.LogDebug("Updating LogStatistics. Current LogEntries count: {Count}", LogEntries.Count);
-            var logEntries = LogEntries.ToList();
-            var stats = await Task.Run(() => CalculateStatisticsAndCharts(logEntries));
-            await Dispatcher.UIThread.InvokeAsync(() =>
+
+            if (SelectedTab.IsThisTabStandard)
             {
+                var entriesToAnalyze = SelectedTab.LogEntries; // Or FilteredLogEntries if standard filters are applied at TabViewModel level
+                if (entriesToAnalyze == null || !entriesToAnalyze.Any())
+                {
+                    // Same clearing logic as if SelectedTab was null
+                    ErrorCount = 0; WarningCount = 0; InfoCount = 0; OtherCount = 0;
+                    ErrorPercent = 0; WarningPercent = 0; InfoPercent = 0; OtherPercent = 0;
+                    LogStatistics = new LogStatistics();
+                    ClearAllCharts();
+                    return;
+                }
+
+                // Existing logic for standard logs
+                var stats = CalculateStatisticsAndCharts(entriesToAnalyze);
                 ErrorCount = stats.ErrorCount;
                 WarningCount = stats.WarningCount;
                 InfoCount = stats.InfoCount;
@@ -709,20 +740,63 @@ private async Task LoadFileToTab(string filePath)
                 WarningPercent = stats.WarningPercent;
                 InfoPercent = stats.InfoPercent;
                 OtherPercent = stats.OtherPercent;
+                LogStatistics = stats.LogStatistics;
                 LevelsOverTimeSeries = stats.LevelsOverTimeSeries;
                 TopErrorsSeries = stats.TopErrorsSeries;
                 LogDistributionSeries = stats.LogDistributionSeries;
                 TimeHeatmapSeries = stats.TimeHeatmapSeries;
                 ErrorTrendSeries = stats.ErrorTrendSeries;
                 SourcesDistributionSeries = stats.SourcesDistributionSeries;
-                LogStatistics = stats.LogStatistics;
                 TimeAxis = stats.TimeAxis;
                 CountAxis = stats.CountAxis;
                 DaysAxis = stats.DaysAxis;
                 HoursAxis = stats.HoursAxis;
                 SourceAxis = stats.SourceAxis;
                 ErrorMessageAxis = stats.ErrorMessageAxis;
-            });
+            }
+            else if (SelectedTab.IsThisTabIIS)
+            {
+                ErrorCount = SelectedTab.IIS_ErrorCount;
+                InfoCount = SelectedTab.IIS_InfoCount;
+                WarningCount = 0; // No warnings for IIS logs for now
+                OtherCount = SelectedTab.IIS_RedirectCount; // Redirects as "Other"
+
+                int totalIISEntries = SelectedTab.IIS_TotalCount;
+                if (totalIISEntries > 0)
+                {
+                    ErrorPercent = (double)ErrorCount / totalIISEntries * 100;
+                    InfoPercent = (double)InfoCount / totalIISEntries * 100;
+                    WarningPercent = 0;
+                    OtherPercent = (double)OtherCount / totalIISEntries * 100;
+                }
+                else
+                {
+                    ErrorPercent = 0; InfoPercent = 0; WarningPercent = 0; OtherPercent = 0;
+                }
+
+                // Clear or reset standard log statistics and charts
+                LogStatistics = new LogStatistics(); // Reset to default or create an IIS specific one later
+                ClearAllCharts();
+            }
+            else
+            {
+                 // Should not happen if SelectedTab is not null, but as a fallback:
+                ErrorCount = 0; WarningCount = 0; InfoCount = 0; OtherCount = 0;
+                ErrorPercent = 0; WarningPercent = 0; InfoPercent = 0; OtherPercent = 0;
+                LogStatistics = new LogStatistics();
+                ClearAllCharts();
+            }
+        }
+
+        private void ClearAllCharts()
+        {
+            LevelsOverTimeSeries = Array.Empty<ISeries>();
+            TopErrorsSeries = Array.Empty<ISeries>();
+            LogDistributionSeries = Array.Empty<ISeries>();
+            TimeHeatmapSeries = Array.Empty<ISeries>();
+            ErrorTrendSeries = Array.Empty<ISeries>();
+            SourcesDistributionSeries = Array.Empty<ISeries>();
+            // Reset Axes if necessary, or they might adjust automatically with empty series
         }
 
         private (int ErrorCount, int WarningCount, int InfoCount, int OtherCount, double ErrorPercent, double WarningPercent, double InfoPercent, double OtherPercent, ISeries[] LevelsOverTimeSeries, ISeries[] TopErrorsSeries, ISeries[] LogDistributionSeries, ISeries[] TimeHeatmapSeries, ISeries[] ErrorTrendSeries, ISeries[] SourcesDistributionSeries, LogStatistics LogStatistics, Axis[] TimeAxis, Axis[] CountAxis, Axis[] DaysAxis, Axis[] HoursAxis, Axis[] SourceAxis, Axis[] ErrorMessageAxis) CalculateStatisticsAndCharts(List<LogEntry> logEntries)
@@ -1309,68 +1383,80 @@ private async Task LoadFileToTab(string filePath)
             }
         }
 
-[RelayCommand]
-private async Task LoadMultipleFiles()
-{
-    try
-    {
-        var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop ? desktop.MainWindow : null;
-        var files = await _filePickerService.PickFilesAsync(mainWindow);
-        if (files == null || !files.Any()) return;
-
-        StatusMessage = $"Opening {files.Count()} files...";
-        IsLoading = true;
-        FileStatus = $"{files.Count()} files";
-        IsDashboardVisible = true;
-
-        await Dispatcher.UIThread.InvokeAsync(() =>
+        [RelayCommand]
+        private async Task LoadIISLogFile()
         {
-            LogEntries.Clear();
-            FilteredLogEntries.Clear();
-            ErrorLogEntries.Clear();
-        }, DispatcherPriority.Background);
-
-        var entriesList = new List<LogEntry>();
-        // Assuming 'files' is an IEnumerable<string> of file paths
-        await foreach (var entryValue in _logParserService.ParseLogFilesAsync(files, CancellationToken.None))
-        {
-            entriesList.Add(entryValue);
-        }
-        // var logEntriesArr = entries as LogEntry[] ?? entries.ToArray(); // Old logic
-        var logEntriesArr = entriesList.ToArray(); // New logic
-
-        var processedEntries = await Task.Run(() =>
-        {
-            var processed = new List<LogEntry>(logEntriesArr.Length);
-            foreach (var entry in logEntriesArr) // Iterate over the array
+            try
             {
-                entry.OpenFileCommand = ExternalOpenFileCommand;
-                processed.Add(entry);
-            }
-            return processed;
-        });
+                var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop ? desktop.MainWindow : null;
+                if (mainWindow == null) return;
 
-        await Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            LogEntries = processedEntries.ToList(); // Use ToList()
-            FilteredLogEntries = processedEntries.ToList(); // Use ToList()
-            UpdateErrorLogEntries();
-            UpdateLogStatistics();
-            StatusMessage = $"Loaded {LogEntries.Count} log entries from {files.Count()} files";
-            SelectedTabIndex = 0;
-            IsLoading = false;
-        });
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "Ошибка загрузки файлов логов");
-        await Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            StatusMessage = $"Error: {ex.Message}";
-            IsLoading = false;
-        });
-    }
-}
+                var files = await _filePickerService.PickFilesAsync(mainWindow);
+                if (files == null || !files.Any())
+                {
+                    _logger.LogInformation("IIS Log file selection cancelled.");
+                    return;
+                }
+
+                IsLoading = true;
+                StatusMessage = $"Loading {files.Count()} IIS log file(s)...";
+
+                foreach (var filePath in files)
+                {
+                    if (string.IsNullOrEmpty(filePath))
+                        continue;
+
+                    if (FileTabs.Any(tab => tab.FilePath == filePath))
+                    {
+                        _logger.LogInformation("File {FilePath} is already open. Selecting existing tab.", filePath);
+                        SelectedTab = FileTabs.First(tab => tab.FilePath == filePath);
+                        continue;
+                    }
+
+                    var tabTitle = Path.GetFileName(filePath) + " (IIS)";
+                    
+                    List<IISLogEntry> parsedEntries = new List<IISLogEntry>();
+                    try
+                    {
+                        await foreach (var entry in _iisLogParserService.ParseLogFileAsync(filePath, CancellationToken.None))
+                        {
+                            parsedEntries.Add(entry);
+                        }
+                        
+                        _logger.LogInformation("Successfully parsed {Count} IIS log entries from {FilePath}", parsedEntries.Count, filePath);
+                        
+                        if (parsedEntries.Any())
+                        {
+                            var newTab = new TabViewModel(filePath, tabTitle, parsedEntries);
+                            FileTabs.Add(newTab);
+                            SelectedTab = newTab;
+                            StatusMessage = $"Loaded {parsedEntries.Count} IIS log entries from {Path.GetFileName(filePath)}.";
+                        }
+                        else
+                        {
+                            StatusMessage = $"No IIS log entries found or parsed in {Path.GetFileName(filePath)}.";
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error parsing IIS log file {FilePath}", filePath);
+                        StatusMessage = $"Error parsing {Path.GetFileName(filePath)}: {ex.Message}";
+                        continue;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in LoadIISLogFile command.");
+                StatusMessage = $"An unexpected error occurred: {ex.Message}";
+            }
+            finally
+            {
+                IsLoading = false;
+                UpdateMultiFileModeStatus();
+                UpdateAllErrorLogEntries();
+            }
+        }
 
         [RelayCommand]
         private async Task ShowFilePickerContextMenu()

@@ -1,20 +1,27 @@
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Log_Parser_App.Models.Interfaces
 {
-    public interface IUpdateService
-    {
-        string? GetCurrentVersion();
-        Task<UpdateInfo> CheckForUpdatesAsync();
-        Task<bool> UpdateApplicationAsync(string downloadUrl);
-    }
-    
+    // Обновленный класс UpdateInfo для соответствия с GitHubUpdateService
     public class UpdateInfo
     {
-        public bool IsUpdateAvailable { get; set; }
-        public string LatestVersion { get; set; } = string.Empty;
-        public string ReleaseNotes { get; set; } = string.Empty;
-        public string DownloadUrl { get; set; } = string.Empty;
-        public string ReleaseDate { get; set; } = string.Empty;
+        public Version? Version { get; set; }
+        public string? ReleaseName { get; set; }
+        public string? ReleaseNotes { get; set; }
+        public string? DownloadUrl { get; set; }
+        public string? TagName { get; set; }
+        public DateTime? PublishedAt { get; set; }
+        public bool RequiresRestart { get; set; }
+        public List<string> ChangeLog { get; set; } = new List<string>();
+    }
+
+    public interface IUpdateService
+    {
+        Version GetCurrentVersion(); 
+        Task<UpdateInfo?> CheckForUpdatesAsync(); 
+        Task<string?> DownloadUpdateAsync(UpdateInfo updateInfo, IProgress<int>? progressCallback = null);
+        Task<bool> InstallUpdateAsync(string updateFilePath);
     }
 } 
