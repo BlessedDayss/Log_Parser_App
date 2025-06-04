@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MainViewModel = Log_Parser_App.ViewModels.MainViewModel;
 using UpdateViewModel = Log_Parser_App.ViewModels.UpdateViewModel;
+using Log_Parser_App.Models.Interfaces;
 
 namespace Log_Parser_App;
 
@@ -43,13 +44,14 @@ internal abstract class Program
         services.AddLogging(configure => configure.AddConsole());
         services.AddSingleton<ILogParserService, LogParserService>();
         services.AddSingleton<IErrorRecommendationService, ErrorRecommendationService>();
+        services.AddSingleton<IIISLogParserService, IISLogParserService>();
         services.AddSingleton<MainViewModel>();
         
         services.AddSingleton<IFileService>(provider => new FileService(
             provider.GetRequiredService<ILogger<FileService>>()   
         ));
 
-        services.AddSingleton<IUpdateService>(provider => 
+        services.AddSingleton<Log_Parser_App.Models.Interfaces.IUpdateService>(provider => 
             new GitHubUpdateService(
                 provider.GetRequiredService<ILogger<GitHubUpdateService>>(),
                 "BlessedDayss", 

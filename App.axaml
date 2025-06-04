@@ -1,13 +1,26 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:logParserApp1="clr-namespace:Log_Parser_App"
-             xmlns:converters="clr-namespace:Log_Parser_App.Converters"
+             xmlns:local="using:Log_Parser_App"
+             xmlns:converters="using:Log_Parser_App.Converters"
              x:Class="Log_Parser_App.App"
              RequestedThemeVariant="Dark">
 
     <Application.DataTemplates>
-        <logParserApp1:ViewLocator/>
+        <local:ViewLocator/>
     </Application.DataTemplates>
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Temporarily commented out to isolate other XAML issues -->
+                <!-- <ResourceInclude Source="/Assets/Styles/Accents.axaml" /> -->
+                <!-- <ResourceInclude Source="/Assets/Styles/Dark.axaml" />   -->
+                <!-- <ResourceInclude Source="/Assets/Styles/Icons.axaml" />  -->
+                <!-- <ResourceInclude Source="/Assets/Styles/MaterialDesign.axaml"/> -->
+            </ResourceDictionary.MergedDictionaries>
+            <converters:TabToVisibilityConverter x:Key="TabToVisibilityConv"/>
+        </ResourceDictionary>
+    </Application.Resources>
 
     <Application.Styles>
         <FluentTheme />
