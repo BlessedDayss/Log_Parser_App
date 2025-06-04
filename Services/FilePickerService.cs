@@ -10,6 +10,7 @@ using Avalonia.Input;
 using Avalonia;
 using System;
 using Avalonia.VisualTree;
+using Avalonia.Interactivity;
 
     public class FilePickerService : IFilePickerService
     {
@@ -37,39 +38,57 @@ using Avalonia.VisualTree;
         {
             if (window == null) return (null, null);
 
+            ContextMenu? menu = null;
+            TaskCompletionSource<(IEnumerable<string>? Files, string? Directory)>? tcs = null;
+            EventHandler<RoutedEventArgs>? menuClosedHandler = null;
+
             try
             {
-                var tcs = new TaskCompletionSource<(IEnumerable<string>? Files, string? Directory)>();
-                var menu = new ContextMenu();
-                
+                tcs = new TaskCompletionSource<(IEnumerable<string>? Files, string? Directory)>();
+                menu = new ContextMenu();
+
                 var filesItem = new MenuItem { Header = "Select Files" };
                 var folderItem = new MenuItem { Header = "Select Folder" };
 
+                menuClosedHandler = (s, e) =>
+                {
+                    tcs.TrySetResult((null, null)); 
+                    if (menu != null && menuClosedHandler != null)
+                    {
+                        menu.Closed -= menuClosedHandler;
+                    }
+                };
+                menu.Closed += menuClosedHandler;
+
                 filesItem.Click += async (s, e) =>
                 {
-                    menu.Close();
-                    try 
+                    if (menu != null && menuClosedHandler != null) menu.Closed -= menuClosedHandler;
+                    menu?.Close();
+                    try
                     {
                         var files = await PickFilesAsync(window);
                         tcs.TrySetResult((files, null));
                     }
-                    catch (Exception ex)
+                    catch (Exception exClick)
                     {
-                        tcs.TrySetException(ex);
+                        Console.WriteLine($"Error in PickFilesAsync: {exClick.Message}");
+                        tcs.TrySetException(exClick); 
                     }
                 };
 
                 folderItem.Click += async (s, e) =>
                 {
-                    menu.Close();
+                    if (menu != null && menuClosedHandler != null) menu.Closed -= menuClosedHandler;
+                    menu?.Close();
                     try
                     {
                         var dir = await PickDirectoryAsync(window);
                         tcs.TrySetResult((null, dir));
                     }
-                    catch (Exception ex)
+                    catch (Exception exClick)
                     {
-                        tcs.TrySetException(ex);
+                        Console.WriteLine($"Error in PickDirectoryAsync: {exClick.Message}");
+                        tcs.TrySetException(exClick); 
                     }
                 };
 
@@ -80,8 +99,15 @@ using Avalonia.VisualTree;
             catch (Exception ex)
             {
                 Console.WriteLine($"Error in ShowFilePickerContextMenuAsync: {ex.Message}");
-                var files = await PickFilesAsync(window);
-                return (files, null);
+                tcs?.TrySetException(ex); 
+                return (null, null); 
+            }
+            finally
+            {
+                if (menu != null && menuClosedHandler != null)
+                {
+                    menu.Closed -= menuClosedHandler;
+                }
             }
         }
     }
