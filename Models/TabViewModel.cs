@@ -83,6 +83,20 @@ namespace Log_Parser_App.Models
         public IRelayCommand ResetIISFiltersCommand { get; }
         // --- End IIS Filtering ---
 
+        // --- Standard Filtering Properties and Commands ---
+        public ObservableCollection<FilterCriterion> FilterCriteria { get; }
+        public ObservableCollection<LogEntry> FilteredLogEntries { get; }
+
+        public IRelayCommand AddFilterCriteriaCommand { get; }
+        public IRelayCommand<FilterCriterion> RemoveFilterCriterionCommand { get; }
+        public IRelayCommand ApplyFiltersCommand { get; }
+        public IRelayCommand ResetFiltersCommand { get; }
+        // --- End Standard Filtering ---
+
+        // Свойства для фильтрации
+        public Dictionary<string, List<string>> AvailableValuesByField { get; } = new();
+        public Dictionary<string, List<string>> OperatorsByFieldType { get; } = new();
+        public List<string> MasterAvailableFields { get; } = new();
 
         public TabViewModel(string filePath, string title, List<LogEntry> logEntries)
         {
@@ -102,6 +116,18 @@ namespace Log_Parser_App.Models
             RemoveIISFilterCriterionCommand = new RelayCommand<IISFilterCriterion>(ExecuteRemoveIISFilterCriterion);
             ApplyIISFiltersCommand = new RelayCommand(ExecuteApplyIISFilters);
             ResetIISFiltersCommand = new RelayCommand(ExecuteResetIISFilters);
+            
+            // Initialize Standard Filtering related collections and commands
+            FilterCriteria = new ObservableCollection<FilterCriterion>();
+            FilteredLogEntries = new ObservableCollection<LogEntry>(logEntries); // Initially populate with all entries
+            
+            AddFilterCriteriaCommand = new RelayCommand(ExecuteAddFilterCriterion);
+            RemoveFilterCriterionCommand = new RelayCommand<FilterCriterion>(ExecuteRemoveFilterCriterion);
+            ApplyFiltersCommand = new RelayCommand(ExecuteApplyFilters);
+            ResetFiltersCommand = new RelayCommand(ExecuteResetFilters);
+            
+            // Initialize filter fields
+            InitializeFilterFields();
         }
 
         public TabViewModel(string filePath, string title, List<IISLogEntry> iisLogEntries)
@@ -120,6 +146,16 @@ namespace Log_Parser_App.Models
             RemoveIISFilterCriterionCommand = new RelayCommand<IISFilterCriterion>(ExecuteRemoveIISFilterCriterion);
             ApplyIISFiltersCommand = new RelayCommand(ExecuteApplyIISFilters);
             ResetIISFiltersCommand = new RelayCommand(ExecuteResetIISFilters);
+            
+            // Initialize Standard Filtering related collections and commands
+            // even though they won't be used for IIS tabs
+            FilterCriteria = new ObservableCollection<FilterCriterion>();
+            FilteredLogEntries = new ObservableCollection<LogEntry>(); 
+            
+            AddFilterCriteriaCommand = new RelayCommand(ExecuteAddFilterCriterion);
+            RemoveFilterCriterionCommand = new RelayCommand<FilterCriterion>(ExecuteRemoveFilterCriterion);
+            ApplyFiltersCommand = new RelayCommand(ExecuteApplyFilters);
+            ResetFiltersCommand = new RelayCommand(ExecuteResetFilters);
         }
 
         private void ExecuteAddIISFilterCriterion()
@@ -304,6 +340,133 @@ namespace Log_Parser_App.Models
                 .ToList();
             
             return distinctValues!; // Non-null asserted because of Where clause
+        }
+
+        // Standard Filter Methods
+        private void ExecuteAddFilterCriterion()
+        {
+            if (LogType != LogFormatType.Standard) return;
+            var newCriterion = new FilterCriterion { ParentViewModel = this };
+            FilterCriteria.Add(newCriterion);
+        }
+
+        private void ExecuteRemoveFilterCriterion(FilterCriterion? criterion)
+        {
+            if (LogType != LogFormatType.Standard) return;
+            if (criterion != null)
+            {
+                FilterCriteria.Remove(criterion);
+            }
+        }
+
+        private void ExecuteApplyFilters()
+        {
+            if (LogType != LogFormatType.Standard) return;
+
+            List<LogEntry> tempList;
+
+            if (FilterCriteria == null || !FilterCriteria.Any())
+            {
+                tempList = new List<LogEntry>(LogEntries);
+            }
+            else
+            {
+                tempList = LogEntries.Where(entry => 
+                    FilterCriteria.All(filter => MatchStandardFilter(entry, filter)))
+                    .ToList();
+            }
+            
+            FilteredLogEntries.Clear();
+            foreach (var entry in tempList)
+            {
+                FilteredLogEntries.Add(entry);
+            }
+            
+            OnPropertyChanged(nameof(FilteredLogEntries));
+        }
+        
+        private void ExecuteResetFilters()
+        {
+            if (LogType != LogFormatType.Standard) return;
+            
+            FilterCriteria.Clear();
+            
+            FilteredLogEntries.Clear();
+            foreach (var entry in LogEntries)
+            {
+                FilteredLogEntries.Add(entry);
+            }
+            
+            OnPropertyChanged(nameof(FilteredLogEntries));
+        }
+        
+        private bool MatchStandardFilter(LogEntry entry, FilterCriterion filter)
+        {
+            // Базовое сопоставление фильтров - может потребоваться доработка
+            // в зависимости от структуры LogEntry и доступных полей/операторов
+            string? value = GetLogEntryPropertyValue(entry, filter.SelectedField);
+            if (value == null) return false;
+
+            switch (filter.SelectedOperator)
+            {
+                case "Equals":
+                    return string.Equals(value, filter.Value, StringComparison.OrdinalIgnoreCase);
+                case "NotEquals":
+                    return !string.Equals(value, filter.Value, StringComparison.OrdinalIgnoreCase);
+                case "Contains":
+                    return value.Contains(filter.Value ?? "", StringComparison.OrdinalIgnoreCase);
+                case "NotContains":
+                    return !value.Contains(filter.Value ?? "", StringComparison.OrdinalIgnoreCase);
+                default:
+                    return false;
+            }
+        }
+        
+        private string? GetLogEntryPropertyValue(LogEntry entry, string? field)
+        {
+            if (field == null) return null;
+            
+            return field switch
+            {
+                "Message" => entry.Message,
+                "Level" => entry.Level,
+                "Timestamp" => entry.Timestamp.ToString(),
+                "Logger" => "Logger", // Просто возвращаем строку "Logger", так как ILogger не имеет строкового представления
+                _ => null
+            };
+        }
+
+        private void InitializeFilterFields()
+        {
+            // Инициализация доступных полей для фильтрации
+            MasterAvailableFields.Clear();
+            MasterAvailableFields.Add("Message");
+            MasterAvailableFields.Add("Level");
+            MasterAvailableFields.Add("Timestamp");
+            MasterAvailableFields.Add("Logger");
+            
+            // Инициализация операторов для каждого типа поля
+            OperatorsByFieldType.Clear();
+            foreach (var field in MasterAvailableFields)
+            {
+                OperatorsByFieldType[field] = new List<string> { "Equals", "NotEquals", "Contains", "NotContains" };
+            }
+            
+            // Инициализация доступных значений для полей
+            AvailableValuesByField.Clear();
+            if (LogEntries != null && LogEntries.Any())
+            {
+                // Для поля Level собираем уникальные значения
+                AvailableValuesByField["Level"] = LogEntries
+                    .Select(e => e.Level)
+                    .Where(l => !string.IsNullOrEmpty(l))
+                    .Distinct()
+                    .OrderBy(l => l)
+                    .ToList();
+                
+                // Для поля Logger добавляем фиксированные значения
+                AvailableValuesByField["Logger"] = new List<string> { "Logger" };
+            }
         }
     }
 } 

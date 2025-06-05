@@ -131,4 +131,59 @@ public partial class MainWindow : Window
             }
         }
     }
+
+    // Обработчики для стандартных фильтров
+    public void OnAddFilterClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel viewModel && viewModel.MainView?.SelectedTab != null)
+        {
+            var criterion = new FilterCriterion { ParentViewModel = viewModel.MainView.SelectedTab };
+            viewModel.MainView.SelectedTab.FilterCriteria.Add(criterion);
+        }
+    }
+    
+    public void OnApplyFiltersClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel viewModel && viewModel.MainView?.SelectedTab != null)
+        {
+            // Здесь должна быть логика применения фильтров
+            // Поскольку мы не знаем точной сигнатуры метода в TabViewModel,
+            // предполагаем, что он вызывается через выполнение команды
+            viewModel.MainView.SelectedTab.ApplyFiltersCommand?.Execute(null);
+        }
+    }
+    
+    public void OnResetFiltersClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel viewModel && viewModel.MainView?.SelectedTab != null)
+        {
+            // Предполагаем, что команда сброса фильтров доступна в TabViewModel
+            viewModel.MainView.SelectedTab.ResetFiltersCommand?.Execute(null);
+        }
+    }
+    
+    // Обработчики для IIS фильтров
+    public void OnAddIISFilterClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel viewModel && viewModel.MainView?.SelectedTab != null)
+        {
+            viewModel.MainView.SelectedTab.AddIISFilterCriterionCommand?.Execute(null);
+        }
+    }
+    
+    public void OnApplyIISFiltersClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel viewModel && viewModel.MainView?.SelectedTab != null)
+        {
+            viewModel.MainView.SelectedTab.ApplyIISFiltersCommand?.Execute(null);
+        }
+    }
+    
+    public void OnResetIISFiltersClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel viewModel && viewModel.MainView?.SelectedTab != null)
+        {
+            viewModel.MainView.SelectedTab.ResetIISFiltersCommand?.Execute(null);
+        }
+    }
 }
