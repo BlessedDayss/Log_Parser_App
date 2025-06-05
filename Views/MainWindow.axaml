@@ -28,6 +28,7 @@
         <converters:BoolToTabColorConverter x:Key="BoolToTabColorConverter" />
         <converters:TabToVisibilityConverter x:Key="TabToVisibilityConv" />
         <converters:StringShortenerConverter x:Key="StringShortenerConverter" />
+        <converters:LogLevelToBrushConverter x:Key="LogLevelToBrushConverter" />
         
         <!-- Color/Brush Resources -->
         <SolidColorBrush x:Key="BackgroundBrush" Color="#1A1C21" />
@@ -564,7 +565,7 @@
                                 <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                     <Panel x:Name="dataGridsPanel" DataContext="{Binding MainView}"> 
                                         <!-- Standard LogEntry DataGrid -->
-                                        <DataGrid ItemsSource="{Binding FilteredLogEntries}" 
+                                        <DataGrid ItemsSource="{Binding SelectedTab.FilteredLogEntries}" 
                                                   SelectedItem="{Binding SelectedLogEntry, Mode=TwoWay}" 
                                                   IsVisible="{Binding SelectedTab.IsThisTabStandard}" 
                                                   Classes="standard-log-grid"
