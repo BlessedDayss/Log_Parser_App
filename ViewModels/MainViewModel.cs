@@ -1543,7 +1543,7 @@ namespace Log_Parser_App.ViewModels
         {
             var newCriterion = new FilterCriterion
             {
-                ParentViewModel = this,
+                ParentViewModel = SelectedTab,
                 AvailableFields = new ObservableCollection<string>(_masterAvailableFields) 
                 // AvailableOperators will be populated by FilterCriterion based on SelectedField and ParentViewModel.OperatorsByFieldType
                 // AvailableValues will be populated by FilterCriterion based on SelectedField and ParentViewModel.AvailableValuesByField
@@ -1552,18 +1552,36 @@ namespace Log_Parser_App.ViewModels
             {
                 newCriterion.SelectedField = newCriterion.AvailableFields.First(); // Auto-select first field
             }
-            FilterCriteria.Add(newCriterion);
-            _logger.LogDebug("Added new filter criterion. Total criteria: {Count}", FilterCriteria.Count);
+            
+            if (SelectedTab != null)
+            {
+                SelectedTab.FilterCriteria.Add(newCriterion);
+                _logger.LogDebug("Added new filter criterion to selected tab. Total criteria: {Count}", SelectedTab.FilterCriteria.Count);
+            }
+            else
+            {
+                FilterCriteria.Add(newCriterion);
+                _logger.LogDebug("Added new filter criterion to main view (no tab selected). Total criteria: {Count}", FilterCriteria.Count);
+            }
         }
 
         [RelayCommand]
-        private void RemoveFilterCriterion(FilterCriterion? criterion)
+        private async Task RemoveFilterCriterion(FilterCriterion? criterion)
         {
             if (criterion != null)
             {
-                FilterCriteria.Remove(criterion);
-                ApplyFilters(); // Re-apply filters after removing one
-                _logger.LogDebug("Removed filter criterion. Total criteria: {Count}", FilterCriteria.Count);
+                if (SelectedTab != null && criterion.ParentViewModel == SelectedTab)
+                {
+                    SelectedTab.FilterCriteria.Remove(criterion);
+                    SelectedTab.ApplyFiltersCommand?.Execute(null); // Re-apply filters after removing one
+                    _logger.LogDebug("Removed filter criterion from selected tab. Total criteria: {Count}", SelectedTab.FilterCriteria.Count);
+                }
+                else
+                {
+                    FilterCriteria.Remove(criterion);
+                    await ApplyFilters(); // Re-apply filters after removing one
+                    _logger.LogDebug("Removed filter criterion from main view. Total criteria: {Count}", FilterCriteria.Count);
+                }
             }
             else
             {

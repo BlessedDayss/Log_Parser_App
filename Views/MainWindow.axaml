@@ -156,55 +156,70 @@
         <Style Selector="Button.add-button">
             <Setter Property="Background" Value="#357538" />
             <Setter Property="Foreground" Value="White" />
-            <Setter Property="Padding" Value="12 6" />
-            <Setter Property="Margin" Value="0 12 0 0"/>
+            <Setter Property="Padding" Value="12 8" />
+            <Setter Property="Margin" Value="0" />
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Transitions">
                 <Transitions>
                     <BrushTransition Property="Background" Duration="0.15"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0.15" />
                 </Transitions>
             </Setter>
         </Style>
         
         <Style Selector="Button.add-button:pointerover">
             <Setter Property="Background" Value="#4CAF50" />
+            <Setter Property="RenderTransform" Value="scale(1.02)" />
         </Style>
         
         <Style Selector="Button.apply-filters-button">
             <Setter Property="Background" Value="#4e72c8" />
             <Setter Property="Foreground" Value="White" />
-            <Setter Property="Padding" Value="16 8" />
-            <Setter Property="Margin" Value="0 12 0 0"/>
+            <Setter Property="Padding" Value="12 8" />
+            <Setter Property="Margin" Value="0"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Transitions">
                 <Transitions>
                     <BrushTransition Property="Background" Duration="0.15"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0.15" />
                 </Transitions>
             </Setter>
         </Style>
         
         <Style Selector="Button.apply-filters-button:pointerover">
             <Setter Property="Background" Value="#5a80d3" />
+            <Setter Property="RenderTransform" Value="scale(1.02)" />
         </Style>
         
         <Style Selector="Button.reset-filters-button">
             <Setter Property="Background" Value="#7c8694" />
             <Setter Property="Foreground" Value="White" />
-            <Setter Property="Padding" Value="16 8" />
-            <Setter Property="Margin" Value="0 12 0 0"/>
+            <Setter Property="Padding" Value="12 8" />
+            <Setter Property="Margin" Value="0"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Transitions">
                 <Transitions>
                     <BrushTransition Property="Background" Duration="0.15"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0.15" />
                 </Transitions>
             </Setter>
         </Style>
         
         <Style Selector="Button.reset-filters-button:pointerover">
             <Setter Property="Background" Value="#8d98a6" />
+            <Setter Property="RenderTransform" Value="scale(1.02)" />
         </Style>
         
         <Style Selector="Button.apply-button">
@@ -424,13 +439,21 @@
                                 <!-- Region for Standard Log Filters -->
                                 <StackPanel IsVisible="{Binding MainView.SelectedTab.IsThisTabStandard}" Grid.Row="0" Grid.RowSpan="2"> 
                                     <!-- Row 0 for Filter Buttons -->
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10" Margin="8,8,0,8">
-                                        <Button Content="+ Add Filter" Classes="add-button" Command="{Binding MainView.AddFilterCriterionCommand}" Padding="10,4" FontSize="12" MinWidth="0" MinHeight="0" Margin="0" />
-                                        <Button Content="✔️ Apply Filters" Classes="apply-filters-button" Command="{Binding MainView.ApplyFiltersCommand}" Padding="10,4" FontSize="12" Margin="0" />
-                                        <Button Content="🔄 Reset Filters" Classes="reset-filters-button" Command="{Binding MainView.ResetFiltersCommand}" Padding="10,4" FontSize="12" Margin="0" />
-                                    </StackPanel>
+                                    <Grid VerticalAlignment="Center" Margin="8,8,8,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Button Grid.Column="0" Content="+ Add Filter" Classes="add-button" Click="OnAddFilterClick" 
+                                                Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
+                                        <Button Grid.Column="1" Content="Apply Filters" Classes="apply-filters-button" Click="OnApplyFiltersClick" 
+                                                Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
+                                        <Button Grid.Column="2" Content="Reset Filters" Classes="reset-filters-button" Click="OnResetFiltersClick" 
+                                                Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
+                                    </Grid>
                                     <!-- Row 1 for Filter Criteria ItemsControl -->
-                                    <ItemsControl ItemsSource="{Binding MainView.FilterCriteria}" Margin="8,0,8,8">
+                                    <ItemsControl ItemsSource="{Binding MainView.SelectedTab.FilterCriteria}" Margin="8,0,8,8">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate>
                                                 <StackPanel Orientation="Vertical" Spacing="6" />
@@ -478,11 +501,19 @@
                                 <!-- Region for IIS Log Filters -->
                                 <StackPanel IsVisible="{Binding MainView.SelectedTab.IsThisTabIIS}" Grid.Row="0" Grid.RowSpan="2"> 
                                     <!-- Row 0 for IIS Filter Buttons -->
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10" Margin="8,8,0,8">
-                                        <Button Content="+ Add IIS Filter" Classes="add-button" Command="{Binding MainView.SelectedTab.AddIISFilterCriterionCommand}" Padding="10,4" FontSize="12" MinWidth="0" MinHeight="0" Margin="0" />
-                                        <Button Content="✔️ Apply IIS Filters" Classes="apply-filters-button" Command="{Binding MainView.SelectedTab.ApplyIISFiltersCommand}" Padding="10,4" FontSize="12" Margin="0" />
-                                        <Button Content="🔄 Reset IIS Filters" Classes="reset-filters-button" Command="{Binding MainView.SelectedTab.ResetIISFiltersCommand}" Padding="10,4" FontSize="12" Margin="0" />
-                                    </StackPanel>
+                                    <Grid VerticalAlignment="Center" Margin="8,8,8,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Button Grid.Column="0" Content="+ Add IIS Filter" Classes="add-button" Click="OnAddIISFilterClick" 
+                                                Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
+                                        <Button Grid.Column="1" Content="Apply IIS Filters" Classes="apply-filters-button" Click="OnApplyIISFiltersClick" 
+                                                Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
+                                        <Button Grid.Column="2" Content="Reset IIS Filters" Classes="reset-filters-button" Click="OnResetIISFiltersClick" 
+                                                Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
+                                    </Grid>
                                     <!-- Row 1 for IIS Filter Criteria ItemsControl -->
                                     <ItemsControl ItemsSource="{Binding MainView.SelectedTab.IISFilterCriteria}" Margin="8,0,8,8">
                                         <ItemsControl.ItemsPanel>
@@ -976,7 +1007,6 @@
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center" />
                         </Border>
-                        <!-- Иконка версии и текст версии -->
                         <TextBlock Text="🏷️" 
                                    FontSize="16" 
                                    VerticalAlignment="Center"

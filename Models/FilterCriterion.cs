@@ -19,7 +19,7 @@ namespace Log_Parser_App.Models
         public ObservableCollection<string> AvailableValues { get; set; } = new();
         
         [System.Text.Json.Serialization.JsonIgnore]
-        public MainViewModel? ParentViewModel { get; set; }
+        public TabViewModel? ParentViewModel { get; set; }
 
         public string SelectedField
         {
@@ -65,6 +65,11 @@ namespace Log_Parser_App.Models
             else
             {
                 AvailableOperators.Clear();
+                // Добавляем стандартные операторы
+                AvailableOperators.Add("Equals");
+                AvailableOperators.Add("NotEquals");
+                AvailableOperators.Add("Contains");
+                AvailableOperators.Add("NotContains");
             }
             if (!AvailableOperators.Contains(SelectedOperator)) 
             {
