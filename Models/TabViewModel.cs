@@ -34,8 +34,8 @@ namespace Log_Parser_App.Models
             set => SetProperty(ref _logEntries, value);
         }
 
-        private List<IISLogEntry> _iisLogEntries;
-        public List<IISLogEntry> IISLogEntries
+        private List<IisLogEntry> _iisLogEntries;
+        public List<IisLogEntry> IISLogEntries
         {
             get => _iisLogEntries;
             set
@@ -66,7 +66,7 @@ namespace Log_Parser_App.Models
 
         // --- IIS Filtering Properties and Commands ---
         public ObservableCollection<IISFilterCriterion> IISFilterCriteria { get; }
-        public ObservableCollection<IISLogEntry> FilteredIISLogEntries { get; }
+        public ObservableCollection<IisLogEntry> FilteredIISLogEntries { get; }
 
         // --- IIS Count Properties (read-only, derived from FilteredIISLogEntries) ---
         public int IIS_TotalCount => LogType == LogFormatType.IIS ? FilteredIISLogEntries.Count : 0;
@@ -103,14 +103,14 @@ namespace Log_Parser_App.Models
             _filePath = filePath;
             _title = title;
             _logEntries = logEntries;
-            _iisLogEntries = new List<IISLogEntry>();
+            _iisLogEntries = new List<IisLogEntry>();
             LogType = LogFormatType.Standard;
             _isSelected = false;
 
             // Initialize IIS Filtering related collections and commands even for standard logs,
             // they just won't be used or visible.
             IISFilterCriteria = new ObservableCollection<IISFilterCriterion>();
-            FilteredIISLogEntries = new ObservableCollection<IISLogEntry>();
+            FilteredIISLogEntries = new ObservableCollection<IisLogEntry>();
 
             AddIISFilterCriterionCommand = new RelayCommand(ExecuteAddIISFilterCriterion);
             RemoveIISFilterCriterionCommand = new RelayCommand<IISFilterCriterion>(ExecuteRemoveIISFilterCriterion);
@@ -130,7 +130,7 @@ namespace Log_Parser_App.Models
             InitializeFilterFields();
         }
 
-        public TabViewModel(string filePath, string title, List<IISLogEntry> iisLogEntries)
+        public TabViewModel(string filePath, string title, List<IisLogEntry> iisLogEntries)
         {
             _filePath = filePath;
             _title = title;
@@ -140,7 +140,7 @@ namespace Log_Parser_App.Models
             _isSelected = false;
 
             IISFilterCriteria = new ObservableCollection<IISFilterCriterion>();
-            FilteredIISLogEntries = new ObservableCollection<IISLogEntry>(iisLogEntries); // Initially populate with all IIS entries
+            FilteredIISLogEntries = new ObservableCollection<IisLogEntry>(iisLogEntries); // Initially populate with all IIS entries
 
             AddIISFilterCriterionCommand = new RelayCommand(ExecuteAddIISFilterCriterion);
             RemoveIISFilterCriterionCommand = new RelayCommand<IISFilterCriterion>(ExecuteRemoveIISFilterCriterion);
@@ -178,15 +178,15 @@ namespace Log_Parser_App.Models
         {
             if (LogType != LogFormatType.IIS) return;
 
-            List<IISLogEntry> tempList;
+            List<IisLogEntry> tempList;
 
             if (IISFilterCriteria == null || !IISFilterCriteria.Any())
             {
-                tempList = new List<IISLogEntry>(IISLogEntries);
+                tempList = new List<IisLogEntry>(IISLogEntries);
             }
             else
             {
-                IEnumerable<IISLogEntry> currentFilteredResults = IISLogEntries;
+                IEnumerable<IisLogEntry> currentFilteredResults = IISLogEntries;
 
                 var processedCriteria = IISFilterCriteria.Select(c => new {
                     Criterion = c,
@@ -222,7 +222,7 @@ namespace Log_Parser_App.Models
                    field == IISLogField.HttpStatus || field == IISLogField.Win32Status;
         }
 
-        private bool MatchCriterion(IISLogEntry entry, IISFilterCriterion criterion, string lowerFilterValue, double? numericFilterValue)
+        private bool MatchCriterion(IisLogEntry entry, IISFilterCriterion criterion, string lowerFilterValue, double? numericFilterValue)
         {
             string? valueToCompareLower = GetPropertyValue(entry, criterion.SelectedField)?.ToString()?.ToLowerInvariant();
             
@@ -266,7 +266,7 @@ namespace Log_Parser_App.Models
             }
         }
 
-        private object? GetPropertyValue(IISLogEntry entry, IISLogField field)
+        private object? GetPropertyValue(IisLogEntry entry, IISLogField field)
         {
             return field switch
             {

@@ -7,6 +7,6 @@ namespace Log_Parser_App.Models.Interfaces
 {
     public interface IIISLogParserService
     {
-        IAsyncEnumerable<IISLogEntry> ParseLogFileAsync(string filePath, CancellationToken cancellationToken);
+        IAsyncEnumerable<IisLogEntry> ParseLogFileAsync(string filePath, CancellationToken cancellationToken);
     }
 } 

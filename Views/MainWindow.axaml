@@ -606,19 +606,19 @@
                                                   HorizontalGridLinesBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
                                                   SelectionMode="Extended">
                                             <DataGrid.Columns>
-                                                <DataGridTextColumn Header="date" Binding="{Binding DateTime, StringFormat='yyyy-MM-dd'}" x:DataType="models1:IISLogEntry"/>
-                                                <DataGridTextColumn Header="time" Binding="{Binding DateTime, StringFormat='HH:mm:ss'}" x:DataType="models1:IISLogEntry"/>
-                                                <DataGridTextColumn Header="s-ip" Binding="{Binding ServerIPAddress}" x:DataType="models1:IISLogEntry"/>
-                                                <DataGridTextColumn Header="cs-method" Binding="{Binding Method}" x:DataType="models1:IISLogEntry"/>
-                                                <DataGridTextColumn Header="cs-uri-stem" Binding="{Binding UriStem}" x:DataType="models1:IISLogEntry"/>
-                                                <DataGridTextColumn Header="cs-uri-query" Binding="{Binding UriQuery}" x:DataType="models1:IISLogEntry"/>
-                                                <DataGridTextColumn Header="s-port" Binding="{Binding ServerPort}" x:DataType="models1:IISLogEntry"/>
-                                                <DataGridTextColumn Header="cs-username" Binding="{Binding UserName}" x:DataType="models1:IISLogEntry"/>
-                                                <DataGridTextColumn Header="c-ip" Binding="{Binding ClientIPAddress}" x:DataType="models1:IISLogEntry"/>
-                                                <DataGridTextColumn Header="cs(User-Agent)" Binding="{Binding UserAgent}" Width="*" x:DataType="models1:IISLogEntry"/>
-                                                <DataGridTextColumn Header="sc-status" Binding="{Binding HttpStatus}" x:DataType="models1:IISLogEntry"/>
-                                                <DataGridTextColumn Header="sc-win32-status" Binding="{Binding Win32Status}" x:DataType="models1:IISLogEntry"/>
-                                                <DataGridTextColumn Header="time-taken" Binding="{Binding TimeTaken}" x:DataType="models1:IISLogEntry"/>
+                                                <DataGridTextColumn Header="date" Binding="{Binding DateTime, StringFormat='yyyy-MM-dd'}" x:DataType="models1:IisLogEntry"/>
+                                                <DataGridTextColumn Header="time" Binding="{Binding DateTime, StringFormat='HH:mm:ss'}" x:DataType="models1:IisLogEntry"/>
+                                                <DataGridTextColumn Header="s-ip" Binding="{Binding ServerIPAddress}" x:DataType="models1:IisLogEntry"/>
+                                                <DataGridTextColumn Header="cs-method" Binding="{Binding Method}" x:DataType="models1:IisLogEntry"/>
+                                                <DataGridTextColumn Header="cs-uri-stem" Binding="{Binding UriStem}" x:DataType="models1:IisLogEntry"/>
+                                                <DataGridTextColumn Header="cs-uri-query" Binding="{Binding UriQuery}" x:DataType="models1:IisLogEntry"/>
+                                                <DataGridTextColumn Header="s-port" Binding="{Binding ServerPort}" x:DataType="models1:IisLogEntry"/>
+                                                <DataGridTextColumn Header="cs-username" Binding="{Binding UserName}" x:DataType="models1:IisLogEntry"/>
+                                                <DataGridTextColumn Header="c-ip" Binding="{Binding ClientIPAddress}" x:DataType="models1:IisLogEntry"/>
+                                                <DataGridTextColumn Header="cs(User-Agent)" Binding="{Binding ShortUserAgent}" Width="*" x:DataType="models1:IisLogEntry"/>
+                                                <DataGridTextColumn Header="sc-win32-status" Binding="{Binding Win32Status}" x:DataType="models1:IisLogEntry"/>
+                                                <DataGridTextColumn Header="time-taken" Binding="{Binding TimeTaken}" x:DataType="models1:IisLogEntry"/>
+                                                <DataGridTextColumn Header="sc-status" Binding="{Binding HttpStatus}" x:DataType="models1:IisLogEntry"/>
                                             </DataGrid.Columns>
                                         </DataGrid>
                                     </Panel>

@@ -2,10 +2,8 @@ using System;
 
 namespace Log_Parser_App.Models
 {
-    public class IISLogEntry
-    {
-        // Standard W3C Fields (nullable to accommodate customized IIS logs)
-        public DateTimeOffset? DateTime { get; set; } // Combined Date and Time (Typically UTC)
+    public class IisLogEntry
+    { public DateTimeOffset? DateTime { get; set; } // Combined Date and Time (Typically UTC)
         public string? ClientIPAddress { get; set; }   // c-ip
         public string? UserName { get; set; }          // cs-username
         public string? ServiceName { get; set; }       // s-sitename
@@ -24,8 +22,20 @@ namespace Log_Parser_App.Models
         public string? Host { get; set; }              // cs-host
         public string? UserAgent { get; set; }         // cs(User-Agent)
         public string? Cookie { get; set; }            // cs(Cookie)
-
-        // Raw line for reference or if parsing fails for specific fields
         public string? RawLine { get; set; }
+
+        private const int MaxUserAgentDisplayLength = 50; 
+
+        public string? ShortUserAgent 
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(UserAgent))
+                    return UserAgent; 
+                return UserAgent.Length <= MaxUserAgentDisplayLength
+                    ? UserAgent
+                    : UserAgent.Substring(0, MaxUserAgentDisplayLength) + "...";
+            }
+        }
     }
 } 
