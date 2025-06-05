@@ -201,10 +201,6 @@ namespace Log_Parser_App.Services
                     case "cs(cookie)":
                         entry.Cookie = value;
                         break;
-                    case "cs(referer)":
-                    case "cs-referer": 
-                        entry.Referer = value;
-                        break;
                     case "cs-host":
                         entry.Host = value;
                         break;

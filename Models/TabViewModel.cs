@@ -283,7 +283,6 @@ namespace Log_Parser_App.Models
                 IISLogField.Win32Status => entry.Win32Status,
                 IISLogField.TimeTaken => entry.TimeTaken,
                 IISLogField.UserAgent => entry.UserAgent,
-                IISLogField.Referer => entry.Referer,
                 _ => null,
             };
         }

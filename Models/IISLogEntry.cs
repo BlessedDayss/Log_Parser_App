@@ -23,7 +23,6 @@ namespace Log_Parser_App.Models
         public string? ProtocolVersion { get; set; }   // cs-version
         public string? Host { get; set; }              // cs-host
         public string? UserAgent { get; set; }         // cs(User-Agent)
-        public string? Referer { get; set; }           // cs(Referer)
         public string? Cookie { get; set; }            // cs(Cookie)
 
         // Raw line for reference or if parsing fails for specific fields
