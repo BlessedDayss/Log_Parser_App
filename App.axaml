@@ -122,5 +122,40 @@
             <Setter Property="Background" Value="{DynamicResource SystemBaseLowColor}" />
             <Setter Property="Foreground" Value="{DynamicResource SystemAccentColor}" />
         </Style>
+
+        <!-- Радикальное решение для удаления пустого пространства в DataGrid -->
+        <Style Selector="DataGridColumnHeader">
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Grid Name="PART_ColumnHeaderRoot"
+                          Background="{TemplateBinding Background}">
+                        <Grid HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                              Margin="{TemplateBinding Padding}">
+                            <!-- Удаляем второй столбец полностью, оставляем только контент -->
+                            <ContentPresenter Content="{TemplateBinding Content}" 
+                                              ContentTemplate="{TemplateBinding ContentTemplate}" />
+                        </Grid>
+                        <Grid x:Name="FocusVisual" IsHitTestVisible="False">
+                            <Rectangle x:Name="FocusVisualPrimary" 
+                                       HorizontalAlignment="Stretch"
+                                       VerticalAlignment="Stretch"
+                                       Fill="Transparent"
+                                       IsHitTestVisible="False"
+                                       Stroke="{DynamicResource DataGridCellFocusVisualPrimaryBrush}"
+                                       StrokeThickness="2" />
+                            <Rectangle x:Name="FocusVisualSecondary"
+                                       Margin="2"
+                                       HorizontalAlignment="Stretch"
+                                       VerticalAlignment="Stretch"
+                                       Fill="Transparent"
+                                       IsHitTestVisible="False"
+                                       Stroke="{DynamicResource DataGridCellFocusVisualSecondaryBrush}"
+                                       StrokeThickness="1" />
+                        </Grid>
+                    </Grid>
+                </ControlTemplate>
+            </Setter>
+        </Style>
     </Application.Styles>
 </Application>
