@@ -563,7 +563,7 @@
 
                                 <!-- Row 2 for DataGrid -->
                                 <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                                    <Panel x:Name="dataGridsPanel" DataContext="{Binding MainView}"> 
+                                    <Grid DataContext="{Binding MainView}">
                                         <!-- Standard LogEntry DataGrid -->
                                         <DataGrid ItemsSource="{Binding SelectedTab.FilteredLogEntries}" 
                                                   SelectedItem="{Binding SelectedLogEntry, Mode=TwoWay}" 
@@ -595,33 +595,90 @@
                                             </DataGrid.Columns>
                                         </DataGrid>
 
-                                        <!-- IISLogEntry DataGrid -->
-                                        <DataGrid ItemsSource="{Binding SelectedTab.FilteredIISLogEntries}" 
-                                                  IsVisible="{Binding SelectedTab.IsThisTabIIS}"  
-                                                  Classes="iis-log-grid"
-                                                  CanUserReorderColumns="True"
-                                                  IsReadOnly="True"
-                                                  BorderThickness="0"
-                                                  GridLinesVisibility="Horizontal"
-                                                  HorizontalGridLinesBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
-                                                  SelectionMode="Extended">
-                                            <DataGrid.Columns>
-                                                <DataGridTextColumn Header="date" Binding="{Binding DateTime, StringFormat='yyyy-MM-dd'}" x:DataType="models1:IisLogEntry"/>
-                                                <DataGridTextColumn Header="time" Binding="{Binding DateTime, StringFormat='HH:mm:ss'}" x:DataType="models1:IisLogEntry"/>
-                                                <DataGridTextColumn Header="s-ip" Binding="{Binding ServerIPAddress}" x:DataType="models1:IisLogEntry"/>
-                                                <DataGridTextColumn Header="cs-method" Binding="{Binding Method}" x:DataType="models1:IisLogEntry"/>
-                                                <DataGridTextColumn Header="cs-uri-stem" Binding="{Binding UriStem}" x:DataType="models1:IisLogEntry"/>
-                                                <DataGridTextColumn Header="cs-uri-query" Binding="{Binding UriQuery}" x:DataType="models1:IisLogEntry"/>
-                                                <DataGridTextColumn Header="s-port" Binding="{Binding ServerPort}" x:DataType="models1:IisLogEntry"/>
-                                                <DataGridTextColumn Header="cs-username" Binding="{Binding UserName}" x:DataType="models1:IisLogEntry"/>
-                                                <DataGridTextColumn Header="c-ip" Binding="{Binding ClientIPAddress}" x:DataType="models1:IisLogEntry"/>
-                                                <DataGridTextColumn Header="cs(User-Agent)" Binding="{Binding ShortUserAgent}" Width="*" x:DataType="models1:IisLogEntry"/>
-                                                <DataGridTextColumn Header="sc-win32-status" Binding="{Binding Win32Status}" x:DataType="models1:IisLogEntry"/>
-                                                <DataGridTextColumn Header="time-taken" Binding="{Binding TimeTaken}" x:DataType="models1:IisLogEntry"/>
-                                                <DataGridTextColumn Header="sc-status" Binding="{Binding HttpStatus}" x:DataType="models1:IisLogEntry"/>
-                                            </DataGrid.Columns>
-                                        </DataGrid>
-                                    </Panel>
+                                        <!-- IISLogEntry DataGrid - ЗАМЕНЯЕМ НА ПОЛЬЗОВАТЕЛЬСКУЮ ТАБЛИЦУ -->
+                                        <Grid IsVisible="{Binding SelectedTab.IsThisTabIIS}" Background="#222326">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                            </Grid.RowDefinitions>
+                                            
+                                            <!-- Заголовки колонок -->
+                                            <Grid Grid.Row="0" Background="#2D2F33">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" MinWidth="90"/> <!-- date -->
+                                                    <ColumnDefinition Width="Auto" MinWidth="90"/> <!-- time -->
+                                                    <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- s-ip -->
+                                                    <ColumnDefinition Width="Auto" MinWidth="90"/> <!-- cs-method -->
+                                                    <ColumnDefinition Width="*" MinWidth="150"/> <!-- cs-uri-stem -->
+                                                    <ColumnDefinition Width="*" MinWidth="150"/> <!-- cs-uri-query -->
+                                                    <ColumnDefinition Width="Auto" MinWidth="70"/> <!-- s-port -->
+                                                    <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- cs-username -->
+                                                    <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- c-ip -->
+                                                    <ColumnDefinition Width="Auto" MinWidth="90"/> <!-- time-taken -->
+                                                    <ColumnDefinition Width="Auto" MinWidth="150"/> <!-- cs(User-Agent) -->
+                                                    <ColumnDefinition Width="Auto" MinWidth="110"/> <!-- sc-win32-status -->
+                                                    <ColumnDefinition Width="Auto" MinWidth="90"/> <!-- sc-status -->
+                                                </Grid.ColumnDefinitions>
+                                                
+                                                <TextBlock Grid.Column="0" Text="date" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="1" Text="time" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="2" Text="s-ip" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="3" Text="cs-method" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="4" Text="cs-uri-stem" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="5" Text="cs-uri-query" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="6" Text="s-port" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="7" Text="cs-username" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="8" Text="c-ip" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="9" Text="time-taken" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="10" Text="cs(User-Agent)" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="11" Text="sc-win32-status" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="12" Text="sc-status" Padding="8,8" FontWeight="SemiBold"/>
+                                            </Grid>
+                                            
+                                            <!-- Содержимое таблицы -->
+                                            <ListBox Grid.Row="1" 
+                                                     ItemsSource="{Binding SelectedTab.FilteredIISLogEntries}"
+                                                     SelectedItem="{Binding SelectedLogEntry}"
+                                                     Background="Transparent"
+                                                     BorderThickness="0">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="models1:IisLogEntry">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto" MinWidth="90"/> <!-- date -->
+                                                                <ColumnDefinition Width="Auto" MinWidth="90"/> <!-- time -->
+                                                                <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- s-ip -->
+                                                                <ColumnDefinition Width="Auto" MinWidth="90"/> <!-- cs-method -->
+                                                                <ColumnDefinition Width="*" MinWidth="150"/> <!-- cs-uri-stem -->
+                                                                <ColumnDefinition Width="*" MinWidth="150"/> <!-- cs-uri-query -->
+                                                                <ColumnDefinition Width="Auto" MinWidth="70"/> <!-- s-port -->
+                                                                <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- cs-username -->
+                                                                <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- c-ip -->
+                                                                <ColumnDefinition Width="Auto" MinWidth="90"/> <!-- time-taken -->
+                                                                <ColumnDefinition Width="Auto" MinWidth="150"/> <!-- cs(User-Agent) -->
+                                                                <ColumnDefinition Width="Auto" MinWidth="110"/> <!-- sc-win32-status -->
+                                                                <ColumnDefinition Width="Auto" MinWidth="90"/> <!-- sc-status -->
+                                                            </Grid.ColumnDefinitions>
+                                                            
+                                                            <TextBlock Grid.Column="0" Text="{Binding DateTime, StringFormat='yyyy-MM-dd'}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="1" Text="{Binding DateTime, StringFormat='HH:mm:ss'}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="2" Text="{Binding ServerIPAddress}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="3" Text="{Binding Method}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="4" Text="{Binding UriStem}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="5" Text="{Binding UriQuery}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="6" Text="{Binding ServerPort}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="7" Text="{Binding UserName}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="8" Text="{Binding ClientIPAddress}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="9" Text="{Binding TimeTaken}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="10" Text="{Binding ShortUserAgent}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="11" Text="{Binding Win32Status}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="12" Text="{Binding HttpStatus}" Padding="8,4"/>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+                                        </Grid>
+                                    </Grid>
                                 </ScrollViewer>
                             </Grid>
                         </TabItem>
