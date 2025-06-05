@@ -562,7 +562,7 @@
                                 </StackPanel>
 
                                 <!-- Row 2 for DataGrid -->
-                                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                                     <Panel x:Name="dataGridsPanel" DataContext="{Binding MainView}"> 
                                         <!-- Standard LogEntry DataGrid -->
                                         <DataGrid ItemsSource="{Binding SelectedTab.FilteredLogEntries}" 
