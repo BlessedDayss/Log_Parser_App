@@ -1415,7 +1415,7 @@ namespace Log_Parser_App.ViewModels
 
                     var tabTitle = Path.GetFileName(filePath) + " (IIS)";
                     
-                    List<IISLogEntry> parsedEntries = new List<IISLogEntry>();
+                    List<IisLogEntry> parsedEntries = new List<IisLogEntry>();
                     try
                     {
                         await foreach (var entry in _iisLogParserService.ParseLogFileAsync(filePath, CancellationToken.None))

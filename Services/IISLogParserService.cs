@@ -21,7 +21,7 @@ namespace Log_Parser_App.Services
             _logger = logger;
         }
 
-        public async IAsyncEnumerable<IISLogEntry> ParseLogFileAsync(string filePath, [EnumeratorCancellation] CancellationToken cancellationToken)
+        public async IAsyncEnumerable<IisLogEntry> ParseLogFileAsync(string filePath, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
             {
@@ -46,7 +46,7 @@ namespace Log_Parser_App.Services
             }
         }
 
-        private async IAsyncEnumerable<IISLogEntry> ProcessStreamAsync(StreamReader streamReader, [EnumeratorCancellation] CancellationToken cancellationToken, string filePath)
+        private async IAsyncEnumerable<IisLogEntry> ProcessStreamAsync(StreamReader streamReader, [EnumeratorCancellation] CancellationToken cancellationToken, string filePath)
         {
             List<string>? fieldNames = null;
             int lineNumber = 0;
@@ -80,7 +80,7 @@ namespace Log_Parser_App.Services
                         continue;
                     }
 
-                    IISLogEntry? entry = ParseLogLine(line, fieldNames, lineNumber, filePath);
+                    IisLogEntry? entry = ParseLogLine(line, fieldNames, lineNumber, filePath);
                     if (entry != null)
                     {
                         yield return entry;
@@ -94,7 +94,7 @@ namespace Log_Parser_App.Services
             }
         }
 
-        private IISLogEntry? ParseLogLine(string line, List<string> fieldNames, int lineNumber, string filePath)
+        private IisLogEntry? ParseLogLine(string line, List<string> fieldNames, int lineNumber, string filePath)
         {
             try
             {
@@ -106,7 +106,7 @@ namespace Log_Parser_App.Services
                     return null;
                 }
 
-                var entry = new IISLogEntry { RawLine = line };
+                var entry = new IisLogEntry { RawLine = line };
                 string? dateStr = null;
                 string? timeStr = null;
 
@@ -148,11 +148,11 @@ namespace Log_Parser_App.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error parsing IIS log entry at line {LineNumber} in {FilePath}. Line: {LineContent}", lineNumber, filePath, line);
-                return new IISLogEntry { RawLine = line, ClientIPAddress = $"Error parsing line: {ex.Message}" };
+                return new IisLogEntry { RawLine = line, ClientIPAddress = $"Error parsing line: {ex.Message}" };
             }
         }
 
-        private void SetEntryProperty(IISLogEntry entry, string fieldName, string value, int lineNumber, string filePath)
+        private void SetEntryProperty(IisLogEntry entry, string fieldName, string value, int lineNumber, string filePath)
         {
             if (value == "-") 
             {
