@@ -656,7 +656,6 @@
                                                                 <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- c-ip -->
                                                                 <ColumnDefinition Width="Auto" MinWidth="90"/> <!-- time-taken -->
                                                                 <ColumnDefinition Width="Auto" MinWidth="150"/> <!-- cs(User-Agent) -->
-                                                                <ColumnDefinition Width="Auto" MinWidth="110"/> <!-- sc-win32-status -->
                                                                 <ColumnDefinition Width="Auto" MinWidth="90"/> <!-- sc-status -->
                                                             </Grid.ColumnDefinitions>
                                                             
@@ -671,8 +670,7 @@
                                                             <TextBlock Grid.Column="8" Text="{Binding ClientIPAddress}" Padding="8,4"/>
                                                             <TextBlock Grid.Column="9" Text="{Binding TimeTaken}" Padding="8,4"/>
                                                             <TextBlock Grid.Column="10" Text="{Binding ShortUserAgent}" Padding="8,4"/>
-                                                            <TextBlock Grid.Column="11" Text="{Binding Win32Status}" Padding="8,4"/>
-                                                            <TextBlock Grid.Column="12" Text="{Binding HttpStatus}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="11" Text="{Binding HttpStatus}" Padding="8,4"/>
                                                         </Grid>
                                                     </DataTemplate>
                                                 </ListBox.ItemTemplate>
