@@ -32,7 +32,4 @@
         <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
         <PackageReference Include="NLog" Version="5.0.0" />
     </ItemGroup>
-    <ItemGroup>
-      <Content Include=".github\workflows\build-and-release.yml" />
-    </ItemGroup>
 </Project>
