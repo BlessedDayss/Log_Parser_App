@@ -13,9 +13,30 @@ namespace Log_Parser_App.Services
         public LogEntry? Parse(string line, int lineNumber, string filePath)
         {
             if (!IsLogLine(line)) return null;
-            var timePart = line.Substring(0, 19);
-            if (!DateTime.TryParse(timePart, out var timestamp)) timestamp = DateTime.Now;
-            var message = line.Length > 19 ? line.Substring(19).Trim() : string.Empty;
+
+            DateTime timestamp;
+            string message;
+
+            if (line.Length < 19)
+            {
+                // IsLogLine was true, so the entire short line is a parsable date.
+                if (!DateTime.TryParse(line, out timestamp))
+                {
+                    // Fallback, though IsLogLine implies it's parsable. Consider if this fallback is desired.
+                    timestamp = DateTime.Now; 
+                }
+                message = string.Empty;
+            }
+            else // line.Length >= 19
+            {
+                var timePartStr = line.Substring(0, 19); // Safe, as line.Length >= 19
+                if (!DateTime.TryParse(timePartStr, out timestamp))
+                {
+                    timestamp = DateTime.Now; // Original fallback
+                }
+                message = line.Substring(19).Trim(); // Message is everything after the first 19 chars
+            }
+            
             var level = "INFO";
             if (message.Contains("error", StringComparison.OrdinalIgnoreCase))
                 level = "ERROR";
