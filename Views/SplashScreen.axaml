@@ -1,0 +1,20 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="300"
+        x:Class="Log_Parser_App.Views.SplashScreen"
+        Width="500" Height="300"
+        WindowStartupLocation="CenterScreen"
+        SystemDecorations="None"
+        Background="#1A1C21">
+    <Grid>
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
+            <TextBlock Text="LogParser" HorizontalAlignment="Center" 
+                     FontSize="28" FontWeight="SemiBold" Foreground="#F5F5F7"/>
+            <ProgressBar IsIndeterminate="True" Width="200" Height="4"/>
+        </StackPanel>
+        <TextBlock Text="v1.0.0" HorizontalAlignment="Right" VerticalAlignment="Bottom" 
+                 Margin="0,0,10,10" Foreground="#AAAAAA" FontSize="12"/>
+    </Grid>
+</Window> 
