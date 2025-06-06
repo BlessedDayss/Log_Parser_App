@@ -105,6 +105,77 @@ public partial class App : Application
                 Console.WriteLine("[App] Skipping MainWindowViewModel creation due to missing dependencies.");
             }
             
+            // Временно отключаем SplashScreen для отладки
+            /*
+            // Создаем экран приветствия и показываем его
+            var splashScreen = new Views.SplashScreen();
+            desktop.MainWindow = splashScreen;
+            
+            // Запускаем задачу, которая покажет основное окно после задержки
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await splashScreen.WaitAndClose();
+                    
+                    // Переключаемся на UI поток для создания основного окна
+                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        try
+                        {
+                            MainWindow = new MainWindow
+                            {
+                                DataContext = mainWindowViewModel
+                            };
+                            Console.WriteLine("[App] MainWindow created and DataContext set.");
+                            
+                            desktop.MainWindow = MainWindow;
+                            Console.WriteLine("[App] desktop.MainWindow assigned to MainWindow.");
+                            
+                            // Инициализируем FileService после создания основного окна
+                            IFileService? fileService = null;
+                            try 
+                            {
+                                fileService = services.GetRequiredService<IFileService>();
+                                Console.WriteLine("[App] IFileService resolved.");
+                            }
+                            catch (Exception ex) { Console.WriteLine($"[App] Error resolving IFileService: {ex.Message}"); }
+
+                            if (fileService is FileService fs && MainWindow != null)
+                            {
+                                try
+                                {
+                                    fs.InitializeTopLevel(MainWindow);
+                                    Console.WriteLine("[App] FileService.InitializeTopLevel called.");
+                                }
+                                catch (Exception ex) { Console.WriteLine($"[App] Error in FileService.InitializeTopLevel: {ex.Message}"); }
+                            }
+                        }
+                        catch (Exception ex) { Console.WriteLine($"[App] Error creating MainWindow: {ex.Message}"); }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[App] Error in splash screen task: {ex.Message}");
+                    
+                    // Если произошла ошибка в задаче SplashScreen, показываем основное окно напрямую
+                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        try
+                        {
+                            MainWindow = new MainWindow
+                            {
+                                DataContext = mainWindowViewModel
+                            };
+                            desktop.MainWindow = MainWindow;
+                        }
+                        catch (Exception ex2) { Console.WriteLine($"[App] Error in fallback window creation: {ex2.Message}"); }
+                    });
+                }
+            });
+            */
+            
+            // Напрямую создаем и показываем основное окно
             try
             {
                 MainWindow = new MainWindow
@@ -112,36 +183,30 @@ public partial class App : Application
                     DataContext = mainWindowViewModel
                 };
                 Console.WriteLine("[App] MainWindow created and DataContext set.");
+                
+                desktop.MainWindow = MainWindow;
+                Console.WriteLine("[App] desktop.MainWindow assigned to MainWindow.");
+                
+                // Инициализируем FileService после создания основного окна
+                IFileService? fileService = null;
+                try 
+                {
+                    fileService = services.GetRequiredService<IFileService>();
+                    Console.WriteLine("[App] IFileService resolved.");
+                }
+                catch (Exception ex) { Console.WriteLine($"[App] Error resolving IFileService: {ex.Message}"); }
+
+                if (fileService is FileService fs && MainWindow != null)
+                {
+                    try
+                    {
+                        fs.InitializeTopLevel(MainWindow);
+                        Console.WriteLine("[App] FileService.InitializeTopLevel called.");
+                    }
+                    catch (Exception ex) { Console.WriteLine($"[App] Error in FileService.InitializeTopLevel: {ex.Message}"); }
+                }
             }
             catch (Exception ex) { Console.WriteLine($"[App] Error creating MainWindow: {ex.Message}"); }
-            
-            if (MainWindow != null)
-            {
-                desktop.MainWindow = MainWindow;
-                Console.WriteLine("[App] desktop.MainWindow assigned.");
-            }
-            else
-            {
-                Console.WriteLine("[App] desktop.MainWindow NOT assigned because MainWindow is null.");
-            }
-
-            IFileService? fileService = null;
-            try 
-            {
-                fileService = services.GetRequiredService<IFileService>();
-                Console.WriteLine("[App] IFileService resolved.");
-            }
-            catch (Exception ex) { Console.WriteLine($"[App] Error resolving IFileService: {ex.Message}"); }
-
-            if (fileService is FileService fs && MainWindow != null)
-            {
-                try
-                {
-                    fs.InitializeTopLevel(MainWindow);
-                    Console.WriteLine("[App] FileService.InitializeTopLevel called.");
-                }
-                catch (Exception ex) { Console.WriteLine($"[App] Error in FileService.InitializeTopLevel: {ex.Message}"); }
-            }
             
             if (OperatingSystem.IsWindows())
             {

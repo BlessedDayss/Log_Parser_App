@@ -142,6 +142,15 @@ namespace Log_Parser_App.ViewModels
         private bool _isDashboardVisible = false;
 
         [ObservableProperty]
+        private bool _isIISDashboardVisible = false;
+
+        [ObservableProperty]
+        private bool _isStandardDashboardVisible = false;
+
+        [ObservableProperty]
+        private bool _isStartScreenVisible = true;
+
+        [ObservableProperty]
         private int _errorCount;
 
         [ObservableProperty]
@@ -444,8 +453,13 @@ namespace Log_Parser_App.ViewModels
             {
                 var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop ? desktop.MainWindow : null;
                 var files = await _filePickerService.PickFilesAsync(mainWindow);
-                if (files == null || !files.Any()) return;
+                if (files != null && files.Any())
+                {
                 await LoadFilesAsync(files);
+                    IsStartScreenVisible = false;
+                    IsStandardDashboardVisible = true;
+                    IsIISDashboardVisible = false;
+                }
             }
             catch (Exception ex)
             {
@@ -714,6 +728,8 @@ namespace Log_Parser_App.ViewModels
                 OtherPercent = 0;
                 LogStatistics = new LogStatistics();
                 ClearAllCharts();
+                IsIISDashboardVisible = false;
+                IsStandardDashboardVisible = false;
                 return;
             }
 
@@ -727,6 +743,8 @@ namespace Log_Parser_App.ViewModels
                     ErrorPercent = 0; WarningPercent = 0; InfoPercent = 0; OtherPercent = 0;
                     LogStatistics = new LogStatistics();
                     ClearAllCharts();
+                    IsIISDashboardVisible = false;
+                    IsStandardDashboardVisible = true;
                     return;
                 }
 
@@ -753,6 +771,9 @@ namespace Log_Parser_App.ViewModels
                 HoursAxis = stats.HoursAxis;
                 SourceAxis = stats.SourceAxis;
                 ErrorMessageAxis = stats.ErrorMessageAxis;
+                
+                IsIISDashboardVisible = false;
+                IsStandardDashboardVisible = true;
             }
             else if (SelectedTab.IsThisTabIIS)
             {
@@ -764,19 +785,36 @@ namespace Log_Parser_App.ViewModels
                 int totalIISEntries = SelectedTab.IIS_TotalCount;
                 if (totalIISEntries > 0)
                 {
-                    ErrorPercent = (double)ErrorCount / totalIISEntries * 100;
-                    InfoPercent = (double)InfoCount / totalIISEntries * 100;
+                    ErrorPercent = Math.Round((double)ErrorCount / totalIISEntries * 100, 1);
+                    InfoPercent = Math.Round((double)InfoCount / totalIISEntries * 100, 1);
                     WarningPercent = 0;
-                    OtherPercent = (double)OtherCount / totalIISEntries * 100;
+                    OtherPercent = Math.Round((double)OtherCount / totalIISEntries * 100, 1);
+                    
+                    LogStatistics = new LogStatistics
+                    {
+                        TotalCount = totalIISEntries,
+                        ErrorCount = ErrorCount,
+                        InfoCount = InfoCount,
+                        WarningCount = 0,
+                        OtherCount = OtherCount,
+                        ErrorPercent = ErrorPercent,
+                        InfoPercent = InfoPercent,
+                        WarningPercent = 0,
+                        OtherPercent = OtherPercent
+                    };
+                    
+                    // Generate IIS-specific charts
+                    CalculateIISCharts();
                 }
                 else
                 {
                     ErrorPercent = 0; InfoPercent = 0; WarningPercent = 0; OtherPercent = 0;
+                    LogStatistics = new LogStatistics();
+                    ClearAllCharts();
                 }
 
-                // Clear or reset standard log statistics and charts
-                LogStatistics = new LogStatistics(); // Reset to default or create an IIS specific one later
-                ClearAllCharts();
+                IsIISDashboardVisible = true;
+                IsStandardDashboardVisible = false;
             }
             else
             {
@@ -785,7 +823,189 @@ namespace Log_Parser_App.ViewModels
                 ErrorPercent = 0; WarningPercent = 0; InfoPercent = 0; OtherPercent = 0;
                 LogStatistics = new LogStatistics();
                 ClearAllCharts();
+                IsIISDashboardVisible = false;
+                IsStandardDashboardVisible = false;
             }
+        }
+
+        private void CalculateIISCharts()
+        {
+            if (SelectedTab == null || !SelectedTab.IsThisTabIIS || SelectedTab.FilteredIISLogEntries.Count == 0)
+            {
+                ClearAllCharts();
+                return;
+            }
+            
+            var iisEntries = SelectedTab.FilteredIISLogEntries.ToList();
+            
+            // 1. Log Type Distribution chart (Pie chart) для IIS логов
+            LogDistributionSeries = new ISeries[]
+            {
+                new PieSeries<double>
+                {
+                    Values = new double[] { ErrorCount },
+                    Name = "Errors (4xx-5xx)",
+                    Fill = new SolidColorPaint(SKColors.Crimson),
+                    InnerRadius = 50,
+                    MaxRadialColumnWidth = 50,
+                    DataLabelsSize = 16,
+                    DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                    DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                    DataLabelsFormatter = point => ErrorCount > 0 ? $"Errors: {ErrorCount}\n({ErrorPercent:0.0}%)" : "",
+                    IsVisible = ErrorCount > 0
+                },
+                new PieSeries<double>
+                {
+                    Values = new double[] { InfoCount },
+                    Name = "Success (2xx)",
+                    Fill = new SolidColorPaint(SKColors.RoyalBlue),
+                    InnerRadius = 50,
+                    MaxRadialColumnWidth = 50,
+                    DataLabelsSize = 16,
+                    DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                    DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                    DataLabelsFormatter = point => InfoCount > 0 ? $"Success: {InfoCount}\n({InfoPercent:0.0}%)" : "",
+                    IsVisible = InfoCount > 0
+                },
+                new PieSeries<double>
+                {
+                    Values = new double[] { OtherCount },
+                    Name = "Redirects (3xx)",
+                    Fill = new SolidColorPaint(SKColors.DarkGray),
+                    InnerRadius = 50,
+                    MaxRadialColumnWidth = 50,
+                    DataLabelsSize = 16,
+                    DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                    DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                    DataLabelsFormatter = point => OtherCount > 0 ? $"Redirects: {OtherCount}\n({OtherPercent:0.0}%)" : "",
+                    IsVisible = OtherCount > 0
+                }
+            };
+            
+            // 2. HTTP Status Code Distribution (bar chart)
+            var statusCodeGroups = iisEntries
+                .GroupBy(e => e.HttpStatus)
+                .OrderBy(g => g.Key)
+                .Select(g => new { StatusCode = g.Key, Count = g.Count() })
+                .ToList();
+            
+            if (statusCodeGroups.Any())
+            {
+                var statusCodeValues = new List<double>();
+                var statusLabels = new List<string>();
+                var statusColors = new List<SolidColorPaint>();
+                
+                foreach (var group in statusCodeGroups)
+                {
+                    statusCodeValues.Add(group.Count);
+                    statusLabels.Add(group.StatusCode.ToString());
+                    
+                    // Цвета по категориям статус-кодов
+                    if (group.StatusCode >= 500)
+                        statusColors.Add(new SolidColorPaint(SKColors.DarkRed));
+                    else if (group.StatusCode >= 400)
+                        statusColors.Add(new SolidColorPaint(SKColors.Crimson));
+                    else if (group.StatusCode >= 300)
+                        statusColors.Add(new SolidColorPaint(SKColors.DarkGray));
+                    else if (group.StatusCode >= 200)
+                        statusColors.Add(new SolidColorPaint(SKColors.RoyalBlue));
+                    else
+                        statusColors.Add(new SolidColorPaint(SKColors.DimGray));
+                }
+                
+                TopErrorsSeries = new ISeries[]
+                {
+                    new ColumnSeries<double>
+                    {
+                        Values = statusCodeValues.ToArray(),
+                        Name = "HTTP Status Codes",
+                        Fill = new SolidColorPaint(SKColors.DodgerBlue),
+                        Stroke = null,
+                        Padding = 5,
+                        DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Top,
+                        DataLabelsFormatter = point => $"{statusLabels[(int)point.Context.Index]}: {point.Coordinate.PrimaryValue}",
+                        DataLabelsPaint = new SolidColorPaint(SKColors.White)
+                    }
+                };
+                
+                ErrorMessageAxis = new Axis[]
+                {
+                    new Axis
+                    {
+                        Labels = statusLabels.ToArray(),
+                        LabelsRotation = 0,
+                        Padding = new LiveChartsCore.Drawing.Padding(15),
+                        SeparatorsPaint = new SolidColorPaint(SKColors.LightSlateGray) { StrokeThickness = 1 }
+                    }
+                };
+            }
+            else
+            {
+                TopErrorsSeries = Array.Empty<ISeries>();
+            }
+            
+            // Временная активность по часам, как и для обычных логов
+            if (iisEntries.Any(e => e.DateTime.HasValue))
+            {
+                var timeGroups = iisEntries
+                    .Where(e => e.DateTime.HasValue)
+                    .GroupBy(e => new { 
+                        Hour = e.DateTime!.Value.Hour, 
+                        IsError = e.HttpStatus >= 400 
+                    })
+                    .Select(g => new { g.Key.Hour, g.Key.IsError, Count = g.Count() })
+                    .ToList();
+                
+                var hours = Enumerable.Range(0, 24).ToList();
+                var errorByHour = new double[24];
+                var successByHour = new double[24];
+                
+                foreach (var group in timeGroups)
+                {
+                    if (group.IsError)
+                        errorByHour[group.Hour] += group.Count;
+                    else
+                        successByHour[group.Hour] += group.Count;
+                }
+                
+                TimeHeatmapSeries = new ISeries[]
+                {
+                    new ColumnSeries<double>
+                    {
+                        Values = successByHour,
+                        Name = "Success",
+                        Fill = new SolidColorPaint(SKColors.RoyalBlue),
+                        Stroke = null
+                    },
+                    new ColumnSeries<double>
+                    {
+                        Values = errorByHour,
+                        Name = "Errors",
+                        Fill = new SolidColorPaint(SKColors.Crimson),
+                        Stroke = null
+                    }
+                };
+                
+                HoursAxis = new Axis[]
+                {
+                    new Axis
+                    {
+                        Labels = hours.Select(h => h.ToString("00") + ":00").ToArray(),
+                        LabelsRotation = 45,
+                        Padding = new LiveChartsCore.Drawing.Padding(15),
+                        SeparatorsPaint = new SolidColorPaint(SKColors.LightSlateGray) { StrokeThickness = 1 }
+                    }
+                };
+            }
+            else
+            {
+                TimeHeatmapSeries = Array.Empty<ISeries>();
+            }
+            
+            // Прочие графики оставляем пустыми
+            LevelsOverTimeSeries = Array.Empty<ISeries>();
+            ErrorTrendSeries = Array.Empty<ISeries>();
+            SourcesDistributionSeries = Array.Empty<ISeries>();
         }
 
         private void ClearAllCharts()
@@ -1444,6 +1664,10 @@ namespace Log_Parser_App.ViewModels
                         continue;
                     }
                 }
+                
+                IsStartScreenVisible = false;
+                IsStandardDashboardVisible = false;
+                IsIISDashboardVisible = true;
             }
             catch (Exception ex)
             {
@@ -1587,6 +1811,30 @@ namespace Log_Parser_App.ViewModels
             {
                 _logger.LogWarning("Attempted to remove a null filter criterion.");
             }
+        }
+
+        [RelayCommand]
+        private void ShowStandardLogSection()
+        {
+            IsStartScreenVisible = false;
+            IsStandardDashboardVisible = true;
+            IsIISDashboardVisible = false;
+        }
+
+        [RelayCommand]
+        private void ShowIISLogSection()
+        {
+            IsStartScreenVisible = false;
+            IsStandardDashboardVisible = false;
+            IsIISDashboardVisible = true;
+        }
+
+        [RelayCommand]
+        private void ShowStartScreen()
+        {
+            IsStartScreenVisible = true;
+            IsStandardDashboardVisible = false;
+            IsIISDashboardVisible = false;
         }
     }
 }

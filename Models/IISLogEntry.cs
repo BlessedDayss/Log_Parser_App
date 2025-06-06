@@ -55,7 +55,7 @@ namespace Log_Parser_App.Models
 			get
 			{
 				if (string.IsNullOrEmpty(UserAgent))
-					return UserAgent; 
+					return "Not Specified";
 				return UserAgent.Length <= MaxUserAgentDisplayLength
 					? UserAgent
 					: string.Concat(UserAgent.AsSpan(0, MaxUserAgentDisplayLength), "...");

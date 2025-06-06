@@ -196,7 +196,7 @@ namespace Log_Parser_App.Services
                         entry.ProtocolVersion = value;
                         break;
                     case "cs(user-agent)":
-                        entry.UserAgent = value;
+                        entry.UserAgent = value == "-" ? "Not Specified" : value;
                         break;
                     case "cs(cookie)":
                         entry.Cookie = value;
