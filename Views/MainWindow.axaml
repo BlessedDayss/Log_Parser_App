@@ -563,7 +563,7 @@
                                 <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                                     <Grid DataContext="{Binding MainView}">
                                         <!-- Standard LogEntry Custom Table -->
-                                        <Grid IsVisible="{Binding SelectedTab.IsThisTabStandard}" Background="#222326">
+                                        <Grid IsVisible="{Binding SelectedTab.IsThisTabStandard}" Background="#222326" Grid.IsSharedSizeScope="True">
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto"/>
                                                 <RowDefinition Height="*"/>
@@ -572,15 +572,15 @@
                                             <!-- Column Headers -->
                                             <Grid Grid.Row="0" Background="#2D2F33">
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" MinWidth="180"/> <!-- Timestamp -->
-                                                    <ColumnDefinition Width="Auto" MinWidth="100"/> <!-- Level -->
-                                                    <ColumnDefinition Width="*" MinWidth="300"/>   <!-- Message -->
-                                                    <ColumnDefinition Width="Auto" MinWidth="150"/> <!-- Source -->
-                                                    <ColumnDefinition Width="Auto" MinWidth="150"/> <!-- Recommendation -->
+                                                    <ColumnDefinition Width="Auto" MinWidth="180" SharedSizeGroup="TimestampCol"/>
+                                                    <ColumnDefinition Width="Auto" MinWidth="100" SharedSizeGroup="LevelCol"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto" MinWidth="150" SharedSizeGroup="SourceCol"/>
+                                                    <ColumnDefinition Width="Auto" MinWidth="150" SharedSizeGroup="RecommendationCol"/>
                                                 </Grid.ColumnDefinitions>
                                                 
                                                 <TextBlock Grid.Column="0" Text="Timestamp" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="1" Text="Level" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="1" Text="Level" Padding="8,8" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                                                 <TextBlock Grid.Column="2" Text="Message" Padding="8,8" FontWeight="SemiBold"/>
                                                 <TextBlock Grid.Column="3" Text="Source" Padding="8,8" FontWeight="SemiBold"/>
                                                 <TextBlock Grid.Column="4" Text="Recommendation" Padding="8,8" FontWeight="SemiBold"/>
@@ -596,11 +596,11 @@
                                                     <DataTemplate x:DataType="models1:LogEntry">
                                                         <Grid>
                                                             <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="Auto" MinWidth="180"/> <!-- Timestamp -->
-                                                                <ColumnDefinition Width="Auto" MinWidth="100"/> <!-- Level -->
-                                                                <ColumnDefinition Width="*" MinWidth="300"/>   <!-- Message -->
-                                                                <ColumnDefinition Width="Auto" MinWidth="150"/> <!-- Source -->
-                                                                <ColumnDefinition Width="Auto" MinWidth="150"/> <!-- Recommendation -->
+                                                                <ColumnDefinition Width="Auto" SharedSizeGroup="TimestampCol"/>
+                                                                <ColumnDefinition Width="Auto" SharedSizeGroup="LevelCol"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto" SharedSizeGroup="SourceCol"/>
+                                                                <ColumnDefinition Width="Auto" SharedSizeGroup="RecommendationCol"/>
                                                             </Grid.ColumnDefinitions>
                                                             
                                                             <TextBlock Grid.Column="0" Text="{Binding Timestamp, StringFormat='yyyy-MM-dd HH:mm:ss.fff'}" Padding="8,4"/>
