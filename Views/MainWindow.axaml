@@ -562,40 +562,65 @@
                                 <!-- Row 2 for DataGrid -->
                                 <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                                     <Grid DataContext="{Binding MainView}">
-                                        <!-- Standard LogEntry DataGrid -->
-                                        <DataGrid ItemsSource="{Binding SelectedTab.FilteredLogEntries}" 
-                                                  SelectedItem="{Binding SelectedLogEntry, Mode=TwoWay}" 
-                                                  IsVisible="{Binding SelectedTab.IsThisTabStandard}" 
-                                                  Classes="standard-log-grid"
-                                                  CanUserReorderColumns="True"
-                                                  CanUserSortColumns="True"
-                                                  SelectionMode="Extended"
-                                                  BorderThickness="0"
-                                                  GridLinesVisibility="Horizontal"
-                                                  AutoGenerateColumns="False"
-                                                  HorizontalGridLinesBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
-                                            <DataGrid.Columns>
-                                                <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp, StringFormat='yyyy-MM-dd HH:mm:ss.fff'}" Width="1.5*"/>
-                                                <DataGridTemplateColumn Header="Level" Width="Auto">
-                                                    <DataGridTemplateColumn.CellTemplate>
-                                                        <DataTemplate x:DataType="models1:LogEntry">
-                                                            <Border Background="{Binding Level, Converter={StaticResource LogLevelToBrushConverter}}" 
+                                        <!-- Standard LogEntry Custom Table -->
+                                        <Grid IsVisible="{Binding SelectedTab.IsThisTabStandard}" Background="#222326">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                            </Grid.RowDefinitions>
+                                            
+                                            <!-- Column Headers -->
+                                            <Grid Grid.Row="0" Background="#2D2F33">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" MinWidth="180"/> <!-- Timestamp -->
+                                                    <ColumnDefinition Width="Auto" MinWidth="100"/> <!-- Level -->
+                                                    <ColumnDefinition Width="*" MinWidth="300"/>   <!-- Message -->
+                                                    <ColumnDefinition Width="Auto" MinWidth="150"/> <!-- Source -->
+                                                    <ColumnDefinition Width="Auto" MinWidth="150"/> <!-- Recommendation -->
+                                                </Grid.ColumnDefinitions>
+                                                
+                                                <TextBlock Grid.Column="0" Text="Timestamp" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="1" Text="Level" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="2" Text="Message" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="3" Text="Source" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="4" Text="Recommendation" Padding="8,8" FontWeight="SemiBold"/>
+                                            </Grid>
+                                            
+                                            <!-- Table Content -->
+                                            <ListBox Grid.Row="1" 
+                                                     ItemsSource="{Binding SelectedTab.FilteredLogEntries}"
+                                                     SelectedItem="{Binding SelectedLogEntry}"
+                                                     Background="Transparent"
+                                                     BorderThickness="0">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="models1:LogEntry">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto" MinWidth="180"/> <!-- Timestamp -->
+                                                                <ColumnDefinition Width="Auto" MinWidth="100"/> <!-- Level -->
+                                                                <ColumnDefinition Width="*" MinWidth="300"/>   <!-- Message -->
+                                                                <ColumnDefinition Width="Auto" MinWidth="150"/> <!-- Source -->
+                                                                <ColumnDefinition Width="Auto" MinWidth="150"/> <!-- Recommendation -->
+                                                            </Grid.ColumnDefinitions>
+                                                            
+                                                            <TextBlock Grid.Column="0" Text="{Binding Timestamp, StringFormat='yyyy-MM-dd HH:mm:ss.fff'}" Padding="8,4"/>
+                                                            <Border Grid.Column="1" Background="{Binding Level, Converter={StaticResource LogLevelToBrushConverter}}" 
                                                                     CornerRadius="3" 
                                                                     Padding="5,2" 
                                                                     HorizontalAlignment="Center" 
                                                                     MinWidth="60">
                                                                 <TextBlock Text="{Binding Level}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontSize="10" FontWeight="Bold"/>
                                                             </Border>
-                                                        </DataTemplate>
-                                                    </DataGridTemplateColumn.CellTemplate>
-                                                </DataGridTemplateColumn>
-                                                <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="5*"/>
-                                                <DataGridTextColumn Header="Source" Binding="{Binding Source, Converter={StaticResource StringShortenerConverter}, ConverterParameter=50}" Width="2*"/>
-                                                <DataGridTextColumn Header="Recommendation" Binding="{Binding Recommendation}" Width="2*"/>
-                                            </DataGrid.Columns>
-                                        </DataGrid>
+                                                            <TextBlock Grid.Column="2" Text="{Binding Message}" Padding="8,4" TextWrapping="Wrap"/>
+                                                            <TextBlock Grid.Column="3" Text="{Binding Source}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="4" Text="{Binding Recommendation}" Padding="8,4"/>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+                                        </Grid>
 
-                                        <!-- IISLogEntry DataGrid - ЗАМЕНЯЕМ НА ПОЛЬЗОВАТЕЛЬСКУЮ ТАБЛИЦУ -->
+                                        <!-- IISLogEntry Grid -->
                                         <Grid IsVisible="{Binding SelectedTab.IsThisTabIIS}" Background="#222326">
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto"/>
