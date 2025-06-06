@@ -12,6 +12,10 @@ using System.IO;
 using Avalonia.Input;
 using System.Diagnostics;
 using Log_Parser_App.Models;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using System.Collections.Specialized;
 
 namespace Log_Parser_App.Views;
 
@@ -20,6 +24,8 @@ public partial class MainWindow : Window
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
     private DateTime _lastTapTime = DateTime.MinValue;
     private object? _lastTappedItem = null;
+    private EmptyStateView? _emptyStateView;
+    private Grid? _mainContentGrid;
 
     // Добавляем свойство для доступа к MainView из XAML
     public MainViewModel? MainViewModel => (DataContext as MainWindowViewModel)?.MainView;
@@ -31,13 +37,17 @@ public partial class MainWindow : Window
 #if DEBUG
         this.AttachDevTools();
 #endif
+        this.Opened += MainWindow_Opened;
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
-        if (DataContext is MainWindowViewModel vm)
+        if (DataContext is MainWindowViewModel viewModel)
         {
-            // vm.Initialize(); // Example if you need to initialize after DataContext is set
+            // Подписываемся на событие изменения коллекции вкладок
+            viewModel.MainView.FileTabs.CollectionChanged += FileTabs_CollectionChanged;
+            // Обновляем состояние
+            UpdateContentVisibility(viewModel.MainView.FileTabs.Count);
         }
     }
     
@@ -48,8 +58,7 @@ public partial class MainWindow : Window
 
     private void UpdateVersion()
     {
-        // Чтение версии из файла VERSION.txt, расположенного в корне проекта
-        string versionFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "VERSION.txt");
+        var versionFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "version.txt");
         if (File.Exists(versionFilePath))
         {
             string version = File.ReadAllText(versionFilePath).Trim();
@@ -184,6 +193,72 @@ public partial class MainWindow : Window
         if (DataContext is MainWindowViewModel viewModel && viewModel.MainView?.SelectedTab != null)
         {
             viewModel.MainView.SelectedTab.ResetIISFiltersCommand?.Execute(null);
+        }
+    }
+
+    private void MainWindow_Opened(object? sender, EventArgs e)
+    {
+        // Находим главный контент-грид после того, как окно полностью загрузилось
+        _mainContentGrid = this.Find<Grid>("MainContentGrid");
+        
+        if (DataContext is MainWindowViewModel viewModel && viewModel.MainView.FileTabs.Count == 0)
+        {
+            ShowEmptyState();
+        }
+    }
+    
+    private void FileTabs_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel viewModel)
+        {
+            UpdateContentVisibility(viewModel.MainView.FileTabs.Count);
+        }
+    }
+    
+    private void UpdateContentVisibility(int tabCount)
+    {
+        if (tabCount == 0)
+        {
+            ShowEmptyState();
+        }
+        else
+        {
+            HideEmptyState();
+        }
+    }
+    
+    private void ShowEmptyState()
+    {
+        if (_emptyStateView == null && _mainContentGrid != null)
+        {
+            _emptyStateView = new EmptyStateView();
+            _emptyStateView.OpenLogFileRequested += EmptyStateView_OpenLogFileRequested;
+            Grid.SetRow(_emptyStateView, 0);
+            Grid.SetRowSpan(_emptyStateView, 3);
+            Grid.SetColumn(_emptyStateView, 0);
+            Grid.SetColumnSpan(_emptyStateView, 3);
+            _mainContentGrid.Children.Add(_emptyStateView);
+        }
+        
+        if (_emptyStateView != null)
+        {
+            _emptyStateView.IsVisible = true;
+        }
+    }
+    
+    private void HideEmptyState()
+    {
+        if (_emptyStateView != null)
+        {
+            _emptyStateView.IsVisible = false;
+        }
+    }
+    
+    private void EmptyStateView_OpenLogFileRequested(object? sender, EventArgs e)
+    {
+        if (DataContext is MainWindowViewModel viewModel)
+        {
+            viewModel.MainView.OpenLogFileCommand.Execute(null);
         }
     }
 }
