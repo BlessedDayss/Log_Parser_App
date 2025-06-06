@@ -4,96 +4,61 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Log_Parser_App.ViewModels;
 using System.Linq;
+using System.ComponentModel.DataAnnotations;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Log_Parser_App.Models
 {
-    public class FilterCriterion : INotifyPropertyChanged
+    public partial class FilterCriterion : ObservableObject
     {
-        private string _selectedField = string.Empty;
-        private string _selectedOperator = string.Empty;
-        private string _value = string.Empty;
-        private bool _showValueComboBox;
+        [ObservableProperty]
+        private bool _isActive = true;
 
-        public ObservableCollection<string> AvailableFields { get; set; } = new();
-        public ObservableCollection<string> AvailableOperators { get; set; } = new();
-        public ObservableCollection<string> AvailableValues { get; set; } = new();
-        
-        [System.Text.Json.Serialization.JsonIgnore]
+        [ObservableProperty]
+        private string? _selectedField;
+
+        [ObservableProperty]
+        private string? _selectedOperator;
+
+        [ObservableProperty]
+        private string? _value;
+
         public TabViewModel? ParentViewModel { get; set; }
 
-        public string SelectedField
-        {
-            get => _selectedField;
-            set
-            {
-                if (SetProperty(ref _selectedField, value))
-                {
-                    UpdateAvailableOperators();
-                    UpdateAvailableValues();
-                }
-            }
-        }
+        public ObservableCollection<string> AvailableFields { get; } = new();
+        public ObservableCollection<string> AvailableOperators { get; } = new();
+        public ObservableCollection<string> AvailableValues { get; } = new();
 
-        public string SelectedOperator
-        {
-            get => _selectedOperator;
-            set => SetProperty(ref _selectedOperator, value);
-        }
+        public bool ShowValueComboBox => AvailableValues.Any();
 
-        public string Value
+        partial void OnSelectedFieldChanged(string? value)
         {
-            get => _value;
-            set => SetProperty(ref _value, value);
+            UpdateAvailableOperators();
+            UpdateAvailableValues();
         }
-        
-        public bool ShowValueComboBox =>
-            ParentViewModel != null &&
-            !string.IsNullOrEmpty(SelectedField) &&
-            ParentViewModel.AvailableValuesByField.ContainsKey(SelectedField) &&
-            ParentViewModel.AvailableValuesByField[SelectedField].Any();
 
         private void UpdateAvailableOperators()
         {
+            AvailableOperators.Clear();
             if (ParentViewModel != null && !string.IsNullOrEmpty(SelectedField) && ParentViewModel.OperatorsByFieldType.ContainsKey(SelectedField))
             {
-                AvailableOperators.Clear();
                 foreach (var op in ParentViewModel.OperatorsByFieldType[SelectedField])
                 {
                     AvailableOperators.Add(op);
                 }
             }
-            else
-            {
-                AvailableOperators.Clear();
-                // Добавляем стандартные операторы
-                AvailableOperators.Add("Equals");
-                AvailableOperators.Add("NotEquals");
-                AvailableOperators.Add("Contains");
-                AvailableOperators.Add("NotContains");
-            }
-            if (!AvailableOperators.Contains(SelectedOperator)) 
-            {
-                SelectedOperator = AvailableOperators.FirstOrDefault() ?? string.Empty;
-            }
+            SelectedOperator = AvailableOperators.FirstOrDefault();
         }
 
         private void UpdateAvailableValues()
         {
-            if (ShowValueComboBox && ParentViewModel != null && !string.IsNullOrEmpty(SelectedField) && ParentViewModel.AvailableValuesByField.ContainsKey(SelectedField))
+            AvailableValues.Clear();
+            if (ParentViewModel != null && !string.IsNullOrEmpty(SelectedField) && ParentViewModel.AvailableValuesByField.ContainsKey(SelectedField))
             {
-                AvailableValues.Clear();
                 foreach (var val in ParentViewModel.AvailableValuesByField[SelectedField])
                 {
                     AvailableValues.Add(val);
                 }
-            }
-            else
-            {
-                AvailableValues.Clear();
-            }
-            if (!ShowValueComboBox || !AvailableValues.Contains(Value)) 
-            {
-                Value = string.Empty;
             }
             OnPropertyChanged(nameof(ShowValueComboBox));
         }

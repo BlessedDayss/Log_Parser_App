@@ -20,6 +20,7 @@ using Log_Parser_App.Models.Interfaces;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia;
+using System.Text.RegularExpressions;
 
 namespace Log_Parser_App.ViewModels
 {
@@ -1330,62 +1331,39 @@ namespace Log_Parser_App.ViewModels
         [RelayCommand]
         private async Task ApplyFilters()
         {
-            if (LogEntries.Count == 0)
+            if (SelectedTab == null) return;
+
+            await Task.Run(() =>
             {
-                StatusMessage = "No log entries to filter";
-                return;
-            }
-            if (FilterCriteria.Count == 0 || FilterCriteria.Any(c => string.IsNullOrWhiteSpace(c.SelectedField) || string.IsNullOrWhiteSpace(c.SelectedOperator) || c.Value == null))
-            {
-                StatusMessage = "Please configure all filter criteria completely";
-                // Optionally, if no filters are defined, show all logs
-                if (FilterCriteria.Count == 0)
+                IEnumerable<LogEntry> currentFiltered = SelectedTab.LogEntries;
+
+                // First, apply the "Errors only" filter if it's active.
+                if (SelectedTab.IsErrorsOnly) // Assuming you add this property to TabViewModel
                 {
-                    FilteredLogEntries = LogEntries.ToList();
-                     _logger.LogDebug("No filters defined, showing all {Count} log entries.", LogEntries.Count);
-                    OnPropertyChanged(nameof(FilteredLogEntries));
-                    StatusMessage = "Displaying all log entries.";
+                    currentFiltered = currentFiltered.Where(e => e.Level.Equals("ERROR", StringComparison.OrdinalIgnoreCase));
                 }
-                return;
-            }
-            StatusMessage = "Applying filters...";
-            IsLoading = true;
-            try
-            {
-                var entriesToFilter = LogEntries;
-                await Task.Run(() =>
+
+                // Then, apply the user-defined criteria.
+                foreach (var criterion in SelectedTab.FilterCriteria)
                 {
-                    IEnumerable<LogEntry> currentlyFiltered = entriesToFilter;
-                    foreach (var criterion in FilterCriteria)
+                    if (criterion.IsActive && !string.IsNullOrEmpty(criterion.SelectedField) && !string.IsNullOrEmpty(criterion.SelectedOperator))
                     {
-                        if (string.IsNullOrWhiteSpace(criterion.SelectedField) ||
-                            string.IsNullOrWhiteSpace(criterion.SelectedOperator) ||
-                            criterion.Value == null) // Allow empty string for value, but not null if operator needs it
-                        {
-                            _logger.LogWarning("Skipping incomplete filter criterion: Field='{Field}', Operator='{Operator}', Value='{Value}'",
-                                criterion.SelectedField, criterion.SelectedOperator, criterion.Value);
-                            continue;
-                        }
-                        currentlyFiltered = ApplySingleFilterCriterion(currentlyFiltered, criterion);
+                        currentFiltered = ApplySingleFilterCriterion(currentFiltered, criterion);
                     }
-                    var filteredEntriesList = currentlyFiltered.ToList();
-                    Dispatcher.UIThread.InvokeAsync(() =>
+                }
+
+                var filteredList = currentFiltered.ToList();
+                
+                Dispatcher.UIThread.Invoke(() =>
+                {
+                    SelectedTab.FilteredLogEntries.Clear();
+                    foreach (var entry in filteredList)
                     {
-                        FilteredLogEntries = filteredEntriesList;
-                        StatusMessage = $"Filters applied. Displaying {FilteredLogEntries.Count} entries.";
-                        _logger.LogInformation("Filters applied. Displaying {Count} entries.", FilteredLogEntries.Count);
-                    });
+                        SelectedTab.FilteredLogEntries.Add(entry);
+                    }
                 });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error applying filters");
-                StatusMessage = $"Error applying filters: {ex.Message}";
-            }
-            finally
-            {
-                Dispatcher.UIThread.InvokeAsync(() => IsLoading = false);
-            }
+            });
+            UpdateLogStatistics(); // Make sure this is called to refresh UI.
         }
 
         [RelayCommand]
@@ -1403,7 +1381,7 @@ namespace Log_Parser_App.ViewModels
                 await Task.Run(() =>
                 {
                     var allEntries = LogEntries.ToList();
-                    Dispatcher.UIThread.InvokeAsync(() =>
+                    Dispatcher.UIThread.Invoke(() =>
                     {
                         FilterCriteria.Clear(); // Also clear the criteria themselves
                         FilteredLogEntries = allEntries;
@@ -1425,100 +1403,69 @@ namespace Log_Parser_App.ViewModels
 
         private IEnumerable<LogEntry> ApplySingleFilterCriterion(IEnumerable<LogEntry> entries, FilterCriterion criterion)
         {
-            _logger.LogDebug("ApplySingleFilterCriterion called. Field: {Field}, Operator: {Operator}, Value: '{Value}'. Initial entry count: {InitialCount}", 
-                             criterion.SelectedField, criterion.SelectedOperator, criterion.Value, entries.Count());
-
-            if (string.IsNullOrWhiteSpace(criterion.SelectedField) || 
-                string.IsNullOrWhiteSpace(criterion.SelectedOperator) ||
-                criterion.Value == null) 
+            return entries.Where(entry =>
             {
-                _logger.LogWarning("Incomplete criterion. Field: {Field}, Op: {Op}, Val: {Val}. Returning original entries.", 
-                                 criterion.SelectedField, criterion.SelectedOperator, criterion.Value);
-                return entries;
-            }
+                var value = GetLogEntryPropertyValue(entry, criterion.SelectedField);
+                if (value == null) return false;
 
-            Func<LogEntry, string?> getEntryValue;
-            switch (criterion.SelectedField)
+                switch (criterion.SelectedOperator)
+                {
+                    case "Equals":
+                        return string.Equals(value, criterion.Value, StringComparison.OrdinalIgnoreCase);
+                    case "Not Equals":
+                        return !string.Equals(value, criterion.Value, StringComparison.OrdinalIgnoreCase);
+                    case "Contains":
+                        return value.Contains(criterion.Value ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+                    case "Regex":
+                        if (string.IsNullOrEmpty(criterion.Value)) return true;
+                        try
+                        {
+                            return System.Text.RegularExpressions.Regex.Match(value, criterion.Value, System.Text.RegularExpressions.RegexOptions.IgnoreCase).Success;
+                        }
+                        catch (System.Text.RegularExpressions.RegexParseException)
+                        {
+                            return false;
+                        }
+                    case "Regex Not Contains":
+                        if (string.IsNullOrEmpty(criterion.Value)) return true;
+                        try
+                        {
+                            return !System.Text.RegularExpressions.Regex.Match(value, criterion.Value, System.Text.RegularExpressions.RegexOptions.IgnoreCase).Success;
+                        }
+                        catch (System.Text.RegularExpressions.RegexParseException)
+                        {
+                            return false;
+                        }
+
+                    default:
+                        return false;
+                }
+            });
+        }
+
+        private string? GetLogEntryPropertyValue(LogEntry entry, string? fieldName)
+        {
+            if (string.IsNullOrEmpty(fieldName)) return null;
+
+            switch (fieldName)
             {
                 case "Timestamp":
-                    getEntryValue = e => e.Timestamp.ToString("o");
-                    _logger.LogTrace("Using Timestamp field. Formatted entry value example: {ExampleVal}", entries.FirstOrDefault()?.Timestamp.ToString("o"));
-                    break;
+                    return entry.Timestamp.ToString("o");
                 case "Level":
-                    getEntryValue = e => e.Level;
-                    _logger.LogTrace("Using Level field. Entry value example: {ExampleVal}", entries.FirstOrDefault()?.Level);
-                    break;
+                    return entry.Level;
                 case "Message":
-                    getEntryValue = e => e.Message;
-                    _logger.LogTrace("Using Message field.");
-                    break;
+                    return entry.Message;
                 case "Source":
-                    getEntryValue = e => e.Source;
-                     _logger.LogTrace("Using Source field.");
-                    break;
+                    return entry.Source;
                 case "RawData":
-                    getEntryValue = e => e.RawData;
-                    _logger.LogTrace("Using RawData field.");
-                    break;
+                    return entry.RawData;
                 case "CorrelationId":
-                    getEntryValue = e => e.CorrelationId;
-                    _logger.LogTrace("Using CorrelationId field.");
-                    break;
+                    return entry.CorrelationId;
                 case "ErrorType":
-                    getEntryValue = e => e.ErrorType;
-                    _logger.LogTrace("Using ErrorType field.");
-                    break;
+                    return entry.ErrorType;
                 default:
-                    _logger.LogWarning("Unsupported field for filtering: {Field}. Returning original entries.", criterion.SelectedField);
-                    return entries;
+                    return null;
             }
-
-            var filterValue = criterion.Value;
-            _logger.LogTrace("Filter value to compare: '{FilterVal}'", filterValue);
-
-            IEnumerable<LogEntry> result = entries; // Default to original if no specific operator matches
-
-            if (criterion.SelectedField == "Timestamp" && DateTime.TryParse(filterValue, out var dateValue))
-            {
-                _logger.LogTrace("Timestamp field with parsable date: {DateVal}", dateValue);
-                result = criterion.SelectedOperator switch
-                {
-                    "Equals" => entries.Where(e => e.Timestamp.Date == dateValue.Date),
-                    "Before" => entries.Where(e => e.Timestamp < dateValue),
-                    "After" => entries.Where(e => e.Timestamp > dateValue),
-                    _ => entries 
-                };
-                _logger.LogDebug("Timestamp operator '{Operator}' applied. Result count: {Count}", criterion.SelectedOperator, result.Count());
-                return result;
-            }
-            
-            _logger.LogTrace("Applying general string-based operator: {Operator}", criterion.SelectedOperator);
-            result = criterion.SelectedOperator switch
-            {
-                "Equals" => entries.Where(e => {
-                    var entryVal = getEntryValue(e) ?? string.Empty;
-                    bool comparisonResult = entryVal.Equals(filterValue, StringComparison.OrdinalIgnoreCase);
-                    // _logger.LogTrace("Comparing (Equals): '{EntryVal}' with '{FilterVal}' -> {Result}", entryVal, filterValue, comparisonResult); // Can be too verbose
-                    return comparisonResult;
-                }),
-                "Not Equals" => entries.Where(e => !(getEntryValue(e) ?? string.Empty).Equals(filterValue, StringComparison.OrdinalIgnoreCase)),
-                "Contains" => entries.Where(e => (getEntryValue(e) ?? string.Empty).Contains(filterValue, StringComparison.OrdinalIgnoreCase)),
-                "StartsWith" => entries.Where(e => (getEntryValue(e) ?? string.Empty).StartsWith(filterValue, StringComparison.OrdinalIgnoreCase)),
-                "EndsWith" => entries.Where(e => (getEntryValue(e) ?? string.Empty).EndsWith(filterValue, StringComparison.OrdinalIgnoreCase)),
-                "Regex Not Contains" => entries.Where(e => {
-                    var entryVal = getEntryValue(e) ?? string.Empty;
-                    try { return !System.Text.RegularExpressions.Regex.IsMatch(entryVal, filterValue, System.Text.RegularExpressions.RegexOptions.IgnoreCase); }
-                    catch (ArgumentException ex) { _logger.LogWarning(ex, "Invalid regex pattern for Not Contains: {Pattern}", filterValue); return true; }
-                }),
-                "Regex" => entries.Where(e => { 
-                    var entryVal = getEntryValue(e) ?? string.Empty;
-                    try { return System.Text.RegularExpressions.Regex.IsMatch(entryVal, filterValue, System.Text.RegularExpressions.RegexOptions.IgnoreCase); }
-                    catch (ArgumentException ex) { _logger.LogWarning(ex, "Invalid regex pattern for Regex: {Pattern}", filterValue); return false; }
-                }),
-                _ => entries
-            };
-            _logger.LogDebug("Operator '{Operator}' for field '{Field}' applied. Result count: {Count}", criterion.SelectedOperator, criterion.SelectedField, result.Count());
-            return result;
         }
 
         [RelayCommand]
@@ -1765,52 +1712,27 @@ namespace Log_Parser_App.ViewModels
         [RelayCommand]
         private void AddFilterCriterion()
         {
+            if (SelectedTab == null) return;
+            
             var newCriterion = new FilterCriterion
             {
                 ParentViewModel = SelectedTab,
-                AvailableFields = new ObservableCollection<string>(_masterAvailableFields) 
-                // AvailableOperators will be populated by FilterCriterion based on SelectedField and ParentViewModel.OperatorsByFieldType
-                // AvailableValues will be populated by FilterCriterion based on SelectedField and ParentViewModel.AvailableValuesByField
             };
-            if (newCriterion.AvailableFields.Any())
+
+            foreach (var field in SelectedTab.MasterAvailableFields)
             {
-                newCriterion.SelectedField = newCriterion.AvailableFields.First(); // Auto-select first field
+                newCriterion.AvailableFields.Add(field);
             }
-            
-            if (SelectedTab != null)
-            {
-                SelectedTab.FilterCriteria.Add(newCriterion);
-                _logger.LogDebug("Added new filter criterion to selected tab. Total criteria: {Count}", SelectedTab.FilterCriteria.Count);
-            }
-            else
-            {
-                FilterCriteria.Add(newCriterion);
-                _logger.LogDebug("Added new filter criterion to main view (no tab selected). Total criteria: {Count}", FilterCriteria.Count);
-            }
+
+            SelectedTab.FilterCriteria.Add(newCriterion);
         }
 
         [RelayCommand]
         private async Task RemoveFilterCriterion(FilterCriterion? criterion)
         {
-            if (criterion != null)
-            {
-                if (SelectedTab != null && criterion.ParentViewModel == SelectedTab)
-                {
-                    SelectedTab.FilterCriteria.Remove(criterion);
-                    SelectedTab.ApplyFiltersCommand?.Execute(null); // Re-apply filters after removing one
-                    _logger.LogDebug("Removed filter criterion from selected tab. Total criteria: {Count}", SelectedTab.FilterCriteria.Count);
-                }
-                else
-                {
-                    FilterCriteria.Remove(criterion);
-                    await ApplyFilters(); // Re-apply filters after removing one
-                    _logger.LogDebug("Removed filter criterion from main view. Total criteria: {Count}", FilterCriteria.Count);
-                }
-            }
-            else
-            {
-                _logger.LogWarning("Attempted to remove a null filter criterion.");
-            }
+            if (SelectedTab == null || criterion == null) return;
+            SelectedTab.FilterCriteria.Remove(criterion);
+            await ApplyFilters(); // Re-apply filters after removing a criterion
         }
 
         [RelayCommand]
