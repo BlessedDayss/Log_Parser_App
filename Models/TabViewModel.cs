@@ -126,7 +126,6 @@ namespace Log_Parser_App.Models
             ApplyFiltersCommand = new RelayCommand(ExecuteApplyFilters);
             ResetFiltersCommand = new RelayCommand(ExecuteResetFilters);
             
-            // Initialize filter fields
             InitializeFilterFields();
         }
 
@@ -156,6 +155,8 @@ namespace Log_Parser_App.Models
             RemoveFilterCriterionCommand = new RelayCommand<FilterCriterion>(ExecuteRemoveFilterCriterion);
             ApplyFiltersCommand = new RelayCommand(ExecuteApplyFilters);
             ResetFiltersCommand = new RelayCommand(ExecuteResetFilters);
+
+            InitializeFilterFields();
         }
 
         private void ExecuteAddIISFilterCriterion()
@@ -430,41 +431,33 @@ namespace Log_Parser_App.Models
                 "Message" => entry.Message,
                 "Level" => entry.Level,
                 "Timestamp" => entry.Timestamp.ToString(),
-                "Logger" => "Logger", // Просто возвращаем строку "Logger", так как ILogger не имеет строкового представления
+                "Source" => entry.Source,
                 _ => null
             };
         }
 
         private void InitializeFilterFields()
         {
-            // Инициализация доступных полей для фильтрации
             MasterAvailableFields.Clear();
-            MasterAvailableFields.Add("Message");
-            MasterAvailableFields.Add("Level");
-            MasterAvailableFields.Add("Timestamp");
-            MasterAvailableFields.Add("Logger");
-            
-            // Инициализация операторов для каждого типа поля
             OperatorsByFieldType.Clear();
-            foreach (var field in MasterAvailableFields)
-            {
-                OperatorsByFieldType[field] = new List<string> { "Equals", "NotEquals", "Contains", "NotContains" };
-            }
-            
-            // Инициализация доступных значений для полей
             AvailableValuesByField.Clear();
-            if (LogEntries != null && LogEntries.Any())
+
+            if (LogType == LogFormatType.Standard)
             {
-                // Для поля Level собираем уникальные значения
-                AvailableValuesByField["Level"] = LogEntries
-                    .Select(e => e.Level)
-                    .Where(l => !string.IsNullOrEmpty(l))
-                    .Distinct()
-                    .OrderBy(l => l)
-                    .ToList();
+                MasterAvailableFields.AddRange(new[] { "Timestamp", "Level", "Message", "Source" });
+
+                OperatorsByFieldType["Timestamp"] = new List<string> { "Before", "After" };
+                OperatorsByFieldType["Level"] = new List<string> { "Equals", "NotEquals" };
+                OperatorsByFieldType["Message"] = new List<string> { "Contains", "NotContains" };
+                OperatorsByFieldType["Source"] = new List<string> { "Equals", "NotEquals", "Contains" };
                 
-                // Для поля Logger добавляем фиксированные значения
-                AvailableValuesByField["Logger"] = new List<string> { "Logger" };
+                AvailableValuesByField["Level"] = _logEntries.Select(l => l.Level).Where(s => !string.IsNullOrEmpty(s)).Distinct().ToList();
+                AvailableValuesByField["Source"] = _logEntries.Select(l => l.Source).Where(s => !string.IsNullOrEmpty(s)).Distinct().ToList()!;
+            }
+            else if (LogType == LogFormatType.IIS)
+            {
+                // For IIS, the filter UI is different and populated directly in the IISFilterCriterion view model
+                // We don't need to populate MasterAvailableFields for the standard filter UI
             }
         }
     }
