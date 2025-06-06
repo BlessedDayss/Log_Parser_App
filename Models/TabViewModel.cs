@@ -64,6 +64,22 @@ namespace Log_Parser_App.Models
             set => SetProperty(ref _isSelected, value);
         }
 
+        private bool _isErrorsOnly;
+        public bool IsErrorsOnly
+        {
+            get => _isErrorsOnly;
+            set
+            {
+                if (SetProperty(ref _isErrorsOnly, value))
+                {
+                    // This is where you would trigger the re-filtering in the MainViewModel
+                    // Since TabViewModel doesn't know about MainViewModel's ApplyFilters,
+                    // you might need an event or another mechanism.
+                    // For now, we assume MainViewModel will react to this change.
+                }
+            }
+        }
+
         // --- IIS Filtering Properties and Commands ---
         public ObservableCollection<IISFilterCriterion> IISFilterCriteria { get; }
         public ObservableCollection<IisLogEntry> FilteredIISLogEntries { get; }
