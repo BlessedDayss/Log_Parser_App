@@ -3,11 +3,12 @@
         <OutputType>WinExe</OutputType>
         <TargetFramework>net9.0</TargetFramework>
         <Nullable>enable</Nullable>
+        <Version>1.0.4</Version>
         <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-        <ApplicationIcon>Assets\avalonia-logo.ico</ApplicationIcon>
-        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <ApplicationIcon>Assets\logparserv1.ico</ApplicationIcon>
+        <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
         <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     </PropertyGroup>
 
