@@ -57,6 +57,18 @@
           "Avalonia": "11.2.1"
         }
       },
+      "Avalonia.Svg.Skia": {
+        "type": "Direct",
+        "requested": "[11.0.0.12, )",
+        "resolved": "11.0.0.12",
+        "contentHash": "Rdnmp20yR3R9wxcEU/BqltsR9q8bozmDnE+7GN8KuUT8xXhpPo7HuYajJ52IEIv2jy2naJT6WhdoBgjQzi2rzQ==",
+        "dependencies": {
+          "Avalonia": "11.0.0",
+          "Avalonia.Skia": "11.0.0",
+          "SkiaSharp": "2.88.6",
+          "Svg.Skia": "1.0.0.12"
+        }
+      },
       "Avalonia.Themes.Fluent": {
         "type": "Direct",
         "requested": "[11.2.1, )",
@@ -204,6 +216,11 @@
           "Avalonia.Skia": "11.2.1"
         }
       },
+      "ExCSS": {
+        "type": "Transitive",
+        "resolved": "4.2.3",
+        "contentHash": "SyeAfu2wL5247sipJoPUzQfjiwQtfSd8hN4IbgoyVcDx4PP6Dud4znwPRibWQzLtTlUxYYcbf5f4p+EfFC7KtQ=="
+      },
       "HarfBuzzSharp": {
         "type": "Transitive",
         "resolved": "7.3.0.2",
@@ -335,6 +352,11 @@
         "resolved": "9.0.0",
         "contentHash": "N3qEBzmLMYiASUlKxxFIISP4AiwuPTHF5uCh+2CWSwwzAJiIYx0kBJsS30cp1nvhSySFAVi30jecD307jV+8Kg=="
       },
+      "ShimSkiaSharp": {
+        "type": "Transitive",
+        "resolved": "1.0.0.12",
+        "contentHash": "qXsZ7gABPFHMTJ902mwPhGMiAQAMJnyOs5EXeLiOMlLFQIt0aLM6rreD0Fj6Nm8GQzAj8kb0JwxeAjmGSD91FQ=="
+      },
       "SkiaSharp": {
         "type": "Transitive",
         "resolved": "2.88.8",
@@ -375,6 +397,34 @@
         "type": "Transitive",
         "resolved": "2.88.8",
         "contentHash": "O9QXoWEXA+6cweR4h3BOnwMz+pO9vL9mXdjLrpDd0w1QzCgWmLQBxa1VgySDITiH7nQndrDG1h6937zm9pLj1Q=="
+      },
+      "Svg.Custom": {
+        "type": "Transitive",
+        "resolved": "1.0.0.12",
+        "contentHash": "sf5QG6cTwdSgcjZY8Id85s+w5CDArJPdhh2GeDZL+26RKprkP1IfERUlZIkQcO/f7W2iDMMuq/8Wwqmg00xshw==",
+        "dependencies": {
+          "ExCSS": "4.2.3"
+        }
+      },
+      "Svg.Model": {
+        "type": "Transitive",
+        "resolved": "1.0.0.12",
+        "contentHash": "oAKJXPrZ5xtpO3vZBNBWxIK+7HzNzmqs9Vgg/HsrRGxBgw7VOQ6jOgdD8wPbg2CEGio0W/uwnOFTnSGDl9g0Og==",
+        "dependencies": {
+          "ShimSkiaSharp": "1.0.0.12",
+          "Svg.Custom": "1.0.0.12"
+        }
+      },
+      "Svg.Skia": {
+        "type": "Transitive",
+        "resolved": "1.0.0.12",
+        "contentHash": "OX3x/AqINkcrNo3iFbyimVV6UO2GDV33eD1Mu4FYDXI60tpiug5ZZtq6xPPkIaBdQNNq672PcSQAcuqE/tl9TQ==",
+        "dependencies": {
+          "SkiaSharp": "2.88.6",
+          "SkiaSharp.HarfBuzz": "2.88.6",
+          "Svg.Custom": "1.0.0.12",
+          "Svg.Model": "1.0.0.12"
+        }
       },
       "System.IO.Pipelines": {
         "type": "Transitive",
