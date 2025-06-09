@@ -7,8 +7,8 @@ namespace Log_Parser_App.Views
 {
     public partial class SplashScreen : Window
     {
-        private readonly TextBlock _statusTextBlock;
-        private readonly TextBlock _versionTextBlock;
+        private readonly TextBlock? _statusTextBlock;
+        private readonly TextBlock? _versionTextBlock;
 
         public SplashScreen()
         {
@@ -25,13 +25,16 @@ namespace Log_Parser_App.Views
 
         public void UpdateStatus(string status)
         {
-            _statusTextBlock.Text = status;
+            if (_statusTextBlock != null)
+            {
+                _statusTextBlock.Text = status;
+            }
         }
 
         private void SetVersionNumber()
         {
             var version = Assembly.GetExecutingAssembly().GetName().Version;
-            if (version != null)
+            if (version != null && _versionTextBlock != null)
             {
                 _versionTextBlock.Text = $"v{version.Major}.{version.Minor}.{version.Build}";
             }

@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Runtime.Versioning;
 using System.Threading.Tasks;
 using Microsoft.Win32;
 
 namespace Log_Parser_App.Services;
 
+[SupportedOSPlatform("windows")]
 public class WindowsFileAssociationService : IFileAssociationService
 {
     private readonly List<string> _supportedExtensions = new() { ".log", ".txt", ".log.txt", ".json" };

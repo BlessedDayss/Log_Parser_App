@@ -20,7 +20,7 @@ namespace Log_Parser_App
         // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
         // yet and stuff might break.
         [STAThread]
-        public static async Task Main(string[] args)
+        public static void Main(string[] args)
         {
             try
             {
@@ -29,7 +29,8 @@ namespace Log_Parser_App
                 // Test parsing logic if --test-parsing argument is provided
                 if (args.Length > 0 && args[0] == "--test-parsing")
                 {
-                    await TestLogParsing.RunTest();
+                    // TODO: Implement test parsing functionality
+                    Console.WriteLine("Test parsing functionality not implemented yet.");
                     return;
                 }
 

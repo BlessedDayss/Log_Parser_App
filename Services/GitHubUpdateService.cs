@@ -50,7 +50,7 @@ namespace Log_Parser_App.Services
         }
         
         /// <inheritdoc/>
-        public async Task<UpdateInfo> CheckForUpdatesAsync()
+        public async Task<UpdateInfo?> CheckForUpdatesAsync()
         {
             try
             {
@@ -152,7 +152,7 @@ namespace Log_Parser_App.Services
         }
         
         /// <inheritdoc/>
-        public async Task<string> DownloadUpdateAsync(UpdateInfo updateInfo, IProgress<int>? progressCallback = null)
+        public async Task<string?> DownloadUpdateAsync(UpdateInfo updateInfo, IProgress<int>? progressCallback = null)
         {
             if (updateInfo == null)
             {

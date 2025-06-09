@@ -278,7 +278,10 @@ public partial class App : Application
         services.AddSingleton<Log_Parser_App.Models.Interfaces.IFilePickerService, Log_Parser_App.Services.FilePickerService>();
         
         // Регистрируем сервис ассоциаций файлов
-        services.AddSingleton<IFileAssociationService, WindowsFileAssociationService>();
+        if (OperatingSystem.IsWindows())
+        {
+            services.AddSingleton<IFileAssociationService, WindowsFileAssociationService>();
+        }
         
         services.AddSingleton<Log_Parser_App.Models.Interfaces.IUpdateService>(provider =>
             new GitHubUpdateService(

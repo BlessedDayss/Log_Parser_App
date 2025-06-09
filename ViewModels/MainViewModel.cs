@@ -290,7 +290,7 @@ namespace Log_Parser_App.ViewModels
             // Получаем аргументы командной строки из Program
             var args = Program.StartupArgs;
 
-            if (args.Length > 0 && !string.IsNullOrEmpty(args[0]))
+            if (args != null && args.Length > 0 && !string.IsNullOrEmpty(args[0]))
             {
                 var filePath = args[0];
 
@@ -380,7 +380,7 @@ namespace Log_Parser_App.ViewModels
                             {
                                 var lines = entry.Message.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
                                 var regex = new System.Text.RegularExpressions.Regex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}");
-                                string mainLine = lines.FirstOrDefault(l => !l.TrimStart().StartsWith("at ")) ?? lines[0];
+                                string mainLine = lines.FirstOrDefault(l => !l.TrimStart().StartsWith("at ")) ?? (lines.Length > 0 ? lines[0] : string.Empty);
                                 var stackLines = lines.SkipWhile(l => !l.TrimStart().StartsWith("at ")).Where(l => l.TrimStart().StartsWith("at ")).ToList();
                                 entry.Message = mainLine.Trim();
                                 entry.StackTrace = stackLines.Count > 0 ? string.Join("\n", stackLines) : null;
@@ -412,7 +412,10 @@ namespace Log_Parser_App.ViewModels
                                 entry.ErrorType = recommendation.ErrorType;
                                 entry.ErrorDescription = recommendation.Description;
                                 entry.ErrorRecommendations.Clear();
-                                entry.ErrorRecommendations.AddRange(recommendation.Recommendations);
+                                if (recommendation.Recommendations != null)
+                                {
+                                    entry.ErrorRecommendations.AddRange(recommendation.Recommendations);
+                                }
                             }
                             else
                             {
@@ -940,7 +943,7 @@ namespace Log_Parser_App.ViewModels
                         Stroke = null,
                         Padding = 5,
                         DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Top,
-                        DataLabelsFormatter = point => $"{statusLabels[(int)point.Context.Index]}: {point.Coordinate.PrimaryValue}",
+                        DataLabelsFormatter = point => $"{statusLabels[(int)point.Index]}: {point.Coordinate.PrimaryValue}",
                         DataLabelsPaint = new SolidColorPaint(SKColors.White)
                     }
                 };
@@ -1226,8 +1229,8 @@ namespace Log_Parser_App.ViewModels
                     LineSmoothness = 0.2,
                 }
             };
-            int maxValue = totalByTime.Any() ? totalByTime.Select(p => (int)p.Value).Max() : 0;
-            var timeHeatData = totalByTime.Select(p => p.Value).ToArray();
+            int maxValue = totalByTime.Any() ? totalByTime.Select(p => (int)(p.Value ?? 0)).Max() : 0;
+            var timeHeatData = totalByTime.Select(p => p.Value ?? 0).ToArray();
             var timeHeatmapSeries = new ISeries[]
             {
                 new ColumnSeries<double>
@@ -1413,7 +1416,7 @@ namespace Log_Parser_App.ViewModels
             }
             finally
             {
-                 Dispatcher.UIThread.InvokeAsync(() => IsLoading = false);
+                 await Dispatcher.UIThread.InvokeAsync(() => IsLoading = false);
             }
         }
 
