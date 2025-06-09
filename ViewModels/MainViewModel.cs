@@ -340,9 +340,17 @@ namespace Log_Parser_App.ViewModels
                         var parseStopwatch = System.Diagnostics.Stopwatch.StartNew();
                         
                         var entriesList = new List<LogEntry>();
-                        await foreach (var entryValue in _logParserService.ParseLogFileAsync(filePath, CancellationToken.None))
+                        try
                         {
-                            entriesList.Add(entryValue);
+                            await foreach (var entryValue in _logParserService.ParseLogFileAsync(filePath, CancellationToken.None))
+                            {
+                                entriesList.Add(entryValue);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Exception occurred during log parsing in await foreach loop for file {FilePath}. Parsed {Count} entries before exception.", filePath, entriesList.Count);
+                            // Continue with the entries we've already collected
                         }
                         var logEntriesResult = entriesList; // Use this variable below
 
@@ -509,9 +517,17 @@ namespace Log_Parser_App.ViewModels
             try
             {
                 var entriesList = new List<LogEntry>();
-                await foreach (var entryValue in _logParserService.ParseLogFileAsync(filePath, CancellationToken.None))
+                try
                 {
-                    entriesList.Add(entryValue);
+                    await foreach (var entryValue in _logParserService.ParseLogFileAsync(filePath, CancellationToken.None))
+                    {
+                        entriesList.Add(entryValue);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Exception occurred during log parsing in await foreach loop for file {FilePath}. Parsed {Count} entries before exception.", filePath, entriesList.Count);
+                    // Continue with the entries we've already collected
                 }
                 // var logEntriesArr = entries as LogEntry[] ?? entries.ToArray(); // Old logic
                 var logEntriesArr = entriesList.ToArray(); // New logic based on collected list

@@ -264,19 +264,15 @@ public partial class App : Application
         services.AddSingleton<IErrorRecommendationService, ErrorRecommendationService>();
         services.AddSingleton<IIISLogParserService, IISLogParserService>();
         
-        // Регистрируем сервисы парсинга логов
-        services.AddSingleton<Log_Parser_App.Models.Interfaces.ILogFileLoader, LogFileLoader>();
-        services.AddSingleton<Log_Parser_App.Models.Interfaces.ILogFilesLoader, LogFilesLoader>();
+        services.AddSingleton<ILogFileLoader, LogFileLoader>();
+        services.AddSingleton<ILogFilesLoader, LogFilesLoader>();
         services.AddSingleton<StandardLogLineParser>();
-        services.AddSingleton<CsvLogLineParser>();
         services.AddSingleton<SimpleLogLineParser>();
         services.AddSingleton<Log_Parser_App.Models.Interfaces.ILogLineParser>(provider =>
-            new LogLineParserChain(new Log_Parser_App.Models.Interfaces.ILogLineParser[]
-            {
+            new LogLineParserChain([
                 provider.GetRequiredService<StandardLogLineParser>(),
-                provider.GetRequiredService<CsvLogLineParser>(),
                 provider.GetRequiredService<SimpleLogLineParser>()
-            })
+            ])
         );
         // FilePickerService registration updated
         services.AddSingleton<Log_Parser_App.Models.Interfaces.IFilePickerService, Log_Parser_App.Services.FilePickerService>();
@@ -310,4 +306,3 @@ public partial class App : Application
         }
     }
 }
-

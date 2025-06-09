@@ -68,14 +68,23 @@ namespace Log_Parser_App.Services
                         message = message.Substring(1).Trim();
                 }
             }
-            else if (message.Contains("error", StringComparison.OrdinalIgnoreCase))
-                level = "ERROR";
-            else if (message.Contains("warn", StringComparison.OrdinalIgnoreCase))
-                level = "WARNING";
-            else if (message.Contains("debug", StringComparison.OrdinalIgnoreCase))
-                level = "DEBUG";
-            else if (message.Contains("trace", StringComparison.OrdinalIgnoreCase))
-                level = "TRACE";
+            else
+            {
+                // Use word boundary regex patterns to avoid false positives
+                var errorRegex = new Regex(@"\berror\b", RegexOptions.IgnoreCase);
+                var warnRegex = new Regex(@"\bwarn\b", RegexOptions.IgnoreCase);
+                var debugRegex = new Regex(@"\bdebug\b", RegexOptions.IgnoreCase);
+                var traceRegex = new Regex(@"\btrace\b", RegexOptions.IgnoreCase);
+                
+                if (errorRegex.IsMatch(message))
+                    level = "ERROR";
+                else if (warnRegex.IsMatch(message))
+                    level = "WARNING";
+                else if (debugRegex.IsMatch(message))
+                    level = "DEBUG";
+                else if (traceRegex.IsMatch(message))
+                    level = "TRACE";
+            }
             
             // Пытаемся определить источник сообщения
             var sourceMatch1 = SourceRegex1.Match(message);

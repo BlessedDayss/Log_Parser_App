@@ -65,9 +65,10 @@ namespace Log_Parser_App.Services
 		private async IAsyncEnumerable<LogEntry> ParseLines(IAsyncEnumerable<(string filePath, string line)> lines, [EnumeratorCancellation] CancellationToken cancellationToken = default) {
 			var lastErrorEntryByFile = new Dictionary<string, LogEntry?>();
 			var lineNumberByFile = new Dictionary<string, int>();
-			var errorKeywords = new[] { "error", "exception", "not found", "failed", "timeout", "critical", "fatal" };
+			var singleWordKeywords = new[] { "error", "exception", "failed", "timeout", "critical", "fatal" };
 			var timeRegex = new System.Text.RegularExpressions.Regex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}");
-			var errorWordRegex = new System.Text.RegularExpressions.Regex(@"\\berror\\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+			var singleWordRegex = new System.Text.RegularExpressions.Regex($@"\b({string.Join("|", singleWordKeywords)})\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+			// var notFoundRegex = new System.Text.RegularExpressions.Regex(@"\bnot\s+found\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 			
 			await foreach (var (filePath, line) in lines.WithCancellation(cancellationToken)) {
 				cancellationToken.ThrowIfCancellationRequested(); // Check for cancellation
@@ -76,10 +77,20 @@ namespace Log_Parser_App.Services
 				lineNumberByFile[filePath]++;
 				int lineNumber = lineNumberByFile[filePath];
 				
-				bool containsErrorKeyword = errorWordRegex.IsMatch(line) || errorKeywords.Skip(1).Any(k => line.Contains(k, System.StringComparison.OrdinalIgnoreCase));
+				bool containsErrorKeyword = singleWordRegex.IsMatch(line); // Removed notFoundRegex check
 
 				if (lineParser.IsLogLine(line)) {
-					var entry = lineParser.Parse(line, lineNumber, filePath);
+					LogEntry? entry = null;
+					try
+					{
+						entry = lineParser.Parse(line, lineNumber, filePath);
+					}
+					catch (System.Exception ex)
+					{
+						_logger.LogError(ex, "Failed to parse line {LineNumber} in {FilePath}: {Line}", lineNumber, filePath, line);
+						continue;
+					}
+					
 					if (entry == null)
 						continue;
                     
@@ -88,7 +99,7 @@ namespace Log_Parser_App.Services
 						entry.Level = "ERROR";
                     }
 
-					yield return entry; // Changed
+					yield return entry;
 					if (entry.Level.Trim().Equals(ErrorLevel, System.StringComparison.InvariantCultureIgnoreCase))
 						lastErrorEntryByFile[filePath] = entry;
 					else
@@ -97,14 +108,21 @@ namespace Log_Parser_App.Services
 					bool handledAsStackTrace = false;
                     if (lastErrorEntryByFile.TryGetValue(filePath, out var lastErrorEntry) && lastErrorEntry != null) {
 						if (!timeRegex.IsMatch(line)) {
-							AppendStackTrace(lastErrorEntry, line);
-                            handledAsStackTrace = true;
+							try
+							{
+								AppendStackTrace(lastErrorEntry, line);
+								handledAsStackTrace = true;
+							}
+							catch (System.Exception ex)
+							{
+								_logger.LogError(ex, "Failed to append stack trace for line {LineNumber} in {FilePath}: {Line}", lineNumber, filePath, line);
+							}
 						}
 					}
                     
                     if (!handledAsStackTrace) {
                         string levelForUnparsedLine = containsErrorKeyword ? "ERROR" : "INFO";
-                        var unparsedEntry = new LogEntry { // Changed
+                        var unparsedEntry = new LogEntry {
                             Timestamp = System.DateTime.Now,
                             Level = levelForUnparsedLine, 
                             Message = line.Trim(),
@@ -112,7 +130,7 @@ namespace Log_Parser_App.Services
                             FilePath = filePath,
                             LineNumber = lineNumber
                         };
-                        yield return unparsedEntry; // Changed
+                        yield return unparsedEntry;
                         
                         if (levelForUnparsedLine == "ERROR") {
                             lastErrorEntryByFile[filePath] = unparsedEntry;
