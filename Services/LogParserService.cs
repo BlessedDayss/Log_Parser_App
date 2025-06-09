@@ -61,7 +61,7 @@ namespace Log_Parser_App.Services
 			return Task.FromResult<IEnumerable<LogEntry>>(filteredEntries);
 		}
 
-		// Modified method
+				// Modified method
 		private async IAsyncEnumerable<LogEntry> ParseLines(IAsyncEnumerable<(string filePath, string line)> lines, [EnumeratorCancellation] CancellationToken cancellationToken = default) {
 			var lastErrorEntryByFile = new Dictionary<string, LogEntry?>();
 			var lineNumberByFile = new Dictionary<string, int>();
@@ -70,8 +70,14 @@ namespace Log_Parser_App.Services
 			var singleWordRegex = new System.Text.RegularExpressions.Regex($@"\b({string.Join("|", singleWordKeywords)})\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 			// var notFoundRegex = new System.Text.RegularExpressions.Regex(@"\bnot\s+found\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 			
+			_logger.LogInformation("Starting ParseLines iteration");
+			int processedLinesCount = 0;
+			
 			await foreach (var (filePath, line) in lines.WithCancellation(cancellationToken)) {
 				cancellationToken.ThrowIfCancellationRequested(); // Check for cancellation
+
+				processedLinesCount++;
+				_logger.LogDebug("Processing line {ProcessedCount}: {Line}", processedLinesCount, line.Length > 100 ? line.Substring(0, 100) + "..." : line);
 
 				lineNumberByFile.TryAdd(filePath, 0);
 				lineNumberByFile[filePath]++;
@@ -87,12 +93,37 @@ namespace Log_Parser_App.Services
 					}
 					catch (System.Exception ex)
 					{
-						_logger.LogError(ex, "Failed to parse line {LineNumber} in {FilePath}: {Line}", lineNumber, filePath, line);
-						continue;
+						_logger.LogWarning(ex, "Failed to parse log line {LineNumber} in {FilePath}, creating error entry: {Line}", lineNumber, filePath, line);
+						
+						// Create an error entry for unparseable log lines
+						entry = new LogEntry
+						{
+							Timestamp = System.DateTime.Now,
+							Level = "ERROR",
+							Message = $"[PARSE ERROR] {line.Trim()}",
+							RawData = line,
+							FilePath = filePath,
+							LineNumber = lineNumber,
+							ErrorType = "ParseError",
+							ErrorDescription = $"Failed to parse log line: {ex.Message}"
+						};
 					}
 					
 					if (entry == null)
-						continue;
+					{
+						_logger.LogWarning("Line parser returned null for line {LineNumber} in {FilePath}, creating fallback entry: {Line}", lineNumber, filePath, line);
+						
+						// Create fallback entry for null results
+						entry = new LogEntry
+						{
+							Timestamp = System.DateTime.Now,
+							Level = "INFO",
+							Message = $"[UNPARSED] {line.Trim()}",
+							RawData = line,
+							FilePath = filePath,
+							LineNumber = lineNumber
+						};
+					}
                     
 					if (containsErrorKeyword) 
                     {
@@ -140,7 +171,8 @@ namespace Log_Parser_App.Services
                     }
 				}
 			}
-			// _logger.LogDebug($"[ParseLines] Completed parsing lines."); // Logging individual entries might be too verbose.
+			
+			_logger.LogInformation("ParseLines completed. Total processed lines: {ProcessedCount}", processedLinesCount);
 		}
 
 		private static void AppendStackTrace(LogEntry entry, string line) {

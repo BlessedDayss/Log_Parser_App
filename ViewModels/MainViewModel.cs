@@ -331,6 +331,10 @@ namespace Log_Parser_App.ViewModels
                     ErrorLogEntries.Clear();
                 }, DispatcherPriority.Background);
 
+                // Объявляем переменные для подсчета в правильной области видимости
+                int failedEntriesCount = 0;
+                int processedEntriesCount = 0;
+                
                 // Выполняем парсинг полностью отдельно от UI-потока
                 var entries = await Task.Run(async () =>
                 {
@@ -340,16 +344,29 @@ namespace Log_Parser_App.ViewModels
                         var parseStopwatch = System.Diagnostics.Stopwatch.StartNew();
                         
                         var entriesList = new List<LogEntry>();
+                        
                         try
                         {
                             await foreach (var entryValue in _logParserService.ParseLogFileAsync(filePath, CancellationToken.None))
                             {
-                                entriesList.Add(entryValue);
+                                try
+                                {
+                                    entriesList.Add(entryValue);
+                                    processedEntriesCount++;
+                                }
+                                catch (Exception entryEx)
+                                {
+                                    failedEntriesCount++;
+                                    _logger.LogWarning(entryEx, "Failed to process individual log entry from line {LineNumber}, continuing with next entry. Failed entries so far: {FailedCount}", 
+                                        entryValue?.LineNumber ?? -1, failedEntriesCount);
+                                    // Continue processing without breaking the loop
+                                }
                             }
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, "Exception occurred during log parsing in await foreach loop for file {FilePath}. Parsed {Count} entries before exception.", filePath, entriesList.Count);
+                            _logger.LogError(ex, "Exception occurred during log parsing enumeration for file {FilePath}. Successfully processed {ProcessedCount} entries, failed {FailedCount} entries before enumeration exception.", 
+                                filePath, processedEntriesCount, failedEntriesCount);
                             // Continue with the entries we've already collected
                         }
                         var logEntriesResult = entriesList; // Use this variable below
@@ -441,8 +458,15 @@ namespace Log_Parser_App.ViewModels
                     UpdateErrorLogEntries();
                     UpdateLogStatistics();
                     _logger.LogDebug("PERF: Завершение загрузки данных в UI");
-                    _logger.LogInformation("Загружено {Count} записей логов за {ElapsedMs}ms", LogEntries.Count, sw.ElapsedMilliseconds);
-                    StatusMessage = $"Loaded {LogEntries.Count} log entries";
+                    var totalAttemptedEntries = processedEntriesCount + failedEntriesCount;
+                    var successRate = totalAttemptedEntries > 0 ? Math.Round((double)processedEntriesCount / totalAttemptedEntries * 100, 1) : 100.0;
+                    
+                    _logger.LogInformation("Загружено {ProcessedCount} из {TotalCount} записей логов за {ElapsedMs}ms (успешность: {SuccessRate}%). Ошибок парсинга: {FailedCount}", 
+                        LogEntries.Count, totalAttemptedEntries, sw.ElapsedMilliseconds, successRate, failedEntriesCount);
+                    
+                    StatusMessage = failedEntriesCount > 0 
+                        ? $"Loaded {LogEntries.Count} log entries ({successRate}% success rate, {failedEntriesCount} parsing errors)"
+                        : $"Loaded {LogEntries.Count} log entries (100% success rate)";
                     SelectedTabIndex = 0;
                     IsLoading = false;
                 });
@@ -520,16 +544,31 @@ namespace Log_Parser_App.ViewModels
             try
             {
                 var entriesList = new List<LogEntry>();
+                int failedEntriesCount = 0;
+                int processedEntriesCount = 0;
+                
                 try
                 {
                     await foreach (var entryValue in _logParserService.ParseLogFileAsync(filePath, CancellationToken.None))
                     {
-                        entriesList.Add(entryValue);
+                        try
+                        {
+                            entriesList.Add(entryValue);
+                            processedEntriesCount++;
+                        }
+                        catch (Exception entryEx)
+                        {
+                            failedEntriesCount++;
+                            _logger.LogWarning(entryEx, "Failed to process individual log entry from line {LineNumber} in tab {FilePath}, continuing with next entry. Failed entries so far: {FailedCount}", 
+                                entryValue?.LineNumber ?? -1, filePath, failedEntriesCount);
+                            // Continue processing without breaking the loop
+                        }
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Exception occurred during log parsing in await foreach loop for file {FilePath}. Parsed {Count} entries before exception.", filePath, entriesList.Count);
+                    _logger.LogError(ex, "Exception occurred during log parsing enumeration for tab file {FilePath}. Successfully processed {ProcessedCount} entries, failed {FailedCount} entries before enumeration exception.", 
+                        filePath, processedEntriesCount, failedEntriesCount);
                     // Continue with the entries we've already collected
                 }
                 // var logEntriesArr = entries as LogEntry[] ?? entries.ToArray(); // Old logic
@@ -552,7 +591,12 @@ namespace Log_Parser_App.ViewModels
                     var newTab = new TabViewModel(filePath, title, processedEntries.ToList()); // Use ToList() for safety if processedEntries is modified elsewhere
                     FileTabs.Add(newTab);
                     SelectedTab = newTab;
-                    StatusMessage = $"Loaded {processedEntries.Count} log entries from {title}";
+                    var totalAttemptedEntries = processedEntriesCount + failedEntriesCount;
+                    var successRate = totalAttemptedEntries > 0 ? Math.Round((double)processedEntriesCount / totalAttemptedEntries * 100, 1) : 100.0;
+                    
+                    StatusMessage = failedEntriesCount > 0 
+                        ? $"Loaded {processedEntries.Count} log entries from {title} ({successRate}% success rate, {failedEntriesCount} parsing errors)"
+                        : $"Loaded {processedEntries.Count} log entries from {title} (100% success rate)";
                 });
             }
             catch (Exception ex)

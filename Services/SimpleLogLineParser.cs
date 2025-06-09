@@ -8,7 +8,8 @@ namespace Log_Parser_App.Services
     public class SimpleLogLineParser : ILogLineParser
     {
         // Регулярное выражение для определения, является ли строка началом лог-записи
-        private static readonly Regex LogStartRegex = new Regex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", RegexOptions.Compiled);
+        // Поддерживает форматы: "2024-12-19 10:00:01" и "[12:31:47]"
+        private static readonly Regex LogStartRegex = new Regex(@"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}|\[\d{2}:\d{2}:\d{2}\])", RegexOptions.Compiled);
         
         // Регулярное выражение для поиска уровня логирования
         private static readonly Regex LevelRegex = new Regex(@"\b(INFO|ERROR|WARNING|DEBUG|TRACE|CRITICAL|VERBOSE)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -35,8 +36,27 @@ namespace Log_Parser_App.Services
             string level = "INFO"; // По умолчанию
             string source = "";
 
-            if (line.Length < 19)
+            // Проверяем формат времени
+            if (line.StartsWith("[") && line.Length >= 10 && line.IndexOf(']') >= 0)
             {
+                // Формат [HH:MM:SS]
+                var timeEnd = line.IndexOf(']');
+                var timePartStr = line.Substring(1, timeEnd - 1); // Убираем скобки
+                
+                if (DateTime.TryParse($"{DateTime.Today:yyyy-MM-dd} {timePartStr}", out timestamp))
+                {
+                    // Время успешно распознано
+                }
+                else
+                {
+                    timestamp = DateTime.Now;
+                }
+                
+                message = line.Substring(timeEnd + 1).Trim();
+            }
+            else if (line.Length < 19)
+            {
+                // Короткая строка, пытаемся парсить как есть
                 if (!DateTime.TryParse(line, out timestamp))
                 {
                     timestamp = DateTime.Now; 
@@ -45,6 +65,7 @@ namespace Log_Parser_App.Services
             }
             else // line.Length >= 19
             {
+                // Стандартный формат YYYY-MM-DD HH:MM:SS
                 var timePartStr = line.Substring(0, 19);
                 if (!DateTime.TryParse(timePartStr, out timestamp))
                 {
