@@ -82,6 +82,20 @@ namespace Log_Parser_App.ViewModels
                         _selectedTab.PropertyChanged += SelectedTab_PropertyChanged;
                         FilePath = _selectedTab.FilePath;
                         FileStatus = _selectedTab.Title;
+                        
+                        // Auto-switch dashboard type based on log type
+                        if (_selectedTab.LogType == LogFormatType.IIS)
+                        {
+                            IsIISDashboardVisible = true;
+                            IsStandardDashboardVisible = false;
+                        }
+                        else
+                        {
+                            IsIISDashboardVisible = false;
+                            IsStandardDashboardVisible = true;
+                        }
+                        IsStartScreenVisible = false;
+                        
                         // UpdateLogStatistics will be called due to PropertyChanged event if counts change, 
                         // or immediately if the tab type dictates a full refresh.
                     }
@@ -333,6 +347,16 @@ namespace Log_Parser_App.ViewModels
                 IsDashboardVisible = true;
                 _logger.LogInformation("PERF: Начало загрузки файла {FilePath}", filePath);
                 var sw = System.Diagnostics.Stopwatch.StartNew();
+
+                // Determine file type by checking first few lines
+                var isIISLog = await IsIISLogFileAsync(filePath);
+                _logger.LogInformation("File {FilePath} detected as {LogType}", filePath, isIISLog ? "IIS" : "Standard");
+
+                if (isIISLog)
+                {
+                    await LoadIISFileAsync(filePath);
+                    return;
+                }
 
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
@@ -991,16 +1015,17 @@ namespace Log_Parser_App.ViewModels
                 foreach (var group in statusCodeGroups)
                 {
                     statusCodeValues.Add(group.Count);
-                    statusLabels.Add(group.StatusCode.ToString());
+                    statusLabels.Add(group.StatusCode?.ToString() ?? "Unknown");
                     
                     // Цвета по категориям статус-кодов
-                    if (group.StatusCode >= 500)
+                    var statusCode = group.StatusCode ?? 0;
+                    if (statusCode >= 500)
                         statusColors.Add(new SolidColorPaint(SKColors.DarkRed));
-                    else if (group.StatusCode >= 400)
+                    else if (statusCode >= 400)
                         statusColors.Add(new SolidColorPaint(SKColors.Crimson));
-                    else if (group.StatusCode >= 300)
+                    else if (statusCode >= 300)
                         statusColors.Add(new SolidColorPaint(SKColors.DarkGray));
-                    else if (group.StatusCode >= 200)
+                    else if (statusCode >= 200)
                         statusColors.Add(new SolidColorPaint(SKColors.RoyalBlue));
                     else
                         statusColors.Add(new SolidColorPaint(SKColors.DimGray));
@@ -1044,7 +1069,7 @@ namespace Log_Parser_App.ViewModels
                     .Where(e => e.DateTime.HasValue)
                     .GroupBy(e => new { 
                         Hour = e.DateTime!.Value.Hour, 
-                        IsError = e.HttpStatus >= 400 
+                        IsError = (e.HttpStatus ?? 0) >= 400 
                     })
                     .Select(g => new { g.Key.Hour, g.Key.IsError, Count = g.Count() })
                     .ToList();
@@ -1770,6 +1795,142 @@ namespace Log_Parser_App.ViewModels
             IsStartScreenVisible = true;
             IsStandardDashboardVisible = false;
             IsIISDashboardVisible = false;
+        }
+
+        [RelayCommand]
+        private async Task LoadIISLogs()
+        {
+            try
+            {
+                var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop ? desktop.MainWindow : null;
+                var files = await _filePickerService.PickFilesAsync(mainWindow);
+                if (files != null && files.Any())
+                {
+                    foreach (var file in files)
+                    {
+                        // Force load as IIS log regardless of file detection
+                        await LoadIISFileAsync(file);
+                    }
+                    
+                    // Switch to IIS dashboard mode
+                    IsDashboardVisible = true;
+                    IsStartScreenVisible = false;
+                    IsStandardDashboardVisible = false;
+                    IsIISDashboardVisible = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка загрузки IIS файлов логов");
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    StatusMessage = $"Error loading IIS logs: {ex.Message}";
+                    IsLoading = false;
+                });
+            }
+        }
+
+        private async Task<bool> IsIISLogFileAsync(string filePath)
+        {
+            try
+            {
+                using var reader = new StreamReader(filePath);
+                var lines = new List<string>();
+                for (int i = 0; i < 10 && !reader.EndOfStream; i++)
+                {
+                    var line = await reader.ReadLineAsync();
+                    if (!string.IsNullOrEmpty(line))
+                        lines.Add(line);
+                }
+
+                // Check for IIS log patterns
+                return lines.Any(line => 
+                    line.StartsWith("#Software: Microsoft Internet Information Services") ||
+                    line.StartsWith("#Version:") ||
+                    line.StartsWith("#Fields:") ||
+                    (line.Contains("GET") || line.Contains("POST")) && 
+                    System.Text.RegularExpressions.Regex.IsMatch(line, @"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error detecting file type for {FilePath}", filePath);
+                return false;
+            }
+        }
+
+        private async Task LoadIISFileAsync(string filePath)
+        {
+            try
+            {
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                int failedEntriesCount = 0;
+                int processedEntriesCount = 0;
+
+                // Parse IIS log file
+                var iisEntries = await Task.Run(async () =>
+                {
+                    var entriesList = new List<IisLogEntry>();
+                    try
+                    {
+                        await foreach (var entry in _iisLogParserService.ParseLogFileAsync(filePath, CancellationToken.None))
+                        {
+                            try
+                            {
+                                entriesList.Add(entry);
+                                processedEntriesCount++;
+                            }
+                            catch (Exception entryEx)
+                            {
+                                failedEntriesCount++;
+                                _logger.LogWarning(entryEx, "Failed to process IIS log entry, continuing with next entry. Failed entries so far: {FailedCount}", failedEntriesCount);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Exception occurred during IIS log parsing for file {FilePath}. Successfully processed {ProcessedCount} entries, failed {FailedCount} entries.", 
+                            filePath, processedEntriesCount, failedEntriesCount);
+                    }
+                    return entriesList;
+                });
+
+                // Update UI
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    var title = Path.GetFileName(filePath);
+                    var newTab = new TabViewModel(filePath, title, iisEntries);
+                    
+                    _logger.LogInformation("Created new IIS tab for file {FilePath}. LogType: {LogType}, IsThisTabIIS: {IsIIS}", 
+                        filePath, newTab.LogType, newTab.IsThisTabIIS);
+                    
+                    FileTabs.Clear();
+                    FileTabs.Add(newTab);
+                    SelectedTab = newTab;
+                    
+                    UpdateLogStatistics();
+                    
+                    var totalAttemptedEntries = processedEntriesCount + failedEntriesCount;
+                    var successRate = totalAttemptedEntries > 0 ? Math.Round((double)processedEntriesCount / totalAttemptedEntries * 100, 1) : 100.0;
+                    
+                    _logger.LogInformation("Загружено {ProcessedCount} из {TotalCount} IIS записей за {ElapsedMs}ms (успешность: {SuccessRate}%). Ошибок парсинга: {FailedCount}", 
+                        iisEntries.Count, totalAttemptedEntries, sw.ElapsedMilliseconds, successRate, failedEntriesCount);
+                    
+                    StatusMessage = failedEntriesCount > 0 
+                        ? $"Loaded {iisEntries.Count} IIS log entries ({successRate}% success rate, {failedEntriesCount} parsing errors)"
+                        : $"Loaded {iisEntries.Count} IIS log entries (100% success rate)";
+                    
+                    IsLoading = false;
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка загрузки IIS файла логов");
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    StatusMessage = $"Error loading IIS log: {ex.Message}";
+                    IsLoading = false;
+                });
+            }
         }
     }
 }

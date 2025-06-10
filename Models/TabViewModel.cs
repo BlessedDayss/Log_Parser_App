@@ -86,9 +86,9 @@ namespace Log_Parser_App.Models
 
         // --- IIS Count Properties (read-only, derived from FilteredIISLogEntries) ---
         public int IIS_TotalCount => LogType == LogFormatType.IIS ? FilteredIISLogEntries.Count : 0;
-        public int IIS_ErrorCount => LogType == LogFormatType.IIS ? FilteredIISLogEntries.Count(e => e.HttpStatus >= 400) : 0;
-        public int IIS_InfoCount => LogType == LogFormatType.IIS ? FilteredIISLogEntries.Count(e => e.HttpStatus >= 200 && e.HttpStatus < 300) : 0;
-        public int IIS_RedirectCount => LogType == LogFormatType.IIS ? FilteredIISLogEntries.Count(e => e.HttpStatus >= 300 && e.HttpStatus < 400) : 0;
+        public int IIS_ErrorCount => LogType == LogFormatType.IIS ? FilteredIISLogEntries.Count(e => (e.HttpStatus ?? 0) >= 400) : 0;
+        public int IIS_InfoCount => LogType == LogFormatType.IIS ? FilteredIISLogEntries.Count(e => (e.HttpStatus ?? 0) >= 200 && (e.HttpStatus ?? 0) < 300) : 0;
+        public int IIS_RedirectCount => LogType == LogFormatType.IIS ? FilteredIISLogEntries.Count(e => (e.HttpStatus ?? 0) >= 300 && (e.HttpStatus ?? 0) < 400) : 0;
         // OtherCount can be calculated in MainViewModel based on Total and other counts if needed, or defined here.
         // For now, let Other be Redirects for simplicity in MainViewModel handling.
         // --- End IIS Count Properties ---
@@ -268,6 +268,12 @@ namespace Log_Parser_App.Models
 
                     if (rawPropertyValue is int intVal) entryNumericValueActual = intVal;
                     else if (rawPropertyValue is long longVal) entryNumericValueActual = longVal;
+                    else if (rawPropertyValue != null && rawPropertyValue.GetType() == typeof(int?))
+                    {
+                        var nullableInt = (int?)rawPropertyValue;
+                        if (nullableInt.HasValue) entryNumericValueActual = nullableInt.Value;
+                        else return false;
+                    }
                     // Add other supported numeric types from IISLogEntry if GetPropertyValue can return them for numeric fields
                     // else if (rawPropertyValue is short shortVal) entryNumericValueActual = shortVal; 
                     // else if (rawPropertyValue is double doubleVal) entryNumericValueActual = doubleVal;

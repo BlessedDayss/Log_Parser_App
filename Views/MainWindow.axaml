@@ -296,6 +296,11 @@
                                 Command="{Binding MainView.ToggleDashboardVisibilityCommand}">
                             <TextBlock Text="📊" FontSize="18" />
                         </Button>
+                        <Button Classes="icon-button" 
+                                ToolTip.Tip="IIS Logs Analysis"
+                                Command="{Binding MainView.LoadIISLogsCommand}">
+                            <TextBlock Text="🖥️" FontSize="18" />
+                        </Button>
                     </StackPanel>
 
                     <Grid Grid.Column="1">
@@ -777,13 +782,32 @@
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="Log Analysis Dashboard" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" />
-                            <Button Grid.Column="1" Classes="icon-button" Command="{Binding MainView.ToggleDashboardVisibilityCommand}" ToolTip.Tip="Close Dashboard">
+                            
+                            <!-- Dashboard Type Toggle Buttons -->
+                            <Button Grid.Column="1" Classes="icon-button" 
+                                    Command="{Binding MainView.ShowStandardLogSectionCommand}" 
+                                    ToolTip.Tip="Standard Logs Dashboard"
+                                    Background="{Binding MainView.IsStandardDashboardVisible, Converter={StaticResource BoolToTabColorConverter}}">
+                                <TextBlock Text="📊" FontSize="16" />
+                            </Button>
+                            <Button Grid.Column="2" Classes="icon-button" 
+                                    Command="{Binding MainView.ShowIISLogSectionCommand}" 
+                                    ToolTip.Tip="IIS Logs Dashboard"
+                                    Background="{Binding MainView.IsIISDashboardVisible, Converter={StaticResource BoolToTabColorConverter}}">
+                                <TextBlock Text="🖥️" FontSize="16" />
+                            </Button>
+                            
+                            <!-- Existing Action Buttons -->
+                            <Button Grid.Column="4" Classes="icon-button" Command="{Binding MainView.ToggleDashboardVisibilityCommand}" ToolTip.Tip="Close Dashboard">
                                 <TextBlock Text="✖" FontSize="16" />
                             </Button>
-                            <Button Grid.Column="2" Classes="icon-button" Command="{Binding MainView.LoadFileCommand}" ToolTip.Tip="Load New File">
-                                <TextBlock Text="��" FontSize="16" />
+                            <Button Grid.Column="5" Classes="icon-button" Command="{Binding MainView.LoadFileCommand}" ToolTip.Tip="Load New File">
+                                <TextBlock Text="📂" FontSize="16" />
                             </Button>
                         </Grid>
                     </Border>
