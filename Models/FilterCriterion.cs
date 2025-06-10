@@ -46,8 +46,9 @@ namespace Log_Parser_App.Models
                 {
                     AvailableOperators.Add(op);
                 }
+                // Only set default if we actually have operators
+                SelectedOperator = AvailableOperators.FirstOrDefault();
             }
-            SelectedOperator = AvailableOperators.FirstOrDefault();
         }
 
         private void UpdateAvailableValues()

@@ -146,8 +146,7 @@ public partial class MainWindow : Window
     {
         if (DataContext is MainWindowViewModel viewModel && viewModel.MainView?.SelectedTab != null)
         {
-            var criterion = new FilterCriterion { ParentViewModel = viewModel.MainView.SelectedTab };
-            viewModel.MainView.SelectedTab.FilterCriteria.Add(criterion);
+            viewModel.MainView.SelectedTab.AddFilterCriteriaCommand?.Execute(null);
         }
     }
     

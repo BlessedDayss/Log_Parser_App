@@ -369,6 +369,19 @@ namespace Log_Parser_App.Models
         {
             if (LogType != LogFormatType.Standard) return;
             var newCriterion = new FilterCriterion { ParentViewModel = this };
+            
+            // Initialize AvailableFields from MasterAvailableFields
+            foreach (var field in MasterAvailableFields)
+            {
+                newCriterion.AvailableFields.Add(field);
+            }
+            
+            // Set initial SelectedField to trigger operators and values population
+            if (MasterAvailableFields.Any())
+            {
+                newCriterion.SelectedField = MasterAvailableFields.First();
+            }
+            
             FilterCriteria.Add(newCriterion);
         }
 
