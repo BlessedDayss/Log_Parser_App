@@ -134,6 +134,16 @@ public partial class App : Application
                             splashScreen.Close();
                             Console.WriteLine("[App] desktop.MainWindow assigned to MainWindow.");
                             
+                            // Process command line arguments for file opening after UI is ready
+                            if (mainViewModel != null)
+                            {
+                                Console.WriteLine("[App] Processing command line arguments for file opening...");
+                                // Call CheckCommandLineArgs via reflection to avoid making it public
+                                var checkMethod = typeof(MainViewModel).GetMethod("CheckCommandLineArgs", 
+                                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                                checkMethod?.Invoke(mainViewModel, null);
+                            }
+                            
                             // Инициализируем FileService после создания основного окна
                             IFileService? fileService = null;
                             try 

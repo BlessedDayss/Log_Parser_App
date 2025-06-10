@@ -287,29 +287,39 @@ namespace Log_Parser_App.ViewModels
 
         private void CheckCommandLineArgs()
         {
-            // Получаем аргументы командной строки из Program
-            var args = Program.StartupArgs;
+            // Используем новую логику из Program.cs
+            var startupFilePath = Program.StartupFilePath;
 
-            if (args != null && args.Length > 0 && !string.IsNullOrEmpty(args[0]))
+            if (!string.IsNullOrEmpty(startupFilePath))
             {
-                var filePath = args[0];
+                _logger.LogInformation("Loading file from command line arguments: {FilePath}", startupFilePath);
+                LastOpenedFilePath = startupFilePath;
 
-                // Если файл существует, загружаем его с небольшой задержкой
-                // чтобы UI успел инициализироваться
-                if (System.IO.File.Exists(filePath))
+                // Делаем небольшую задержку перед загрузкой файла
+                Task.Delay(500).ContinueWith(async _ =>
                 {
-                    _logger.LogInformation("Запланирована загрузка файла из аргументов командной строки: {FilePath}", filePath);
-                    LastOpenedFilePath = filePath;
-
-                    // Делаем небольшую задержку перед загрузкой файла
-                    Task.Delay(500).ContinueWith(async _ =>
+                    await Dispatcher.UIThread.InvokeAsync(async () =>
                     {
-                        await Dispatcher.UIThread.InvokeAsync(async () =>
+                        try
                         {
-                            await LoadFileAsync(filePath);
-                        });
+                            // Всегда используем стандартный парсер для всех файлов
+                            _logger.LogInformation("Loading standard log file: {FilePath}", startupFilePath);
+                            await LoadFileAsync(startupFilePath);
+                            
+                            // Check which tab was selected after loading
+                            if (SelectedTab != null)
+                            {
+                                _logger.LogInformation("After loading file {FilePath}, selected tab LogType: {LogType}, IsThisTabIIS: {IsIIS}, IsThisTabStandard: {IsStandard}",
+                                    startupFilePath, SelectedTab.LogType, SelectedTab.IsThisTabIIS, SelectedTab.IsThisTabStandard);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Failed to load startup file: {FilePath}", startupFilePath);
+                            StatusMessage = $"Error loading startup file: {ex.Message}";
+                        }
                     });
-                }
+                });
             }
         }
 
@@ -453,8 +463,22 @@ namespace Log_Parser_App.ViewModels
                 // Обновляем UI и статистику после полной загрузки
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    LogEntries = processedEntries.ToList(); // Ensure this is a new list if processedEntries is reused
-                    FilteredLogEntries = processedEntries.ToList(); // Ensure this is a new list
+                    // Create a new tab instead of just setting LogEntries
+                    var title = Path.GetFileName(filePath);
+                    var newTab = new TabViewModel(filePath, title, processedEntries.ToList());
+                    
+                    // Add debug logging to check tab type
+                    _logger.LogInformation("Created new tab in LoadFileAsync for file {FilePath}. LogType: {LogType}, IsThisTabIIS: {IsIIS}, IsThisTabStandard: {IsStandard}", 
+                        filePath, newTab.LogType, newTab.IsThisTabIIS, newTab.IsThisTabStandard);
+                    
+                    // Clear existing tabs and add the new one
+                    FileTabs.Clear();
+                    FileTabs.Add(newTab);
+                    SelectedTab = newTab;
+                    
+                    // Also update the old LogEntries for compatibility
+                    LogEntries = processedEntries.ToList(); 
+                    FilteredLogEntries = processedEntries.ToList(); 
                     UpdateErrorLogEntries();
                     UpdateLogStatistics();
                     _logger.LogDebug("PERF: Завершение загрузки данных в UI");
@@ -589,6 +613,11 @@ namespace Log_Parser_App.ViewModels
                 {
                     var title = Path.GetFileName(filePath);
                     var newTab = new TabViewModel(filePath, title, processedEntries.ToList()); // Use ToList() for safety if processedEntries is modified elsewhere
+                    
+                    // Add debug logging to check tab type
+                    _logger.LogInformation("Created new tab for file {FilePath}. LogType: {LogType}, IsThisTabIIS: {IsIIS}, IsThisTabStandard: {IsStandard}", 
+                        filePath, newTab.LogType, newTab.IsThisTabIIS, newTab.IsThisTabStandard);
+                    
                     FileTabs.Add(newTab);
                     SelectedTab = newTab;
                     var totalAttemptedEntries = processedEntriesCount + failedEntriesCount;
@@ -1610,85 +1639,6 @@ namespace Log_Parser_App.ViewModels
             {
                 _logger.LogError(ex, "Failed to open file {FilePath}", filePath);
                 StatusMessage = $"Ошибка открытия файла: {ex.Message}\n{ex.StackTrace}";
-            }
-        }
-
-        [RelayCommand]
-        private async Task LoadIISLogFile()
-        {
-            try
-            {
-                var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop ? desktop.MainWindow : null;
-                if (mainWindow == null) return;
-
-                var files = await _filePickerService.PickFilesAsync(mainWindow);
-                if (files == null || !files.Any())
-                {
-                    _logger.LogInformation("IIS Log file selection cancelled.");
-                    return;
-                }
-
-                IsLoading = true;
-                StatusMessage = $"Loading {files.Count()} IIS log file(s)...";
-
-                foreach (var filePath in files)
-                {
-                    if (string.IsNullOrEmpty(filePath))
-                        continue;
-
-                    if (FileTabs.Any(tab => tab.FilePath == filePath))
-                    {
-                        _logger.LogInformation("File {FilePath} is already open. Selecting existing tab.", filePath);
-                        SelectedTab = FileTabs.First(tab => tab.FilePath == filePath);
-                        continue;
-                    }
-
-                    var tabTitle = Path.GetFileName(filePath) + " (IIS)";
-                    
-                    List<IisLogEntry> parsedEntries = new List<IisLogEntry>();
-                    try
-                    {
-                        await foreach (var entry in _iisLogParserService.ParseLogFileAsync(filePath, CancellationToken.None))
-                        {
-                            parsedEntries.Add(entry);
-                        }
-                        
-                        _logger.LogInformation("Successfully parsed {Count} IIS log entries from {FilePath}", parsedEntries.Count, filePath);
-                        
-                        if (parsedEntries.Any())
-                        {
-                            var newTab = new TabViewModel(filePath, tabTitle, parsedEntries);
-                            FileTabs.Add(newTab);
-                            SelectedTab = newTab;
-                            StatusMessage = $"Loaded {parsedEntries.Count} IIS log entries from {Path.GetFileName(filePath)}.";
-                        }
-                        else
-                        {
-                            StatusMessage = $"No IIS log entries found or parsed in {Path.GetFileName(filePath)}.";
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error parsing IIS log file {FilePath}", filePath);
-                        StatusMessage = $"Error parsing {Path.GetFileName(filePath)}: {ex.Message}";
-                        continue;
-                    }
-                }
-                
-                IsStartScreenVisible = false;
-                IsStandardDashboardVisible = false;
-                IsIISDashboardVisible = true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in LoadIISLogFile command.");
-                StatusMessage = $"An unexpected error occurred: {ex.Message}";
-            }
-            finally
-            {
-                IsLoading = false;
-                UpdateMultiFileModeStatus();
-                UpdateAllErrorLogEntries();
             }
         }
 

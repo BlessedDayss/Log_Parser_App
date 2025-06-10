@@ -296,11 +296,6 @@
                                 Command="{Binding MainView.ToggleDashboardVisibilityCommand}">
                             <TextBlock Text="📊" FontSize="18" />
                         </Button>
-                        <Button Classes="icon-button" 
-                                ToolTip.Tip="Load IIS Log File(s)"
-                                Command="{Binding MainView.LoadIISLogFileCommand}">
-                            <TextBlock Text="IIS" FontSize="16" FontWeight="Bold" />
-                        </Button>
                     </StackPanel>
 
                     <Grid Grid.Column="1">
