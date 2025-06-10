@@ -1,10 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-
 namespace Log_Parser_App.Models.Interfaces
 {
-    // Обновленный класс UpdateInfo для соответствия с GitHubUpdateService
+    using System;
+    using System.Collections.Generic;
+    using System.Threading.Tasks;
+
     public class UpdateInfo
     {
         public Version? Version { get; set; }
@@ -19,9 +18,9 @@ namespace Log_Parser_App.Models.Interfaces
 
     public interface IUpdateService
     {
-        Version GetCurrentVersion(); 
-        Task<UpdateInfo?> CheckForUpdatesAsync(); 
+        Version GetCurrentVersion();
+        Task<UpdateInfo?> CheckForUpdatesAsync();
         Task<string?> DownloadUpdateAsync(UpdateInfo updateInfo, IProgress<int>? progressCallback = null);
         Task<bool> InstallUpdateAsync(string updateFilePath);
     }
-} 
+}

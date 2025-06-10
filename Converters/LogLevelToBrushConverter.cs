@@ -1,18 +1,16 @@
-using System;
-using System.Globalization;
-using Avalonia.Data.Converters;
-using Avalonia.Media;
-
 namespace Log_Parser_App.Converters
 {
+    using System;
+    using System.Globalization;
+    using Avalonia.Data.Converters;
+    using Avalonia.Media;
+
+
     public class LogLevelToBrushConverter : IValueConverter
     {
-        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-        {
-            if (value is string levelString)
-            {
-                return levelString.ToUpperInvariant() switch
-                {
+        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) {
+            if (value is string levelString) {
+                return levelString.ToUpperInvariant() switch {
                     "ERROR" => new SolidColorBrush(Colors.Red),
                     "WARNING" => new SolidColorBrush(Colors.Orange),
                     "INFO" => new SolidColorBrush(Colors.CornflowerBlue),
@@ -26,9 +24,9 @@ namespace Log_Parser_App.Converters
             return Brushes.Transparent; // Default if value is not a string or is null
         }
 
-        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-        { //ConvertBack not needed for this use case.
+        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) {
+            //ConvertBack not needed for this use case.
             throw new NotImplementedException();
         }
     }
-} 
+}
