@@ -90,7 +90,7 @@ namespace Log_Parser_App.ViewModels
                             IsIISDashboardVisible = true;
                             IsStandardDashboardVisible = false;
                         }
-                        else
+                        else // Standard and RabbitMQ logs use the standard dashboard
                         {
                             IsIISDashboardVisible = false;
                             IsStandardDashboardVisible = true;
@@ -1982,12 +1982,12 @@ namespace Log_Parser_App.ViewModels
 
                 var rabbitEntries = await Task.Run(async () =>
                 {
-                    var entriesList = new List<LogEntry>();
-                    await foreach (var entry in _rabbitMqLogParserService.ParseLogFileAsync(filePath, CancellationToken.None))
+                    var entriesList = new List<RabbitMqLogEntry>();
+                    await foreach (var rabbitEntry in _rabbitMqLogParserService.ParseLogFileAsync(filePath, CancellationToken.None))
                     {
                         try
                         {
-                            entriesList.Add(entry);
+                            entriesList.Add(rabbitEntry);
                             processedEntriesCount++;
                         }
                         catch (Exception entryEx)
@@ -2033,7 +2033,7 @@ namespace Log_Parser_App.ViewModels
 
         private async Task LoadRabbitMqFilesAsync(IEnumerable<string> filePaths)
         {
-            var allEntries = new List<LogEntry>();
+            var allEntries = new List<RabbitMqLogEntry>();
             int failedEntriesCount = 0;
 
             var semaphore = new System.Threading.SemaphoreSlim(Environment.ProcessorCount * 2);
@@ -2046,11 +2046,11 @@ namespace Log_Parser_App.ViewModels
                 {
                     try
                     {
-                        await foreach (var entry in _rabbitMqLogParserService.ParseLogFileAsync(file, CancellationToken.None))
+                        await foreach (var rabbitEntry in _rabbitMqLogParserService.ParseLogFileAsync(file, CancellationToken.None))
                         {
                             lock (allEntries)
                             {
-                                allEntries.Add(entry);
+                                allEntries.Add(rabbitEntry);
                             }
                         }
                     }

@@ -441,7 +441,7 @@
                         <TabItem Header="All entries">
                             <Grid RowDefinitions="Auto, Auto, *"> 
                                 <!-- Region for Standard Log Filters -->
-                                <StackPanel IsVisible="{Binding MainView.SelectedTab.IsThisTabStandard}" Grid.Row="0" Grid.RowSpan="2"> 
+                                <StackPanel IsVisible="{Binding MainView.SelectedTab.IsThisTabStandardOrRabbitMQ}" Grid.Row="0" Grid.RowSpan="2"> 
                                     <!-- Row 0 for Filter Buttons -->
                                     <Grid VerticalAlignment="Center" Margin="8,8,8,8">
                                         <Grid.ColumnDefinitions>
@@ -568,7 +568,7 @@
                                 <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                                     <Grid DataContext="{Binding MainView}">
                                         <!-- Standard LogEntry Custom Table -->
-                                        <Grid IsVisible="{Binding SelectedTab.IsThisTabStandard}" Background="#222326" Grid.IsSharedSizeScope="True">
+                                        <Grid IsVisible="{Binding SelectedTab.IsThisTabStandardOrRabbitMQ}" Background="#222326" Grid.IsSharedSizeScope="True">
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto"/>
                                                 <RowDefinition Height="*"/>
@@ -701,6 +701,80 @@
                                                             <TextBlock Grid.Column="9" Text="{Binding TimeTaken}" Padding="8,4"/>
                                                             <TextBlock Grid.Column="10" Text="{Binding ShortUserAgent}" Padding="8,4"/>
                                                             <TextBlock Grid.Column="11" Text="{Binding HttpStatus}" Padding="8,4"/>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+                                        </Grid>
+
+                                        <!-- RabbitMQ LogEntry Grid -->
+                                        <Grid IsVisible="{Binding SelectedTab.IsThisTabRabbitMQ}" Background="#222326">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                            </Grid.RowDefinitions>
+                                            
+                                            <!-- Заголовки колонок для RabbitMQ -->
+                                            <Grid Grid.Row="0" Background="#2D2F33">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" MinWidth="160"/> <!-- timestamp -->
+                                                    <ColumnDefinition Width="Auto" MinWidth="80"/> <!-- level -->
+                                                    <ColumnDefinition Width="*" MinWidth="200"/> <!-- message -->
+                                                    <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- node -->
+                                                    <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- connection -->
+                                                    <ColumnDefinition Width="Auto" MinWidth="100"/> <!-- queue -->
+                                                    <ColumnDefinition Width="Auto" MinWidth="100"/> <!-- user -->
+                                                    <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- vhost -->
+                                                    <ColumnDefinition Width="Auto" MinWidth="80"/> <!-- pid -->
+                                                </Grid.ColumnDefinitions>
+                                                
+                                                <TextBlock Grid.Column="0" Text="Timestamp" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="1" Text="Level" Padding="8,8" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                                <TextBlock Grid.Column="2" Text="Message" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="3" Text="Node" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="4" Text="Connection" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="5" Text="Queue" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="6" Text="User" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="7" Text="VHost" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="8" Text="PID" Padding="8,8" FontWeight="SemiBold"/>
+                                            </Grid>
+                                            
+                                            <!-- Содержимое таблицы RabbitMQ -->
+                                            <ListBox Grid.Row="1" 
+                                                     ItemsSource="{Binding SelectedTab.FilteredRabbitMQLogEntries}"
+                                                     SelectedItem="{Binding SelectedLogEntry}"
+                                                     Background="Transparent"
+                                                     BorderThickness="0">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="models1:RabbitMqLogEntry">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto" MinWidth="160"/> <!-- timestamp -->
+                                                                <ColumnDefinition Width="Auto" MinWidth="80"/> <!-- level -->
+                                                                <ColumnDefinition Width="*" MinWidth="200"/> <!-- message -->
+                                                                <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- node -->
+                                                                <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- connection -->
+                                                                <ColumnDefinition Width="Auto" MinWidth="100"/> <!-- queue -->
+                                                                <ColumnDefinition Width="Auto" MinWidth="100"/> <!-- user -->
+                                                                <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- vhost -->
+                                                                <ColumnDefinition Width="Auto" MinWidth="80"/> <!-- pid -->
+                                                            </Grid.ColumnDefinitions>
+                                                            
+                                                            <TextBlock Grid.Column="0" Text="{Binding EffectiveTimestamp, StringFormat='yyyy-MM-dd HH:mm:ss.fff'}" Padding="8,4"/>
+                                                            <Border Grid.Column="1" Background="{Binding EffectiveLevel, Converter={StaticResource LogLevelToBrushConverter}}" 
+                                                                    CornerRadius="3" 
+                                                                    Padding="5,2" 
+                                                                    HorizontalAlignment="Center" 
+                                                                    MinWidth="60">
+                                                                <TextBlock Text="{Binding EffectiveLevel}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontSize="10" FontWeight="Bold"/>
+                                                            </Border>
+                                                            <TextBlock Grid.Column="2" Text="{Binding EffectiveMessage}" Padding="8,4" TextWrapping="Wrap"/>
+                                                            <TextBlock Grid.Column="3" Text="{Binding EffectiveNode}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="4" Text="{Binding Connection}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="5" Text="{Binding EffectiveQueue}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="6" Text="{Binding User}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="7" Text="{Binding VirtualHost}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="8" Text="{Binding EffectiveProcessId}" Padding="8,4"/>
                                                         </Grid>
                                                     </DataTemplate>
                                                 </ListBox.ItemTemplate>

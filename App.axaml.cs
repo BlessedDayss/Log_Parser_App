@@ -273,7 +273,7 @@ public partial class App : Application
         services.AddSingleton<IFileService, FileService>();
         services.AddSingleton<IErrorRecommendationService, ErrorRecommendationService>();
         services.AddSingleton<IIISLogParserService, IISLogParserService>();
-        services.AddSingleton<Log_Parser_App.Models.Interfaces.IRabbitMqLogParserService, Log_Parser_App.Services.RabbitMqLogParserService>();
+        services.AddSingleton<IRabbitMqLogParserService, RabbitMqLogParserService>();
         
         services.AddSingleton<ILogFileLoader, LogFileLoader>();
         services.AddSingleton<ILogFilesLoader, LogFilesLoader>();

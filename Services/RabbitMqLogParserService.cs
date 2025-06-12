@@ -11,149 +11,223 @@ using System.Threading.Tasks;
 
 namespace Log_Parser_App.Services
 {
+    /// <summary>
+    /// Service for parsing RabbitMQ JSON logs using streaming JsonDocument approach.
+    /// Supports both single JSON objects and JSON arrays with efficient memory usage.
+    /// </summary>
     public class RabbitMqLogParserService : IRabbitMqLogParserService
     {
         private readonly ILogger<RabbitMqLogParserService> _logger;
+        private readonly JsonSerializerOptions _jsonOptions;
 
         public RabbitMqLogParserService(ILogger<RabbitMqLogParserService> logger)
         {
             _logger = logger;
+            _jsonOptions = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                AllowTrailingCommas = true,
+                ReadCommentHandling = JsonCommentHandling.Skip
+            };
         }
 
-        public async IAsyncEnumerable<LogEntry> ParseLogFileAsync(string filePath, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        /// <inheritdoc />
+        public async IAsyncEnumerable<RabbitMqLogEntry> ParseLogFileAsync(string filePath, 
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+            if (!File.Exists(filePath))
             {
-                _logger.LogError("RabbitMQ log file path is invalid or file does not exist: {FilePath}", filePath);
                 yield break;
             }
 
-            await using FileStream fs = File.OpenRead(filePath);
+            using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            
+            await foreach (var entry in ParseStreamAsync(fileStream, cancellationToken))
+            {
+                yield return entry;
+            }
+        }
 
-            JsonDocumentOptions docOptions = new() { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip };
+        /// <inheritdoc />
+        public async IAsyncEnumerable<RabbitMqLogEntry> ParseLogFilesAsync(IEnumerable<string> filePaths, 
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            foreach (var filePath in filePaths)
+            {
+                await foreach (var entry in ParseLogFileAsync(filePath, cancellationToken))
+                {
+                    yield return entry;
+                }
+            }
+        }
 
-            JsonDocument document;
+        /// <inheritdoc />
+        public async Task<bool> IsValidRabbitMqLogFileAsync(string filePath)
+        {
+            if (!File.Exists(filePath))
+                return false;
+
             try
             {
-                document = await JsonDocument.ParseAsync(fs, docOptions, cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to parse JSON document from file {FilePath}", filePath);
-                yield break;
-            }
-
-            using (document)
-            {
-                if (document.RootElement.ValueKind == JsonValueKind.Array)
+                using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                using var document = await JsonDocument.ParseAsync(fileStream);
+                
+                // Check if it's a valid JSON structure
+                var root = document.RootElement;
+                
+                // Accept either array of objects or single object
+                if (root.ValueKind == JsonValueKind.Array)
                 {
-                    foreach (var element in document.RootElement.EnumerateArray())
+                    // Check if array contains objects
+                    foreach (var element in root.EnumerateArray())
                     {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        var logEntry = ProcessElement(element);
-                        if (logEntry != null)
-                        {
-                            if (string.IsNullOrEmpty(logEntry.Source))
-                                logEntry.Source = System.IO.Path.GetFileName(filePath);
-                            yield return logEntry;
-                        }
+                        if (element.ValueKind == JsonValueKind.Object)
+                            return true;
                     }
                 }
-                else if (document.RootElement.ValueKind == JsonValueKind.Object)
+                else if (root.ValueKind == JsonValueKind.Object)
                 {
-                    var logEntry = ProcessElement(document.RootElement);
-                    if (logEntry != null)
+                    return true;
+                }
+                
+                return false;
+            }
+            catch (JsonException)
+            {
+                return false;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        /// <inheritdoc />
+        public async Task<int> GetEstimatedLogCountAsync(string filePath)
+        {
+            if (!File.Exists(filePath))
+                return 0;
+
+            try
+            {
+                using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                using var document = await JsonDocument.ParseAsync(fileStream);
+                
+                var root = document.RootElement;
+                
+                if (root.ValueKind == JsonValueKind.Array)
+                {
+                    return root.GetArrayLength();
+                }
+                else if (root.ValueKind == JsonValueKind.Object)
+                {
+                    return 1;
+                }
+                
+                return 0;
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Internal method for parsing JSON stream with support for both arrays and single objects
+        /// </summary>
+        private async IAsyncEnumerable<RabbitMqLogEntry> ParseStreamAsync(Stream stream, 
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Starting to parse RabbitMQ log stream");
+            
+            using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+            var root = document.RootElement;
+
+            _logger.LogInformation("JSON parsed successfully. Root element type: {ElementType}", root.ValueKind);
+
+            if (root.ValueKind == JsonValueKind.Array)
+            {
+                var arrayLength = root.GetArrayLength();
+                _logger.LogInformation("Processing JSON array with {ArrayLength} elements", arrayLength);
+                
+                // Handle JSON array of log entries
+                int processedCount = 0;
+                foreach (var element in root.EnumerateArray())
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    
+                    var entry = ParseJsonElement(element);
+                    if (entry != null)
                     {
-                        if (string.IsNullOrEmpty(logEntry.Source))
-                            logEntry.Source = System.IO.Path.GetFileName(filePath);
-                        yield return logEntry;
+                        processedCount++;
+                        _logger.LogDebug("Successfully parsed entry {Index}: {Message}", processedCount, entry.Message ?? "No message");
+                        yield return entry;
                     }
+                    else
+                    {
+                        _logger.LogWarning("Failed to parse array element at index {Index}", processedCount);
+                    }
+                }
+                
+                _logger.LogInformation("Completed parsing array. Successfully processed {ProcessedCount} out of {TotalCount} entries", processedCount, arrayLength);
+            }
+            else if (root.ValueKind == JsonValueKind.Object)
+            {
+                _logger.LogInformation("Processing single JSON object");
+                
+                // Handle single JSON object
+                var entry = ParseJsonElement(root);
+                if (entry != null)
+                {
+                    _logger.LogInformation("Successfully parsed single entry: {Message}", entry.Message ?? "No message");
+                    yield return entry;
                 }
                 else
                 {
-                    _logger.LogWarning("Unexpected JSON root element kind {Kind} in file {FilePath}", document.RootElement.ValueKind, filePath);
+                    _logger.LogWarning("Failed to parse single JSON object");
                 }
+            }
+            else
+            {
+                _logger.LogWarning("JSON root element is not an array or object, but {ElementType}", root.ValueKind);
             }
         }
 
-        private LogEntry? ProcessElement(JsonElement element)
+        /// <summary>
+        /// Parses a JsonElement into a RabbitMqLogEntry
+        /// </summary>
+        private RabbitMqLogEntry? ParseJsonElement(JsonElement element)
         {
             try
             {
-                // Case 1: flat structure compatible with RabbitMqLogEntry
-                if (element.TryGetProperty("timestamp", out _))
+                var rawJson = element.GetRawText();
+                _logger.LogDebug("Attempting to parse JSON element: {RawJson}", rawJson);
+                
+                var entry = JsonSerializer.Deserialize<RabbitMqLogEntry>(element, _jsonOptions);
+                if (entry != null)
                 {
-                    var rabbitEntry = JsonSerializer.Deserialize<RabbitMqLogEntry>(element.GetRawText());
-                    if (rabbitEntry != null)
-                    {
-                        rabbitEntry.RawJson = element.GetRawText();
-                        return rabbitEntry.ToLogEntry();
-                    }
+                    // Store raw JSON for debugging and additional data preservation
+                    entry.RawJson = rawJson;
+                    _logger.LogDebug("Successfully deserialized entry. Timestamp: {Timestamp}, Level: {Level}, Node: {Node}", 
+                        entry.Timestamp, entry.Level, entry.Node);
                 }
-
-                // Case 2: nested structure with "headers" object (MassTransit fault, etc.)
-                if (element.TryGetProperty("headers", out var headersElem) && headersElem.ValueKind == JsonValueKind.Object)
+                else
                 {
-                    string? timestampStr = TryGetString(headersElem, "MT-Fault-Timestamp")
-                                           ?? TryGetString(headersElem, "timestamp");
-                    DateTimeOffset timestamp = DateTimeOffset.Now;
-                    if (!string.IsNullOrEmpty(timestampStr) && DateTimeOffset.TryParse(timestampStr, out var ts))
-                    {
-                        timestamp = ts;
-                    }
-
-                    string level = "INFO";
-                    var reason = TryGetString(headersElem, "MT-Reason");
-                    if (string.Equals(reason, "fault", StringComparison.OrdinalIgnoreCase))
-                        level = "ERROR";
-
-                    string message = TryGetString(headersElem, "MT-Fault-Message")
-                                     ?? TryGetString(element, "message")
-                                     ?? string.Empty;
-
-                    string source = TryGetString(headersElem, "MT-Host-MachineName")
-                                   ?? "RabbitMQ";
-
-                    string queue = element.TryGetProperty("properties", out var propsElem) ? TryGetString(propsElem, "exchange") ?? "" : "";
-                    string format = TryGetString(headersElem, "Content-Type") ?? (element.TryGetProperty("properties", out propsElem) ? TryGetString(propsElem, "content_type") : "") ?? "";
-                    string process = TryGetString(headersElem, "MT-Host-ProcessName") ?? "";
-                    string consumer = TryGetString(headersElem, "MT-Fault-ConsumerType") ?? "";
-
-                    // Append technical details to message for visibility
-                    message += $"\nQueue: {queue}\nFormat: {format}\nProcess: {process}\nServer: {source}\nConsumer: {consumer}";
-
-                    var logEntry = new LogEntry
-                    {
-                        Timestamp = timestamp.DateTime,
-                        Level = level,
-                        Message = message,
-                        Source = source,
-                        RawData = element.GetRawText(),
-                        StackTrace = TryGetString(headersElem, "MT-Fault-StackTrace"),
-                        Recommendation = TryGetString(headersElem, "MT-Fault-StackTrace")
-                    };
-                    return logEntry;
+                    _logger.LogWarning("JsonSerializer.Deserialize returned null for element");
                 }
-
-                // Fallback: generic processing not possible
-                _logger.LogDebug("Unknown RabbitMQ log element structure");
+                return entry;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JsonException occurred while parsing element");
+                // Return null for invalid entries, allowing processing to continue
                 return null;
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to process RabbitMQ log element");
+                _logger.LogError(ex, "Unexpected exception occurred while parsing element");
                 return null;
             }
-        }
-
-        private static string? TryGetString(JsonElement element, string propertyName)
-        {
-            if (element.TryGetProperty(propertyName, out var prop))
-            {
-                if (prop.ValueKind == JsonValueKind.String)
-                    return prop.GetString();
-            }
-            return null;
         }
     }
 } 

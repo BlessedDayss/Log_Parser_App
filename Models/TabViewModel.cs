@@ -40,14 +40,20 @@ namespace Log_Parser_App.Models
             get => _iisLogEntries;
             set
             {
-                if (SetProperty(ref _iisLogEntries, value))
-                {
-                    // If IIS logs are loaded or changed, re-apply filters (which also populates FilteredIISLogEntries initially)
-                    if (LogType == LogFormatType.IIS)
-                    {
-                        ApplyIISFiltersCommand.Execute(null);
-                    }
-                }
+                _iisLogEntries = value;
+                OnPropertyChanged();
+            }
+        }
+
+        // RabbitMQ entries collection
+        private List<RabbitMqLogEntry> _rabbitMqLogEntries;
+        public List<RabbitMqLogEntry> RabbitMQLogEntries
+        {
+            get => _rabbitMqLogEntries;
+            set
+            {
+                _rabbitMqLogEntries = value;
+                OnPropertyChanged();
             }
         }
 
@@ -56,6 +62,10 @@ namespace Log_Parser_App.Models
         // New direct properties for tab type checking
         public bool IsThisTabIIS => LogType == LogFormatType.IIS;
         public bool IsThisTabStandard => LogType == LogFormatType.Standard;
+        public bool IsThisTabRabbitMQ => LogType == LogFormatType.RabbitMQ;
+        
+        // Combined property for UI binding - both Standard and RabbitMQ use the same LogEntry structure
+        public bool IsThisTabStandardOrRabbitMQ => LogType == LogFormatType.Standard || LogType == LogFormatType.RabbitMQ;
 
         private bool _isSelected;
         public bool IsSelected
@@ -84,14 +94,20 @@ namespace Log_Parser_App.Models
         public ObservableCollection<IISFilterCriterion> IISFilterCriteria { get; }
         public ObservableCollection<IisLogEntry> FilteredIISLogEntries { get; }
 
-        // --- IIS Count Properties (read-only, derived from FilteredIISLogEntries) ---
+        // RabbitMQ Filtering
+        public ObservableCollection<RabbitMqLogEntry> FilteredRabbitMQLogEntries { get; }
+
+        // Statistics for IIS
         public int IIS_TotalCount => LogType == LogFormatType.IIS ? FilteredIISLogEntries.Count : 0;
         public int IIS_ErrorCount => LogType == LogFormatType.IIS ? FilteredIISLogEntries.Count(e => (e.HttpStatus ?? 0) >= 400) : 0;
         public int IIS_InfoCount => LogType == LogFormatType.IIS ? FilteredIISLogEntries.Count(e => (e.HttpStatus ?? 0) >= 200 && (e.HttpStatus ?? 0) < 300) : 0;
         public int IIS_RedirectCount => LogType == LogFormatType.IIS ? FilteredIISLogEntries.Count(e => (e.HttpStatus ?? 0) >= 300 && (e.HttpStatus ?? 0) < 400) : 0;
-        // OtherCount can be calculated in MainViewModel based on Total and other counts if needed, or defined here.
-        // For now, let Other be Redirects for simplicity in MainViewModel handling.
-        // --- End IIS Count Properties ---
+
+        // Statistics for RabbitMQ
+        public int RabbitMQ_TotalCount => LogType == LogFormatType.RabbitMQ ? FilteredRabbitMQLogEntries.Count : 0;
+        public int RabbitMQ_ErrorCount => LogType == LogFormatType.RabbitMQ ? FilteredRabbitMQLogEntries.Count(e => e.EffectiveLevel != null && (e.EffectiveLevel.ToLower().Contains("error") || e.EffectiveLevel.ToLower().Contains("fatal"))) : 0;
+        public int RabbitMQ_WarningCount => LogType == LogFormatType.RabbitMQ ? FilteredRabbitMQLogEntries.Count(e => e.EffectiveLevel != null && e.EffectiveLevel.ToLower().Contains("warn")) : 0;
+        public int RabbitMQ_InfoCount => LogType == LogFormatType.RabbitMQ ? FilteredRabbitMQLogEntries.Count(e => e.EffectiveLevel != null && e.EffectiveLevel.ToLower().Contains("info")) : 0;
 
         public IRelayCommand AddIISFilterCriterionCommand { get; }
         public IRelayCommand<IISFilterCriterion> RemoveIISFilterCriterionCommand { get; }
@@ -120,6 +136,7 @@ namespace Log_Parser_App.Models
             _title = title;
             _logEntries = logEntries;
             _iisLogEntries = new List<IisLogEntry>();
+            _rabbitMqLogEntries = new List<RabbitMqLogEntry>();
             LogType = LogFormatType.Standard;
             _isSelected = false;
 
@@ -127,6 +144,7 @@ namespace Log_Parser_App.Models
             // they just won't be used or visible.
             IISFilterCriteria = new ObservableCollection<IISFilterCriterion>();
             FilteredIISLogEntries = new ObservableCollection<IisLogEntry>();
+            FilteredRabbitMQLogEntries = new ObservableCollection<RabbitMqLogEntry>();
 
             AddIISFilterCriterionCommand = new RelayCommand(ExecuteAddIISFilterCriterion);
             RemoveIISFilterCriterionCommand = new RelayCommand<IISFilterCriterion>(ExecuteRemoveIISFilterCriterion);
@@ -151,11 +169,13 @@ namespace Log_Parser_App.Models
             _title = title;
             _iisLogEntries = iisLogEntries;
             _logEntries = new List<LogEntry>();
+            _rabbitMqLogEntries = new List<RabbitMqLogEntry>();
             LogType = LogFormatType.IIS;
             _isSelected = false;
 
             IISFilterCriteria = new ObservableCollection<IISFilterCriterion>();
             FilteredIISLogEntries = new ObservableCollection<IisLogEntry>(iisLogEntries); // Initially populate with all IIS entries
+            FilteredRabbitMQLogEntries = new ObservableCollection<RabbitMqLogEntry>();
 
             AddIISFilterCriterionCommand = new RelayCommand(ExecuteAddIISFilterCriterion);
             RemoveIISFilterCriterionCommand = new RelayCommand<IISFilterCriterion>(ExecuteRemoveIISFilterCriterion);
@@ -172,6 +192,73 @@ namespace Log_Parser_App.Models
             ApplyFiltersCommand = new RelayCommand(ExecuteApplyFilters);
             ResetFiltersCommand = new RelayCommand(ExecuteResetFilters);
 
+            InitializeFilterFields();
+        }
+
+        // Constructor for RabbitMQ and other log types with explicit LogFormatType
+        public TabViewModel(string filePath, string title, List<LogEntry> logEntries, LogFormatType logType)
+        {
+            _filePath = filePath;
+            _title = title;
+            _logEntries = logEntries;
+            _iisLogEntries = new List<IisLogEntry>();
+            _rabbitMqLogEntries = new List<RabbitMqLogEntry>();
+            LogType = logType;
+            _isSelected = false;
+
+            // Initialize IIS Filtering related collections and commands even for non-IIS logs,
+            // they just won't be used or visible.
+            IISFilterCriteria = new ObservableCollection<IISFilterCriterion>();
+            FilteredIISLogEntries = new ObservableCollection<IisLogEntry>();
+            FilteredRabbitMQLogEntries = new ObservableCollection<RabbitMqLogEntry>();
+
+            AddIISFilterCriterionCommand = new RelayCommand(ExecuteAddIISFilterCriterion);
+            RemoveIISFilterCriterionCommand = new RelayCommand<IISFilterCriterion>(ExecuteRemoveIISFilterCriterion);
+            ApplyIISFiltersCommand = new RelayCommand(ExecuteApplyIISFilters);
+            ResetIISFiltersCommand = new RelayCommand(ExecuteResetIISFilters);
+            
+            // Initialize Standard Filtering related collections and commands
+            FilterCriteria = new ObservableCollection<FilterCriterion>();
+            FilteredLogEntries = new ObservableCollection<LogEntry>(logEntries); // Initially populate with all entries
+            
+            AddFilterCriteriaCommand = new RelayCommand(ExecuteAddFilterCriterion);
+            RemoveFilterCriterionCommand = new RelayCommand<FilterCriterion>(ExecuteRemoveFilterCriterion);
+            ApplyFiltersCommand = new RelayCommand(ExecuteApplyFilters);
+            ResetFiltersCommand = new RelayCommand(ExecuteResetFilters);
+            
+            InitializeFilterFields();
+        }
+
+        // Constructor specifically for RabbitMQ logs  
+        public TabViewModel(string filePath, string title, List<RabbitMqLogEntry> rabbitMqLogEntries)
+        {
+            _filePath = filePath;
+            _title = title;
+            _logEntries = new List<LogEntry>();
+            _iisLogEntries = new List<IisLogEntry>();
+            _rabbitMqLogEntries = rabbitMqLogEntries;
+            LogType = LogFormatType.RabbitMQ;
+            _isSelected = false;
+
+            // Initialize all collections
+            IISFilterCriteria = new ObservableCollection<IISFilterCriterion>();
+            FilteredIISLogEntries = new ObservableCollection<IisLogEntry>();
+            FilteredRabbitMQLogEntries = new ObservableCollection<RabbitMqLogEntry>(rabbitMqLogEntries); // Initially populate with all RabbitMQ entries
+
+            AddIISFilterCriterionCommand = new RelayCommand(ExecuteAddIISFilterCriterion);
+            RemoveIISFilterCriterionCommand = new RelayCommand<IISFilterCriterion>(ExecuteRemoveIISFilterCriterion);
+            ApplyIISFiltersCommand = new RelayCommand(ExecuteApplyIISFilters);
+            ResetIISFiltersCommand = new RelayCommand(ExecuteResetIISFilters);
+            
+            // Initialize Standard Filtering related collections and commands
+            FilterCriteria = new ObservableCollection<FilterCriterion>();
+            FilteredLogEntries = new ObservableCollection<LogEntry>(); // Empty for RabbitMQ-specific tabs
+            
+            AddFilterCriteriaCommand = new RelayCommand(ExecuteAddFilterCriterion);
+            RemoveFilterCriterionCommand = new RelayCommand<FilterCriterion>(ExecuteRemoveFilterCriterion);
+            ApplyFiltersCommand = new RelayCommand(ExecuteApplyFilters);
+            ResetFiltersCommand = new RelayCommand(ExecuteResetFilters);
+            
             InitializeFilterFields();
         }
 
