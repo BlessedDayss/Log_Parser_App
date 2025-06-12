@@ -693,25 +693,18 @@ namespace Log_Parser_App.ViewModels
 
             try
             {
-                var files = Directory.EnumerateFiles(dir, "*.txt", SearchOption.TopDirectoryOnly).Take(10).ToList();
+                var txtFiles = Directory.EnumerateFiles(dir, "*.txt", SearchOption.TopDirectoryOnly).ToList();
+                var jsonFiles = Directory.EnumerateFiles(dir, "*.json", SearchOption.TopDirectoryOnly).ToList();
 
-                if (!files.Any())
+                if (!txtFiles.Any() && !jsonFiles.Any())
                 {
-                    _logger.LogWarning("No '*.txt' files found in directory: {DirectoryPath}", dir);
-                    await Dispatcher.UIThread.InvokeAsync(() =>
-                    {
-                        StatusMessage = $"No '*.txt' files found in directory {Path.GetFileName(dir)}.";
-                        IsLoading = false;
-                    });
-                    UpdateMultiFileModeStatus();
-                    _logger.LogInformation("[LoadDirectoryAsync - No files found or error block] After UpdateMultiFileModeStatus. IsMultiFileModeActive: {IsActive}", IsMultiFileModeActive);
-                    UpdateAllErrorLogEntries();
+                    _logger.LogWarning("No '*.txt' or '*.json' files found in directory: {Directory}", dir);
                     return;
                 }
 
-                _logger.LogInformation("Found {FileCount} '*.txt' files in {DirectoryPath}. Loading up to 10.", files.Count, dir);
+                _logger.LogInformation("Found {FileCount} '*.txt' files in {DirectoryPath}. Loading up to 10.", txtFiles.Count, dir);
                 
-                foreach (var file in files)
+                foreach (var file in txtFiles)
                 {
                     if (FileTabs.Any(tab => tab.FilePath == file))
                     {
@@ -725,13 +718,18 @@ namespace Log_Parser_App.ViewModels
                     await LoadFileToTab(file);
                 }
                 
+                if (jsonFiles.Any())
+                {
+                    await LoadRabbitMqFilesAsync(jsonFiles);
+                }
+                
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    var successfullyLoadedTabsCount = files.Count(f => FileTabs.Any(t => t.FilePath == f));
+                    var successfullyLoadedTabsCount = txtFiles.Count(f => FileTabs.Any(t => t.FilePath == f)) + jsonFiles.Count(f => FileTabs.Any(t => t.FilePath == f));
                     StatusMessage = $"Finished loading files from directory {Path.GetFileName(dir)}. Loaded {successfullyLoadedTabsCount} new tab(s).";
                     IsLoading = false; 
                     
-                    var lastAddedTabFromDir = FileTabs.LastOrDefault(t => files.Contains(t.FilePath));
+                    var lastAddedTabFromDir = FileTabs.LastOrDefault(t => txtFiles.Contains(t.FilePath) || jsonFiles.Contains(t.FilePath));
                     if (lastAddedTabFromDir != null)
                     {
                         SelectedTab = lastAddedTabFromDir;
@@ -1942,15 +1940,21 @@ namespace Log_Parser_App.ViewModels
             try
             {
                 var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop ? desktop.MainWindow : null;
-                var files = await _filePickerService.PickFilesAsync(mainWindow);
+                var (files, directory) = await _filePickerService.ShowFilePickerContextMenuAsync(mainWindow);
+
                 if (files != null && files.Any())
                 {
-                    foreach (var file in files)
-                    {
-                        await LoadRabbitMqFileAsync(file);
-                    }
+                    var jsonSelected = files.Where(f => System.IO.Path.GetExtension(f).Equals(".json", StringComparison.OrdinalIgnoreCase));
+                    await LoadRabbitMqFilesAsync(jsonSelected);
+                }
+                else if (!string.IsNullOrEmpty(directory))
+                {
+                    var jsonFiles = System.IO.Directory.EnumerateFiles(directory, "*.json", System.IO.SearchOption.TopDirectoryOnly);
+                    await LoadRabbitMqFilesAsync(jsonFiles);
+                }
 
-                    // Switch to Standard dashboard (RabbitMQ uses standard LogEntry)
+                if (FileTabs.Any())
+                {
                     IsDashboardVisible = true;
                     IsStartScreenVisible = false;
                     IsStandardDashboardVisible = true;
@@ -2025,6 +2029,58 @@ namespace Log_Parser_App.ViewModels
                     IsLoading = false;
                 });
             }
+        }
+
+        private async Task LoadRabbitMqFilesAsync(IEnumerable<string> filePaths)
+        {
+            var allEntries = new List<LogEntry>();
+            int failedEntriesCount = 0;
+
+            var semaphore = new System.Threading.SemaphoreSlim(Environment.ProcessorCount * 2);
+            var tasks = new List<Task>();
+
+            foreach (var file in filePaths)
+            {
+                await semaphore.WaitAsync();
+                tasks.Add(Task.Run(async () =>
+                {
+                    try
+                    {
+                        await foreach (var entry in _rabbitMqLogParserService.ParseLogFileAsync(file, CancellationToken.None))
+                        {
+                            lock (allEntries)
+                            {
+                                allEntries.Add(entry);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Threading.Interlocked.Increment(ref failedEntriesCount);
+                        _logger.LogWarning(ex, "Failed to parse RabbitMQ file {File}", file);
+                    }
+                    finally
+                    {
+                        semaphore.Release();
+                    }
+                }));
+            }
+
+            await Task.WhenAll(tasks);
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var title = filePaths.Count() == 1 ? System.IO.Path.GetFileName(filePaths.First()) : $"RabbitMQ ({filePaths.Count()} files)";
+                var newTab = new TabViewModel("RabbitMQ", title, allEntries);
+
+                FileTabs.Clear();
+                FileTabs.Add(newTab);
+                SelectedTab = newTab;
+
+                UpdateLogStatistics();
+
+                StatusMessage = $"Loaded {allEntries.Count} RabbitMQ log entries from {filePaths.Count()} files";
+            });
         }
     }
 }

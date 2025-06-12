@@ -52,14 +52,22 @@ namespace Log_Parser_App.Services
                         cancellationToken.ThrowIfCancellationRequested();
                         var logEntry = ProcessElement(element);
                         if (logEntry != null)
+                        {
+                            if (string.IsNullOrEmpty(logEntry.Source))
+                                logEntry.Source = System.IO.Path.GetFileName(filePath);
                             yield return logEntry;
+                        }
                     }
                 }
                 else if (document.RootElement.ValueKind == JsonValueKind.Object)
                 {
                     var logEntry = ProcessElement(document.RootElement);
                     if (logEntry != null)
+                    {
+                        if (string.IsNullOrEmpty(logEntry.Source))
+                            logEntry.Source = System.IO.Path.GetFileName(filePath);
                         yield return logEntry;
+                    }
                 }
                 else
                 {
@@ -106,13 +114,23 @@ namespace Log_Parser_App.Services
                     string source = TryGetString(headersElem, "MT-Host-MachineName")
                                    ?? "RabbitMQ";
 
+                    string queue = element.TryGetProperty("properties", out var propsElem) ? TryGetString(propsElem, "exchange") ?? "" : "";
+                    string format = TryGetString(headersElem, "Content-Type") ?? (element.TryGetProperty("properties", out propsElem) ? TryGetString(propsElem, "content_type") : "") ?? "";
+                    string process = TryGetString(headersElem, "MT-Host-ProcessName") ?? "";
+                    string consumer = TryGetString(headersElem, "MT-Fault-ConsumerType") ?? "";
+
+                    // Append technical details to message for visibility
+                    message += $"\nQueue: {queue}\nFormat: {format}\nProcess: {process}\nServer: {source}\nConsumer: {consumer}";
+
                     var logEntry = new LogEntry
                     {
                         Timestamp = timestamp.DateTime,
                         Level = level,
                         Message = message,
                         Source = source,
-                        RawData = element.GetRawText()
+                        RawData = element.GetRawText(),
+                        StackTrace = TryGetString(headersElem, "MT-Fault-StackTrace"),
+                        Recommendation = TryGetString(headersElem, "MT-Fault-StackTrace")
                     };
                     return logEntry;
                 }
