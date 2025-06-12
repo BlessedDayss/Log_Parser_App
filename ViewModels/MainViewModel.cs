@@ -32,6 +32,7 @@ namespace Log_Parser_App.ViewModels
         private readonly IErrorRecommendationService _errorRecommendationService;
         private readonly IFilePickerService _filePickerService;
         private readonly IIISLogParserService _iisLogParserService;
+        private readonly IRabbitMqLogParserService _rabbitMqLogParserService;
 
         [ObservableProperty]
         private string _statusMessage = "Ready to work";
@@ -269,7 +270,8 @@ namespace Log_Parser_App.ViewModels
             IFileService fileService,
             IErrorRecommendationService errorRecommendationService,
             IFilePickerService filePickerService,
-            IIISLogParserService iisLogParserService)
+            IIISLogParserService iisLogParserService,
+            IRabbitMqLogParserService rabbitMqLogParserService)
         {
             _logParserService = logParserService;
             _logger = logger;
@@ -277,6 +279,7 @@ namespace Log_Parser_App.ViewModels
             _errorRecommendationService = errorRecommendationService;
             _filePickerService = filePickerService;
             _iisLogParserService = iisLogParserService;
+            _rabbitMqLogParserService = rabbitMqLogParserService;
 
             InitializeErrorRecommendationService();
 
@@ -1928,6 +1931,97 @@ namespace Log_Parser_App.ViewModels
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     StatusMessage = $"Error loading IIS log: {ex.Message}";
+                    IsLoading = false;
+                });
+            }
+        }
+
+        [RelayCommand]
+        private async Task LoadRabbitMqLogs()
+        {
+            try
+            {
+                var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop ? desktop.MainWindow : null;
+                var files = await _filePickerService.PickFilesAsync(mainWindow);
+                if (files != null && files.Any())
+                {
+                    foreach (var file in files)
+                    {
+                        await LoadRabbitMqFileAsync(file);
+                    }
+
+                    // Switch to Standard dashboard (RabbitMQ uses standard LogEntry)
+                    IsDashboardVisible = true;
+                    IsStartScreenVisible = false;
+                    IsStandardDashboardVisible = true;
+                    IsIISDashboardVisible = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading RabbitMQ log files");
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    StatusMessage = $"Error loading RabbitMQ logs: {ex.Message}";
+                    IsLoading = false;
+                });
+            }
+        }
+
+        private async Task LoadRabbitMqFileAsync(string filePath)
+        {
+            try
+            {
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                int failedEntriesCount = 0;
+                int processedEntriesCount = 0;
+
+                var rabbitEntries = await Task.Run(async () =>
+                {
+                    var entriesList = new List<LogEntry>();
+                    await foreach (var entry in _rabbitMqLogParserService.ParseLogFileAsync(filePath, CancellationToken.None))
+                    {
+                        try
+                        {
+                            entriesList.Add(entry);
+                            processedEntriesCount++;
+                        }
+                        catch (Exception entryEx)
+                        {
+                            failedEntriesCount++;
+                            _logger.LogWarning(entryEx, "Failed to process RabbitMQ log entry, continuing. Failed entries so far: {FailedCount}", failedEntriesCount);
+                        }
+                    }
+                    return entriesList;
+                });
+
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    var title = System.IO.Path.GetFileName(filePath);
+                    var newTab = new TabViewModel(filePath, title, rabbitEntries);
+
+                    FileTabs.Clear();
+                    FileTabs.Add(newTab);
+                    SelectedTab = newTab;
+
+                    UpdateLogStatistics();
+
+                    var totalAttemptedEntries = processedEntriesCount + failedEntriesCount;
+                    var successRate = totalAttemptedEntries > 0 ? Math.Round((double)processedEntriesCount / totalAttemptedEntries * 100, 1) : 100.0;
+
+                    StatusMessage = failedEntriesCount > 0
+                        ? $"Loaded {rabbitEntries.Count} RabbitMQ log entries ({successRate}% success rate, {failedEntriesCount} parsing errors)"
+                        : $"Loaded {rabbitEntries.Count} RabbitMQ log entries (100% success rate)";
+
+                    IsLoading = false;
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading RabbitMQ log file");
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    StatusMessage = $"Error loading RabbitMQ log: {ex.Message}";
                     IsLoading = false;
                 });
             }

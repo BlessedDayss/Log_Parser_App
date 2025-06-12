@@ -301,6 +301,11 @@
                                 Command="{Binding MainView.LoadIISLogsCommand}">
                             <TextBlock Text="🖥️" FontSize="18" />
                         </Button>
+                        <Button Classes="icon-button" 
+                                ToolTip.Tip="RabbitMQ Logs Analysis"
+                                Command="{Binding MainView.LoadRabbitMqLogsCommand}">
+                            <TextBlock Text="🐰" FontSize="18" />
+                        </Button>
                     </StackPanel>
 
                     <Grid Grid.Column="1">

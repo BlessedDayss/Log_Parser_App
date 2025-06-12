@@ -43,7 +43,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         // Design-time constructor
         _logger = null!; 
-        _mainView = new Log_Parser_App.ViewModels.MainViewModel(null!, null!, null!, null!, null!, null!); // Added null! for IIISLogParserService
+        _mainView = new Log_Parser_App.ViewModels.MainViewModel(null!, null!, null!, null!, null!, null!, null!); // Updated for IRabbitMqLogParserService
         _updateService = null!;
         AppVersion = "v0.0.1-design";
         // Design-time filter criterion for the previewer - this will cause issues if FilterCriteria is removed
