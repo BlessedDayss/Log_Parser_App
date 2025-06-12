@@ -1231,7 +1231,7 @@ namespace Log_Parser_App.ViewModels
                 maxTimestamp = minTimestamp.AddHours(1);
             }
             var timePoints = new List<DateTime>();
-            var tickInterval = DetermineOptimalTimeInterval(minTimestamp, maxTimestamp);
+            int tickInterval = DetermineOptimalTimeInterval(minTimestamp, maxTimestamp);
             var currentTime = new DateTime(minTimestamp.Year, minTimestamp.Month, minTimestamp.Day,
                                           minTimestamp.Hour, minTimestamp.Minute / tickInterval * tickInterval, 0);
             while (currentTime <= maxTimestamp.AddMinutes(tickInterval))
@@ -1247,10 +1247,10 @@ namespace Log_Parser_App.ViewModels
             {
                 var endTime = time.AddMinutes(tickInterval);
                 var entries = logEntries.Where(e => e.Timestamp >= time && e.Timestamp < endTime).ToList();
-                var errorC = entries.Count(e => e.Level.Equals("Error", StringComparison.OrdinalIgnoreCase));
-                var warningC = entries.Count(e => e.Level == "WARNING");
-                var infoC = entries.Count(e => e.Level == "INFO");
-                var totalC = entries.Count;
+                int errorC = entries.Count(e => e.Level.Equals("Error", StringComparison.OrdinalIgnoreCase));
+                int warningC = entries.Count(e => e.Level == "WARNING");
+                int infoC = entries.Count(e => e.Level == "INFO");
+                int totalC = entries.Count;
                 errorsByTime.Add(new DateTimePoint(time, errorC));
                 warningsByTime.Add(new DateTimePoint(time, warningC));
                 infosByTime.Add(new DateTimePoint(time, infoC));
@@ -1262,7 +1262,7 @@ namespace Log_Parser_App.ViewModels
             {
                 new Axis
                 {
-                    Name = "Время",
+                    Name = "Time",
                     NamePaint = new SolidColorPaint(SKColors.LightGray),
                     LabelsPaint = new SolidColorPaint(SKColors.LightGray),
                     TextSize = 12,
@@ -2039,7 +2039,7 @@ namespace Log_Parser_App.ViewModels
             var semaphore = new System.Threading.SemaphoreSlim(Environment.ProcessorCount * 2);
             var tasks = new List<Task>();
 
-            foreach (var file in filePaths)
+            foreach (string file in filePaths)
             {
                 await semaphore.WaitAsync();
                 tasks.Add(Task.Run(async () =>

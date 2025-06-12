@@ -267,25 +267,28 @@ public partial class MainWindow : Window
     // Handler for StackTrace double tap to expand/collapse full stack trace
     public void OnStackTraceDoubleTapped(object? sender, TappedEventArgs e)
     {
-        if (sender is TextBlock textBlock)
+        if (sender is TextBlock textBlock && textBlock.Parent is ScrollViewer scrollViewer)
         {
             // Toggle between collapsed and expanded state
-            if (textBlock.MaxHeight == 60)
+            if (scrollViewer.MaxHeight == 80)
             {
-                // Expand: remove height limit and make text selectable
-                textBlock.MaxHeight = double.PositiveInfinity;
-                textBlock.IsHitTestVisible = true;
-                textBlock.Cursor = new Cursor(StandardCursorType.Arrow);
-                textBlock.Background = Avalonia.Media.Brushes.DarkSlateGray;
-                textBlock.Opacity = 1.0;
+                // Expand: increase height limit for better visibility
+                scrollViewer.MaxHeight = 200;
+                if (scrollViewer.Parent is Border border)
+                {
+                    border.Background = Avalonia.Media.Brushes.DarkSlateGray;
+                    border.BorderBrush = Avalonia.Media.Brushes.Orange;
+                }
             }
             else
             {
-                // Collapse: restore height limit
-                textBlock.MaxHeight = 60;
-                textBlock.Cursor = new Cursor(StandardCursorType.Hand);
-                textBlock.Background = Avalonia.Media.Brushes.Transparent;
-                textBlock.Opacity = 0.9;
+                // Collapse: restore original height limit
+                scrollViewer.MaxHeight = 80;
+                if (scrollViewer.Parent is Border border)
+                {
+                    border.Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#1E1E1E"));
+                    border.BorderBrush = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#404040"));
+                }
             }
         }
     }

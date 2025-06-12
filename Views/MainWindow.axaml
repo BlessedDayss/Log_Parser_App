@@ -717,24 +717,24 @@
                                             <!-- Заголовки колонок для RabbitMQ -->
                                             <Grid Grid.Row="0" Background="#2D2F33">
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" MinWidth="160"/> <!-- timestamp -->
-                                                    <ColumnDefinition Width="Auto" MinWidth="80"/> <!-- level -->
-                                                    <ColumnDefinition Width="*" MinWidth="200"/> <!-- message -->
-                                                    <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- node -->
-                                                    <ColumnDefinition Width="*" MinWidth="200"/> <!-- stacktrace -->
-                                                    <ColumnDefinition Width="Auto" MinWidth="100"/> <!-- queue -->
-                                                    <ColumnDefinition Width="Auto" MinWidth="150"/> <!-- consumertype -->
-                                                    <ColumnDefinition Width="Auto" MinWidth="80"/> <!-- pid -->
+                                                    <ColumnDefinition Width="160" MinWidth="140"/> <!-- timestamp -->
+                                                    <ColumnDefinition Width="70" MinWidth="60"/> <!-- level -->
+                                                    <ColumnDefinition Width="2*" MinWidth="200"/> <!-- message -->
+                                                    <ColumnDefinition Width="120" MinWidth="100"/> <!-- node -->
+                                                    <ColumnDefinition Width="3*" MinWidth="250"/> <!-- stacktrace -->
+                                                    <ColumnDefinition Width="100" MinWidth="80"/> <!-- queue -->
+                                                    <ColumnDefinition Width="1.5*" MinWidth="150"/> <!-- consumertype -->
+                                                    <ColumnDefinition Width="60" MinWidth="50"/> <!-- pid -->
                                                 </Grid.ColumnDefinitions>
                                                 
-                                                <TextBlock Grid.Column="0" Text="Timestamp" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="1" Text="Level" Padding="8,8" FontWeight="SemiBold" HorizontalAlignment="Center"/>
-                                                <TextBlock Grid.Column="2" Text="Message" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="3" Text="Node" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="4" Text="StackTrace" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="5" Text="Queue" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="6" Text="ConsumerType" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="7" Text="PID" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="0" Text="Timestamp" Padding="6,4" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="1" Text="Level" Padding="6,4" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                                <TextBlock Grid.Column="2" Text="Message" Padding="6,4" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="3" Text="Node" Padding="6,4" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="4" Text="StackTrace" Padding="6,4" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="5" Text="Queue" Padding="6,4" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="6" Text="ConsumerType" Padding="6,4" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="7" Text="PID" Padding="6,4" FontWeight="SemiBold"/>
                                             </Grid>
                                             
                                             <!-- Содержимое таблицы RabbitMQ -->
@@ -747,37 +747,51 @@
                                                     <DataTemplate x:DataType="models1:RabbitMqLogEntry">
                                                         <Grid>
                                                             <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="Auto" MinWidth="160"/> <!-- timestamp -->
-                                                                <ColumnDefinition Width="Auto" MinWidth="80"/> <!-- level -->
-                                                                <ColumnDefinition Width="*" MinWidth="200"/> <!-- message -->
-                                                                <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- node -->
-                                                                <ColumnDefinition Width="*" MinWidth="200"/> <!-- stacktrace -->
-                                                                <ColumnDefinition Width="Auto" MinWidth="100"/> <!-- queue -->
-                                                                <ColumnDefinition Width="Auto" MinWidth="150"/> <!-- consumertype -->
-                                                                <ColumnDefinition Width="Auto" MinWidth="80"/> <!-- pid -->
+                                                                <ColumnDefinition Width="160" MinWidth="140"/> <!-- timestamp -->
+                                                                <ColumnDefinition Width="70" MinWidth="60"/> <!-- level -->
+                                                                <ColumnDefinition Width="2*" MinWidth="200"/> <!-- message -->
+                                                                <ColumnDefinition Width="120" MinWidth="100"/> <!-- node -->
+                                                                <ColumnDefinition Width="3*" MinWidth="250"/> <!-- stacktrace -->
+                                                                <ColumnDefinition Width="100" MinWidth="80"/> <!-- queue -->
+                                                                <ColumnDefinition Width="1.5*" MinWidth="150"/> <!-- consumertype -->
+                                                                <ColumnDefinition Width="60" MinWidth="50"/> <!-- pid -->
                                                             </Grid.ColumnDefinitions>
                                                             
-                                                            <TextBlock Grid.Column="0" Text="{Binding EffectiveTimestamp, StringFormat='yyyy-MM-dd HH:mm:ss.fff'}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="0" Text="{Binding EffectiveTimestamp, StringFormat='yyyy-MM-dd HH:mm:ss.fff'}" Padding="4,2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top"/>
                                                             <Border Grid.Column="1" Background="{Binding EffectiveLevel, Converter={StaticResource LogLevelToBrushConverter}}" 
-                                                                    CornerRadius="3" 
-                                                                    Padding="5,2" 
+                                                                    CornerRadius="4" 
+                                                                    Padding="6,3" 
                                                                     HorizontalAlignment="Center" 
-                                                                    MinWidth="60">
-                                                                <TextBlock Text="{Binding EffectiveLevel}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontSize="10" FontWeight="Bold"/>
+                                                                    VerticalAlignment="Top"
+                                                                    Margin="0,2,0,0"
+                                                                    MinWidth="50">
+                                                                <TextBlock Text="{Binding EffectiveLevel}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontSize="11" FontWeight="Bold"/>
                                                             </Border>
-                                                            <TextBlock Grid.Column="2" Text="{Binding EffectiveMessage}" Padding="8,4" TextWrapping="Wrap"/>
-                                                            <TextBlock Grid.Column="3" Text="{Binding EffectiveNode}" Padding="8,4"/>
-                                                            <TextBlock Grid.Column="4" 
-                                                                       Text="{Binding EffectiveStackTrace}" 
-                                                                       Padding="8,4" 
-                                                                       TextWrapping="Wrap"
-                                                                       MaxHeight="60"
-                                                                       Background="Transparent"
-                                                                       Cursor="Hand"
-                                                                       DoubleTapped="OnStackTraceDoubleTapped"/>
-                                                            <TextBlock Grid.Column="5" Text="{Binding EffectiveQueue}" Padding="8,4"/>
-                                                            <TextBlock Grid.Column="6" Text="{Binding EffectiveConsumerType}" Padding="8,4"/>
-                                                            <TextBlock Grid.Column="7" Text="{Binding EffectiveProcessId}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="2" Text="{Binding EffectiveMessage}" Padding="4,2" TextWrapping="Wrap" VerticalAlignment="Top"/>
+                                                            <TextBlock Grid.Column="3" Text="{Binding EffectiveNodeDisplay}" Padding="4,2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" ToolTip.Tip="{Binding EffectiveNode}"/>
+                                                            <Border Grid.Column="4" 
+                                                                    BorderBrush="#404040" 
+                                                                    BorderThickness="1" 
+                                                                    CornerRadius="3"
+                                                                    Background="#1E1E1E"
+                                                                    Margin="2,1">
+                                                                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                                                              VerticalScrollBarVisibility="Auto"
+                                                                              MaxHeight="80"
+                                                                              Padding="0"
+                                                                              Background="Transparent">
+                                                                    <TextBlock Text="{Binding EffectiveStackTrace}" 
+                                                                               Padding="4,2" 
+                                                                               TextWrapping="Wrap"
+                                                                               VerticalAlignment="Top"
+                                                                               Background="Transparent"
+                                                                               Cursor="Hand"
+                                                                               DoubleTapped="OnStackTraceDoubleTapped"/>
+                                                                </ScrollViewer>
+                                                            </Border>
+                                                            <TextBlock Grid.Column="5" Text="{Binding EffectiveQueue}" Padding="4,2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top"/>
+                                                            <TextBlock Grid.Column="6" Text="{Binding EffectiveConsumerType}" Padding="4,2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top"/>
+                                                            <TextBlock Grid.Column="7" Text="{Binding EffectiveProcessId}" Padding="4,2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top"/>
                                                         </Grid>
                                                     </DataTemplate>
                                                 </ListBox.ItemTemplate>

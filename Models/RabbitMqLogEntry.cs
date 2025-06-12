@@ -60,6 +60,9 @@ namespace Log_Parser_App.Models
         public string? EffectiveNode => 
             Node ?? Headers?.HostMachineName;
 
+        public string? EffectiveNodeDisplay => 
+            !string.IsNullOrEmpty(EffectiveNode) ? EffectiveNode : "Unknown Host";
+
         public string? EffectiveQueue => 
             Queue ?? Properties?.Exchange;
 
