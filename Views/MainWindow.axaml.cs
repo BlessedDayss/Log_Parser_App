@@ -255,9 +255,38 @@ public partial class MainWindow : Window
     
     private void EmptyStateView_OpenLogFileRequested(object? sender, EventArgs e)
     {
-        if (DataContext is MainWindowViewModel viewModel)
+        var mainWindow = this;
+        var dataContext = mainWindow.DataContext as MainWindowViewModel;
+        if (dataContext?.MainView != null)
         {
-            viewModel.MainView.OpenLogFileCommand.Execute(null);
+            // Запускаем команду загрузки файла
+            dataContext.MainView.LoadFileCommand?.Execute(null);
+        }
+    }
+
+    // Handler for StackTrace double tap to expand/collapse full stack trace
+    public void OnStackTraceDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is TextBlock textBlock)
+        {
+            // Toggle between collapsed and expanded state
+            if (textBlock.MaxHeight == 60)
+            {
+                // Expand: remove height limit and make text selectable
+                textBlock.MaxHeight = double.PositiveInfinity;
+                textBlock.IsHitTestVisible = true;
+                textBlock.Cursor = new Cursor(StandardCursorType.Arrow);
+                textBlock.Background = Avalonia.Media.Brushes.DarkSlateGray;
+                textBlock.Opacity = 1.0;
+            }
+            else
+            {
+                // Collapse: restore height limit
+                textBlock.MaxHeight = 60;
+                textBlock.Cursor = new Cursor(StandardCursorType.Hand);
+                textBlock.Background = Avalonia.Media.Brushes.Transparent;
+                textBlock.Opacity = 0.9;
+            }
         }
     }
 }

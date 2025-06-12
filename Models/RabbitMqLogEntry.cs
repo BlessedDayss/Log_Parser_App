@@ -66,6 +66,12 @@ namespace Log_Parser_App.Models
         public string? EffectiveProcessId => 
             ProcessId ?? Headers?.HostProcessId;
 
+        public string? EffectiveStackTrace => 
+            Headers?.FaultStackTrace;
+
+        public string? EffectiveConsumerType => 
+            Headers?.FaultConsumerType;
+
         /// <summary>
         /// Converts RabbitMqLogEntry to LogEntry for compatibility with existing system
         /// </summary>

@@ -721,10 +721,9 @@
                                                     <ColumnDefinition Width="Auto" MinWidth="80"/> <!-- level -->
                                                     <ColumnDefinition Width="*" MinWidth="200"/> <!-- message -->
                                                     <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- node -->
-                                                    <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- connection -->
+                                                    <ColumnDefinition Width="*" MinWidth="200"/> <!-- stacktrace -->
                                                     <ColumnDefinition Width="Auto" MinWidth="100"/> <!-- queue -->
-                                                    <ColumnDefinition Width="Auto" MinWidth="100"/> <!-- user -->
-                                                    <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- vhost -->
+                                                    <ColumnDefinition Width="Auto" MinWidth="150"/> <!-- consumertype -->
                                                     <ColumnDefinition Width="Auto" MinWidth="80"/> <!-- pid -->
                                                 </Grid.ColumnDefinitions>
                                                 
@@ -732,11 +731,10 @@
                                                 <TextBlock Grid.Column="1" Text="Level" Padding="8,8" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                                                 <TextBlock Grid.Column="2" Text="Message" Padding="8,8" FontWeight="SemiBold"/>
                                                 <TextBlock Grid.Column="3" Text="Node" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="4" Text="Connection" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="4" Text="StackTrace" Padding="8,8" FontWeight="SemiBold"/>
                                                 <TextBlock Grid.Column="5" Text="Queue" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="6" Text="User" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="7" Text="VHost" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="8" Text="PID" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="6" Text="ConsumerType" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="7" Text="PID" Padding="8,8" FontWeight="SemiBold"/>
                                             </Grid>
                                             
                                             <!-- Содержимое таблицы RabbitMQ -->
@@ -753,10 +751,9 @@
                                                                 <ColumnDefinition Width="Auto" MinWidth="80"/> <!-- level -->
                                                                 <ColumnDefinition Width="*" MinWidth="200"/> <!-- message -->
                                                                 <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- node -->
-                                                                <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- connection -->
+                                                                <ColumnDefinition Width="*" MinWidth="200"/> <!-- stacktrace -->
                                                                 <ColumnDefinition Width="Auto" MinWidth="100"/> <!-- queue -->
-                                                                <ColumnDefinition Width="Auto" MinWidth="100"/> <!-- user -->
-                                                                <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- vhost -->
+                                                                <ColumnDefinition Width="Auto" MinWidth="150"/> <!-- consumertype -->
                                                                 <ColumnDefinition Width="Auto" MinWidth="80"/> <!-- pid -->
                                                             </Grid.ColumnDefinitions>
                                                             
@@ -770,11 +767,17 @@
                                                             </Border>
                                                             <TextBlock Grid.Column="2" Text="{Binding EffectiveMessage}" Padding="8,4" TextWrapping="Wrap"/>
                                                             <TextBlock Grid.Column="3" Text="{Binding EffectiveNode}" Padding="8,4"/>
-                                                            <TextBlock Grid.Column="4" Text="{Binding Connection}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="4" 
+                                                                       Text="{Binding EffectiveStackTrace}" 
+                                                                       Padding="8,4" 
+                                                                       TextWrapping="Wrap"
+                                                                       MaxHeight="60"
+                                                                       Background="Transparent"
+                                                                       Cursor="Hand"
+                                                                       DoubleTapped="OnStackTraceDoubleTapped"/>
                                                             <TextBlock Grid.Column="5" Text="{Binding EffectiveQueue}" Padding="8,4"/>
-                                                            <TextBlock Grid.Column="6" Text="{Binding User}" Padding="8,4"/>
-                                                            <TextBlock Grid.Column="7" Text="{Binding VirtualHost}" Padding="8,4"/>
-                                                            <TextBlock Grid.Column="8" Text="{Binding EffectiveProcessId}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="6" Text="{Binding EffectiveConsumerType}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="7" Text="{Binding EffectiveProcessId}" Padding="8,4"/>
                                                         </Grid>
                                                     </DataTemplate>
                                                 </ListBox.ItemTemplate>
