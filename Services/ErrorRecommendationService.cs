@@ -1,12 +1,12 @@
 namespace Log_Parser_App.Services
 {
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text.Json;
-using System.Threading.Tasks;
-using Log_Parser_App.Models;
-using Microsoft.Extensions.Logging;
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Text.Json;
+    using System.Threading.Tasks;
+    using Log_Parser_App.Models;
+    using Microsoft.Extensions.Logging;
 
 
 
@@ -114,9 +114,9 @@ using Microsoft.Extensions.Logging;
         public async Task<bool> SaveRecommendationsToFileAsync(string filePath) {
             try {
                 var options = new JsonSerializerOptions { WriteIndented = true };
-                var json = JsonSerializer.Serialize(_recommendations, options);
+                string json = JsonSerializer.Serialize(_recommendations, options);
 
-                var directoryPath = Path.GetDirectoryName(filePath);
+                string? directoryPath = Path.GetDirectoryName(filePath);
                 if (!string.IsNullOrEmpty(directoryPath)) {
                     Directory.CreateDirectory(directoryPath);
                 }
@@ -205,7 +205,7 @@ using Microsoft.Extensions.Logging;
 
 
         private string FindRecommendationsFile() {
-            var possibleLocations = new[] {
+            string[] possibleLocations = new[] {
                 Path.Combine(GetUserRecommendationsDirectory(), DefaultRecommendationFile),
 
                 Path.Combine(Directory.GetCurrentDirectory(), DefaultRecommendationFile),

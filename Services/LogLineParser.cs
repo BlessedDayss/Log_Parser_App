@@ -1,10 +1,11 @@
+namespace Log_Parser_App.Services
+{
 using System;
 using System.Text.RegularExpressions;
 using Log_Parser_App.Models;
 using Log_Parser_App.Models.Interfaces;
 
-namespace Log_Parser_App.Services
-{
+
     public class LogLineParser : ILogLineParser
     {
         private static readonly Regex TimeRegex = new(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}[,.]\d{3}");

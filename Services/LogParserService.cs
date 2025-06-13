@@ -6,9 +6,9 @@ namespace Log_Parser_App.Services
 	using Log_Parser_App.Models;
 	using Log_Parser_App.Models.Interfaces;
 	using Microsoft.Extensions.Logging;
-	using System.IO; // Required for Path and Directory operations
-	using System.Runtime.CompilerServices; // Added
-	using System.Threading; // Added
+	using System.IO;
+	using System.Runtime.CompilerServices;
+	using System.Threading;
 
 	public partial class LogParserService(ILogger<LogParserService> logger, ILogLineParser lineParser, ILogFileLoader fileLoader, ILogFilesLoader filesLoader) : ILogParserService
 	{
@@ -18,11 +18,9 @@ namespace Log_Parser_App.Services
 		// Modified method
 		public async IAsyncEnumerable<LogEntry> ParseLogFileAsync(string filePath, [EnumeratorCancellation] CancellationToken cancellationToken = default) {
 			var lines = fileLoader.LoadLinesAsync(filePath); // Returns IAsyncEnumerable<string>
-			
-			static async IAsyncEnumerable<(string filePath, string line)> GetFileLinesWithContext(string p, IAsyncEnumerable<string> lns, [EnumeratorCancellation] CancellationToken ct)
-			{
-				await foreach (var l in lns.WithCancellation(ct))
-				{
+
+			static async IAsyncEnumerable<(string filePath, string line)> GetFileLinesWithContext(string p, IAsyncEnumerable<string> lns, [EnumeratorCancellation] CancellationToken ct) {
+				await foreach (var l in lns.WithCancellation(ct)) {
 					yield return (p, l);
 				}
 			}
@@ -42,14 +40,16 @@ namespace Log_Parser_App.Services
 		}
 
 		// Modified method
-		public async IAsyncEnumerable<LogEntry> ParseLogDirectoryAsync(string directoryPath, string searchPattern = "*.log", int? maxFilesToParse = null, [EnumeratorCancellation] CancellationToken cancellationToken = default) {
+		public async IAsyncEnumerable<LogEntry> ParseLogDirectoryAsync(
+			string directoryPath,
+			string searchPattern = "*.log",
+			int? maxFilesToParse = null,
+			[EnumeratorCancellation] CancellationToken cancellationToken = default) {
 			var allFilePaths = Directory.EnumerateFiles(directoryPath, searchPattern, SearchOption.TopDirectoryOnly);
-            
-            var filesToParse = maxFilesToParse.HasValue 
-                ? allFilePaths.Take(maxFilesToParse.Value)
-                : allFilePaths;
 
-            var lines = filesLoader.LoadLinesAsync(filesToParse); // Returns IAsyncEnumerable<(string filePath, string line)>
+			var filesToParse = maxFilesToParse.HasValue ? allFilePaths.Take(maxFilesToParse.Value) : allFilePaths;
+
+			var lines = filesLoader.LoadLinesAsync(filesToParse); // Returns IAsyncEnumerable<(string filePath, string line)>
 			await foreach (var entry in ParseLines(lines, cancellationToken).WithCancellation(cancellationToken)) {
 				yield return entry;
 			}
@@ -61,18 +61,20 @@ namespace Log_Parser_App.Services
 			return Task.FromResult<IEnumerable<LogEntry>>(filteredEntries);
 		}
 
-				// Modified method
-		private async IAsyncEnumerable<LogEntry> ParseLines(IAsyncEnumerable<(string filePath, string line)> lines, [EnumeratorCancellation] CancellationToken cancellationToken = default) {
+		// Modified method
+		private async IAsyncEnumerable<LogEntry> ParseLines(
+			IAsyncEnumerable<(string filePath, string line)> lines,
+			[EnumeratorCancellation] CancellationToken cancellationToken = default) {
 			var lastErrorEntryByFile = new Dictionary<string, LogEntry?>();
 			var lineNumberByFile = new Dictionary<string, int>();
 			var singleWordKeywords = new[] { "error", "exception", "failed", "timeout", "critical", "fatal" };
 			var timeRegex = new System.Text.RegularExpressions.Regex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}");
 			var singleWordRegex = new System.Text.RegularExpressions.Regex($@"\b({string.Join("|", singleWordKeywords)})\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 			// var notFoundRegex = new System.Text.RegularExpressions.Regex(@"\bnot\s+found\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-			
+
 			_logger.LogInformation("Starting ParseLines iteration");
 			int processedLinesCount = 0;
-			
+
 			await foreach (var (filePath, line) in lines.WithCancellation(cancellationToken)) {
 				cancellationToken.ThrowIfCancellationRequested(); // Check for cancellation
 
@@ -82,22 +84,18 @@ namespace Log_Parser_App.Services
 				lineNumberByFile.TryAdd(filePath, 0);
 				lineNumberByFile[filePath]++;
 				int lineNumber = lineNumberByFile[filePath];
-				
+
 				bool containsErrorKeyword = singleWordRegex.IsMatch(line); // Removed notFoundRegex check
 
 				if (lineParser.IsLogLine(line)) {
 					LogEntry? entry = null;
-					try
-					{
+					try {
 						entry = lineParser.Parse(line, lineNumber, filePath);
-					}
-					catch (System.Exception ex)
-					{
+					} catch (System.Exception ex) {
 						_logger.LogWarning(ex, "Failed to parse log line {LineNumber} in {FilePath}, creating error entry: {Line}", lineNumber, filePath, line);
-						
+
 						// Create an error entry for unparseable log lines
-						entry = new LogEntry
-						{
+						entry = new LogEntry {
 							Timestamp = System.DateTime.Now,
 							Level = "ERROR",
 							Message = $"[PARSE ERROR] {line.Trim()}",
@@ -108,14 +106,12 @@ namespace Log_Parser_App.Services
 							ErrorDescription = $"Failed to parse log line: {ex.Message}"
 						};
 					}
-					
-					if (entry == null)
-					{
+
+					if (entry == null) {
 						_logger.LogWarning("Line parser returned null for line {LineNumber} in {FilePath}, creating fallback entry: {Line}", lineNumber, filePath, line);
-						
+
 						// Create fallback entry for null results
-						entry = new LogEntry
-						{
+						entry = new LogEntry {
 							Timestamp = System.DateTime.Now,
 							Level = "INFO",
 							Message = $"[UNPARSED] {line.Trim()}",
@@ -124,54 +120,51 @@ namespace Log_Parser_App.Services
 							LineNumber = lineNumber
 						};
 					}
-                    
-					if (containsErrorKeyword) 
-                    {
+
+					if (containsErrorKeyword) {
 						entry.Level = "ERROR";
-                    }
+					}
 
 					yield return entry;
+
 					if (entry.Level.Trim().Equals(ErrorLevel, System.StringComparison.InvariantCultureIgnoreCase))
 						lastErrorEntryByFile[filePath] = entry;
 					else
 						lastErrorEntryByFile[filePath] = null;
 				} else {
 					bool handledAsStackTrace = false;
-                    if (lastErrorEntryByFile.TryGetValue(filePath, out var lastErrorEntry) && lastErrorEntry != null) {
+					if (lastErrorEntryByFile.TryGetValue(filePath, out var lastErrorEntry) && lastErrorEntry != null) {
 						if (!timeRegex.IsMatch(line)) {
-							try
-							{
+							try {
 								AppendStackTrace(lastErrorEntry, line);
 								handledAsStackTrace = true;
-							}
-							catch (System.Exception ex)
-							{
+							} catch (System.Exception ex) {
 								_logger.LogError(ex, "Failed to append stack trace for line {LineNumber} in {FilePath}: {Line}", lineNumber, filePath, line);
 							}
 						}
 					}
-                    
-                    if (!handledAsStackTrace) {
-                        string levelForUnparsedLine = containsErrorKeyword ? "ERROR" : "INFO";
-                        var unparsedEntry = new LogEntry {
-                            Timestamp = System.DateTime.Now,
-                            Level = levelForUnparsedLine, 
-                            Message = line.Trim(),
-                            RawData = line,
-                            FilePath = filePath,
-                            LineNumber = lineNumber
-                        };
-                        yield return unparsedEntry;
-                        
-                        if (levelForUnparsedLine == "ERROR") {
-                            lastErrorEntryByFile[filePath] = unparsedEntry;
-                        } else {
-                            lastErrorEntryByFile[filePath] = null;
-                        }
-                    }
+
+					if (!handledAsStackTrace) {
+						string levelForUnparsedLine = containsErrorKeyword ? "ERROR" : "INFO";
+						var unparsedEntry = new LogEntry {
+							Timestamp = System.DateTime.Now,
+							Level = levelForUnparsedLine,
+							Message = line.Trim(),
+							RawData = line,
+							FilePath = filePath,
+							LineNumber = lineNumber
+						};
+						yield return unparsedEntry;
+
+						if (levelForUnparsedLine == "ERROR") {
+							lastErrorEntryByFile[filePath] = unparsedEntry;
+						} else {
+							lastErrorEntryByFile[filePath] = null;
+						}
+					}
 				}
 			}
-			
+
 			_logger.LogInformation("ParseLines completed. Total processed lines: {ProcessedCount}", processedLinesCount);
 		}
 

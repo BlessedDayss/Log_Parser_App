@@ -1,114 +1,132 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
-using Avalonia.Controls;
-using Avalonia.Platform.Storage;
-using Microsoft.Extensions.Logging;
-
 namespace Log_Parser_App.Services
 {
-    public interface IFileService
-    {
-        Task<string?> PickLogFileAsync(string extension = "");
-        Task<string?> PickSaveLocationAsync(string defaultFileName, string extension);
-    }
+	using System;
+	using System.Collections.Generic;
+	using System.Threading.Tasks;
+	using Avalonia.Controls;
+	using Avalonia.Platform.Storage;
+	using Microsoft.Extensions.Logging;
 
-    public class FileService : IFileService
-    {
-        private readonly ILogger<FileService> _logger;
-        private TopLevel? _topLevel;
+	#region Interface: IFileService
 
-        public FileService(ILogger<FileService> logger, TopLevel? topLevel = null) {
-            _logger = logger;
-            _topLevel = topLevel;
-        }
+	public interface IFileService
+	{
 
-        public void InitializeTopLevel(TopLevel topLevel) {
-            _topLevel = topLevel;
-        }
+		#region Methods: Public
 
-        public async Task<string?> PickLogFileAsync(string extension = "") {
-            if (_topLevel == null) {
-                _logger.LogError("TopLevel not initialized");
-                return null;
-            }
+		Task<string?> PickLogFileAsync(string extension = "");
 
-            try {
-                var extensions = new List<FilePickerFileType> {
-                    new FilePickerFileType("Log Files") {
-                        Patterns = new[] { "*.log", "*.txt", "*.csv" }
-                    },
-                    new FilePickerFileType("Text Files") {
-                        Patterns = new[] { "*.txt" }
-                    },
-                    new FilePickerFileType("All Files") {
-                        Patterns = new[] { "*.*" }
-                    }
-                };
+		Task<string?> PickSaveLocationAsync(string defaultFileName, string extension);
 
-                if (!string.IsNullOrEmpty(extension)) {
-                    extensions.Insert(0,
-                        new FilePickerFileType($"{extension.TrimStart('.')} Files") {
-                            Patterns = new[] { $"*{extension}" }
-                        });
-                }
+		#endregion
 
-                var files = await _topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
-                    Title = "Select Log File",
-                    AllowMultiple = false,
-                    FileTypeFilter = extensions
-                });
+	}
 
-                if (files.Count == 0) {
-                    _logger.LogInformation("File selection cancelled");
-                    return null;
-                }
+	#endregion
 
-                var file = files[0];
-                _logger.LogInformation("Selected file: {FilePath}", file.Path.LocalPath);
+	#region Class: FileService
 
-                return file.Path.LocalPath;
-            } catch (Exception ex) {
-                _logger.LogError(ex, "Error opening file picker");
-                return null;
-            }
-        }
+	public class FileService : IFileService
+	{
 
-        public async Task<string?> PickSaveLocationAsync(string defaultFileName, string extension) {
-            try {
-                if (_topLevel == null) {
-                    _topLevel = TopLevel.GetTopLevel(App.MainWindow);
-                    if (_topLevel == null) {
-                        _logger.LogError("TopLevel не был инициализирован");
-                        return null;
-                    }
-                }
+		#region Fields: Private
 
-                var filetype = extension.ToLowerInvariant() switch {
-                    "csv" => new FilePickerFileType("CSV файл") { Patterns = new[] { "*.csv" } },
-                    "json" => new FilePickerFileType("JSON файл") { Patterns = new[] { "*.json" } },
-                    "xml" => new FilePickerFileType("XML файл") { Patterns = new[] { "*.xml" } },
-                    _ => new FilePickerFileType("Текстовый файл") { Patterns = new[] { "*.txt" } }
-                };
+		private readonly ILogger<FileService> _logger;
+		private TopLevel? _topLevel;
 
-                var filePickerOptions = new FilePickerSaveOptions {
-                    Title = "Сохранить файл",
-                    SuggestedFileName = defaultFileName,
-                    FileTypeChoices = new[] { filetype }
-                };
+		#endregion
 
-                var storageProvider = _topLevel.StorageProvider;
-                var result = await storageProvider.SaveFilePickerAsync(filePickerOptions);
+		#region Constructors: Public
 
-                if (result == null)
-                    return null;
+		public FileService(ILogger<FileService> logger, TopLevel? topLevel = null) {
+			_logger = logger;
+			_topLevel = topLevel;
+		}
 
-                return result.Path.LocalPath;
-            } catch (Exception ex) {
-                _logger.LogError(ex, "Ошибка при выборе места сохранения");
-                return null;
-            }
-        }
-    }
+		#endregion
+
+		#region Methods: Public
+
+		public void InitializeTopLevel(TopLevel topLevel) {
+			_topLevel = topLevel;
+		}
+
+		public async Task<string?> PickLogFileAsync(string extension = "") {
+			if (_topLevel == null) {
+				_logger.LogError("TopLevel not initialized");
+				return null;
+			}
+			try {
+				var extensions = new List<FilePickerFileType> {
+					new FilePickerFileType("Log Files") {
+						Patterns = new[] { "*.log", "*.txt", "*.csv" }
+					},
+					new FilePickerFileType("Text Files") {
+						Patterns = new[] { "*.txt" }
+					},
+					new FilePickerFileType("All Files") {
+						Patterns = new[] { "*.*" }
+					}
+				};
+				if (!string.IsNullOrEmpty(extension)) {
+					extensions.Insert(0,
+						new FilePickerFileType($"{extension.TrimStart('.')} Files") {
+							Patterns = new[] { $"*{extension}" }
+						});
+				}
+				var files = await _topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
+					Title = "Select Log File",
+					AllowMultiple = false,
+					FileTypeFilter = extensions
+				});
+				if (files.Count == 0) {
+					_logger.LogInformation("File selection cancelled");
+					return null;
+				}
+				var file = files[0];
+				_logger.LogInformation("Selected file: {FilePath}", file.Path.LocalPath);
+				return file.Path.LocalPath;
+			} catch (Exception ex) {
+				_logger.LogError(ex, "Error opening file picker");
+				return null;
+			}
+		}
+
+		public async Task<string?> PickSaveLocationAsync(string defaultFileName, string extension) {
+			try {
+				if (_topLevel == null) {
+					_topLevel = TopLevel.GetTopLevel(App.MainWindow);
+					if (_topLevel == null) {
+						_logger.LogError("TopLevel не был инициализирован");
+						return null;
+					}
+				}
+				var filetype = extension.ToLowerInvariant() switch {
+					"csv" => new FilePickerFileType("CSV файл") { Patterns = new[] { "*.csv" } },
+					"json" => new FilePickerFileType("JSON файл") { Patterns = new[] { "*.json" } },
+					"xml" => new FilePickerFileType("XML файл") { Patterns = new[] { "*.xml" } },
+					_ => new FilePickerFileType("Текстовый файл") { Patterns = new[] { "*.txt" } }
+				};
+				var filePickerOptions = new FilePickerSaveOptions {
+					Title = "Сохранить файл",
+					SuggestedFileName = defaultFileName,
+					FileTypeChoices = new[] { filetype }
+				};
+				var storageProvider = _topLevel.StorageProvider;
+				var result = await storageProvider.SaveFilePickerAsync(filePickerOptions);
+				if (result == null)
+					return null;
+				return result.Path.LocalPath;
+			} catch (Exception ex) {
+				_logger.LogError(ex, "Ошибка при выборе места сохранения");
+				return null;
+			}
+		}
+
+		#endregion
+
+	}
+
+	#endregion
+
 }
