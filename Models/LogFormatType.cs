@@ -1,9 +1,15 @@
 namespace Log_Parser_App.Models
 {
-    public enum LogFormatType
-    {
-        Standard,
-        IIS,
-        RabbitMQ
-    }
-} 
+
+	#region Enum: LogFormatType
+
+	public enum LogFormatType
+	{
+		Standard,
+		IIS,
+		RabbitMQ
+	}
+
+	#endregion
+
+}

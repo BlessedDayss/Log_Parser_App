@@ -1,12 +1,11 @@
-using System;
-
 namespace Log_Parser_App.Models
 {
+	using System;
 
 	#region Class: IisLogEntry
 
 	public class IisLogEntry
-	{ 
+	{
 
 		#region Properties: Public
 
@@ -50,15 +49,12 @@ namespace Log_Parser_App.Models
 
 		public string? RawLine { get; set; }
 
-		public string? ShortUserAgent 
-		{
-			get
-			{
+		public string? ShortUserAgent {
+			get {
 				if (string.IsNullOrEmpty(UserAgent))
 					return "Not Specified";
-				return UserAgent.Length <= MaxUserAgentDisplayLength
-					? UserAgent
-					: string.Concat(UserAgent.AsSpan(0, MaxUserAgentDisplayLength), "...");
+
+				return UserAgent.Length <= MaxUserAgentDisplayLength ? UserAgent : string.Concat(UserAgent.AsSpan(0, MaxUserAgentDisplayLength), "...");
 			}
 		}
 

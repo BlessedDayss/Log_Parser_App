@@ -1,12 +1,12 @@
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using Log_Parser_App.ViewModels; // Потенциально понадобится FileTabViewModel или MainViewModel
-
 namespace Log_Parser_App.Models
 {
+    using System.Collections.Generic;
+    using System.Collections.ObjectModel;
+    using System.ComponentModel;
+    using System.Linq;
+    using System.Runtime.CompilerServices;
+
+
     public enum IISLogField
     {
         Date,
