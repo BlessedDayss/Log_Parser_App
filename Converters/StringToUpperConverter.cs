@@ -1,8 +1,8 @@
 namespace Log_Parser_App.Converters
 {
-	using Avalonia.Data.Converters;
-	using System;
-	using System.Globalization;
+using Avalonia.Data.Converters;
+using System;
+using System.Globalization;
 
 	#region Class: StringToUpperConverter
 

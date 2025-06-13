@@ -1,9 +1,9 @@
 namespace Log_Parser_App.Converters
 {
-	using System;
-	using System.Globalization;
-	using Avalonia.Data.Converters;
-	using Avalonia.Media;
+using System;
+using System.Globalization;
+using Avalonia.Data.Converters;
+using Avalonia.Media;
 
 	#region Class: BoolToTabColorConverter
 
