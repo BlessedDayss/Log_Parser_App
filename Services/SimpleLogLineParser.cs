@@ -3,7 +3,7 @@ namespace Log_Parser_App.Services
     using System;
     using System.Text.RegularExpressions;
     using Log_Parser_App.Models;
-    using Log_Parser_App.Models.Interfaces;
+    using Log_Parser_App.Interfaces;
 
 
     public class SimpleLogLineParser : ILogLineParser

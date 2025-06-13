@@ -2,7 +2,7 @@ namespace Log_Parser_App.Services
 {
     using System.Collections.Generic;
     using System.Threading.Tasks;
-    using Models.Interfaces;
+    using Log_Parser_App.Interfaces;
     using Avalonia.Controls;
     using Avalonia.Platform.Storage;
     using System.Linq;

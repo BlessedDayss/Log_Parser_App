@@ -2,7 +2,7 @@ namespace Log_Parser_App.Services
 {
     using System.Collections.Generic;
     using Log_Parser_App.Models;
-    using Log_Parser_App.Models.Interfaces;
+    using Log_Parser_App.Interfaces;
 
 
     public class LogLineParserChain : ILogLineParser

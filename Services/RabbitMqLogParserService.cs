@@ -1,7 +1,7 @@
 namespace Log_Parser_App.Services
 {
     using Log_Parser_App.Models;
-    using Log_Parser_App.Models.Interfaces;
+    using Log_Parser_App.Interfaces;
     using Microsoft.Extensions.Logging;
     using System;
     using System.Collections.Generic;

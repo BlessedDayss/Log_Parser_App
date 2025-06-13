@@ -18,7 +18,7 @@ namespace Log_Parser_App.ViewModels
     using SkiaSharp;
     using System.Collections.Generic;
     using System.Threading;
-    using Log_Parser_App.Models.Interfaces;
+    using Log_Parser_App.Interfaces;
     using Avalonia.Controls.ApplicationLifetimes;
     using Avalonia;
 
@@ -31,6 +31,11 @@ namespace Log_Parser_App.ViewModels
         private readonly IFilePickerService _filePickerService;
         private readonly IIISLogParserService _iisLogParserService;
         private readonly IRabbitMqLogParserService _rabbitMqLogParserService;
+        
+        // Phase 2 SOLID refactored services
+        private readonly IChartService _chartService;
+        private readonly ITabManagerService _tabManagerService;
+        private readonly IFilterService _filterService;
 
         [ObservableProperty]
         private string _statusMessage = "Ready to work";
@@ -260,7 +265,10 @@ namespace Log_Parser_App.ViewModels
             IErrorRecommendationService errorRecommendationService,
             IFilePickerService filePickerService,
             IIISLogParserService iisLogParserService,
-            IRabbitMqLogParserService rabbitMqLogParserService) {
+            IRabbitMqLogParserService rabbitMqLogParserService,
+            IChartService chartService,
+            ITabManagerService tabManagerService,
+            IFilterService filterService) {
             _logParserService = logParserService;
             _logger = logger;
             _fileService = fileService;
@@ -268,13 +276,22 @@ namespace Log_Parser_App.ViewModels
             _filePickerService = filePickerService;
             _iisLogParserService = iisLogParserService;
             _rabbitMqLogParserService = rabbitMqLogParserService;
+            _chartService = chartService;
+            _tabManagerService = tabManagerService;
+            _filterService = filterService;
 
             InitializeErrorRecommendationService();
+
+            // Subscribe to service events
+            _tabManagerService.TabChanged += OnTabChanged;
+            _tabManagerService.TabClosed += OnTabClosed;
+            _filterService.FiltersApplied += OnFiltersApplied;
+            _filterService.FiltersReset += OnFiltersReset;
 
             // Проверяем аргументы командной строки для автоматической загрузки файла
             CheckCommandLineArgs();
 
-            _logger.LogInformation("MainViewModel initialized");
+            _logger.LogInformation("MainViewModel initialized with SOLID refactored services");
         }
 
         private async void InitializeErrorRecommendationService() {
@@ -1835,5 +1852,114 @@ namespace Log_Parser_App.ViewModels
                 StatusMessage = $"Loaded {allEntries.Count} RabbitMQ log entries from {filePaths.Count()} files";
             });
         }
+
+        #region Service Event Handlers
+
+        /// <summary>
+        /// Handle tab changed events from TabManagerService
+        /// </summary>
+        private void OnTabChanged(object? sender, TabChangedEventArgs e)
+        {
+            try
+            {
+                SelectedTab = e.NewTab;
+                OnPropertyChanged(nameof(IsCurrentTabIIS));
+                
+                if (SelectedTab != null)
+                {
+                    FilePath = SelectedTab.FilePath;
+                    FileStatus = SelectedTab.Title;
+
+                    // Auto-switch dashboard type based on log type
+                    if (SelectedTab.LogType == LogFormatType.IIS)
+                    {
+                        IsIISDashboardVisible = true;
+                        IsStandardDashboardVisible = false;
+                    }
+                    else
+                    {
+                        IsIISDashboardVisible = false;
+                        IsStandardDashboardVisible = true;
+                    }
+                    IsStartScreenVisible = false;
+                }
+                else
+                {
+                    FilePath = string.Empty;
+                    FileStatus = "No file selected";
+                    IsDashboardVisible = _tabManagerService.FileTabs.Count == 0;
+                }
+                
+                UpdateLogStatistics();
+                _logger.LogDebug($"Tab changed to: {SelectedTab?.Title}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error handling tab changed event");
+            }
+        }
+
+        /// <summary>
+        /// Handle tab closed events from TabManagerService
+        /// </summary>
+        private void OnTabClosed(object? sender, TabClosedEventArgs e)
+        {
+            try
+            {
+                UpdateMultiFileModeStatus();
+                UpdateAllErrorLogEntries();
+                
+                if (_tabManagerService.FileTabs.Count == 0)
+                {
+                    IsStartScreenVisible = true;
+                    IsDashboardVisible = false;
+                }
+                
+                _logger.LogDebug($"Tab closed: {e.ClosedTab.Title}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error handling tab closed event");
+            }
+        }
+
+        /// <summary>
+        /// Handle filters applied events from FilterService
+        /// </summary>
+        private void OnFiltersApplied(object? sender, FiltersAppliedEventArgs e)
+        {
+            try
+            {
+                FilteredLogEntries = e.FilteredEntries.ToList();
+                UpdateLogStatistics();
+                _logger.LogDebug($"Filters applied: {e.OriginalEntries.Count()} -> {e.FilteredEntries.Count()} entries");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error handling filters applied event");
+            }
+        }
+
+        /// <summary>
+        /// Handle filters reset events from FilterService
+        /// </summary>
+        private void OnFiltersReset(object? sender, EventArgs e)
+        {
+            try
+            {
+                if (SelectedTab?.LogEntries != null)
+                {
+                    FilteredLogEntries = SelectedTab.LogEntries.ToList();
+                }
+                UpdateLogStatistics();
+                _logger.LogDebug("Filters reset");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error handling filters reset event");
+            }
+        }
+
+        #endregion
     }
 }

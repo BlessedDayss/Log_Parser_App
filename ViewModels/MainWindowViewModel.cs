@@ -15,7 +15,7 @@ using Log_Parser_App;
 using Log_Parser_App.Models;
 using Log_Parser_App.Services;
 using Microsoft.Extensions.Logging;
-using Log_Parser_App.Models.Interfaces;
+using Log_Parser_App.Interfaces;
 
 namespace Log_Parser_App.ViewModels;
 
@@ -23,7 +23,7 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly ILogger<MainWindowViewModel> _logger;
     private readonly Log_Parser_App.ViewModels.MainViewModel _mainView;
-    private readonly Log_Parser_App.Models.Interfaces.IUpdateService? _updateService;
+    private readonly Log_Parser_App.Interfaces.IUpdateService? _updateService;
 
     [ObservableProperty]
     private string _appVersion = string.Empty;
@@ -43,7 +43,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         // Design-time constructor
         _logger = null!; 
-        _mainView = new Log_Parser_App.ViewModels.MainViewModel(null!, null!, null!, null!, null!, null!, null!); // Updated for IRabbitMqLogParserService
+        _mainView = new Log_Parser_App.ViewModels.MainViewModel(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!); // Updated for all required services
         _updateService = null!;
         AppVersion = "v0.0.1-design";
         // Design-time filter criterion for the previewer - this will cause issues if FilterCriteria is removed
@@ -54,7 +54,7 @@ public partial class MainWindowViewModel : ViewModelBase
         // AddFilterCriterionCommand = new RelayCommand(() => {}); // Removed
     }
     
-    public MainWindowViewModel(ILogger<MainWindowViewModel> logger, Log_Parser_App.ViewModels.MainViewModel mainView, Log_Parser_App.Models.Interfaces.IUpdateService updateService)
+    public MainWindowViewModel(ILogger<MainWindowViewModel> logger, Log_Parser_App.ViewModels.MainViewModel mainView, Log_Parser_App.Interfaces.IUpdateService updateService)
     {
         _logger = logger;
         _mainView = mainView;

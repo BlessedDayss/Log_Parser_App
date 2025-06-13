@@ -9,7 +9,7 @@ namespace Log_Parser_App.Services
 	using System.Reflection;
 	using System.Text.Json;
 	using System.Threading.Tasks;
-	using Log_Parser_App.Models.Interfaces;
+	using Log_Parser_App.Interfaces;
 	using Microsoft.Extensions.Logging;
 	using System.Text.Json.Serialization;
 	using Avalonia.Controls.ApplicationLifetimes;

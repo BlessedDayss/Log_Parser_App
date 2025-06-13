@@ -4,7 +4,7 @@ using System;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Log_Parser_App.Models.Interfaces;
+using Log_Parser_App.Interfaces;
 using Microsoft.Extensions.Logging;
 
 

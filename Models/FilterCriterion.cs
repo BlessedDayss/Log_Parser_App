@@ -3,6 +3,7 @@ namespace Log_Parser_App.Models
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using Log_Parser_App.ViewModels;
 using System.Runtime.CompilerServices;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -22,6 +23,19 @@ using CommunityToolkit.Mvvm.ComponentModel;
 		private string? _selectedOperator;
 		[ObservableProperty]
 		private string? _value;
+
+		// Additional properties for service compatibility
+		public bool IsEnabled => IsActive;
+		public string? Field 
+		{ 
+			get => SelectedField; 
+			set => SelectedField = value; 
+		}
+		public string? Operator 
+		{ 
+			get => SelectedOperator; 
+			set => SelectedOperator = value; 
+		}
 
 		#endregion
 

@@ -3,6 +3,7 @@ namespace Log_Parser_App.Models
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.ComponentModel;
+using Log_Parser_App.ViewModels;
     using System.Linq;
     using System.Runtime.CompilerServices;
 
@@ -62,6 +63,11 @@ namespace Log_Parser_App.Models
             get => _value;
             set => SetProperty(ref _value, value);
         }
+
+        // Compatibility properties for services
+        public string Field => SelectedField.ToString();
+        public string Operator => SelectedOperator;
+        public bool IsEnabled { get; set; } = true;
 
         public bool ShowValueComboBox {
             get {

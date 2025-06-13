@@ -4,7 +4,7 @@ namespace Log_Parser_App.Services
 	using System.Linq;
 	using System.Threading.Tasks;
 	using Log_Parser_App.Models;
-	using Log_Parser_App.Models.Interfaces;
+	using Log_Parser_App.Interfaces;
 	using Microsoft.Extensions.Logging;
 	using System.IO;
 	using System.Runtime.CompilerServices;

@@ -15,7 +15,9 @@ namespace Log_Parser_App
     using Microsoft.Extensions.Logging;
     using MainViewModel = Log_Parser_App.ViewModels.MainViewModel;
     using MainWindow = Log_Parser_App.Views.MainWindow;
-    using Log_Parser_App.Models.Interfaces;
+    using Log_Parser_App.Interfaces;
+    using Log_Parser_App.Strategies;
+    using Log_Parser_App.Factories;
 
 
 
@@ -63,40 +65,12 @@ namespace Log_Parser_App
                     });
                 }
 
-                MainViewModel? mainViewModel = null;
-                try {
-                    mainViewModel = services.GetRequiredService<MainViewModel>();
-                    Console.WriteLine("[App] MainViewModel resolved.");
-                } catch (Exception ex) {
-                    Console.WriteLine($"[App] Error resolving MainViewModel: {ex.Message}");
-                }
-
-                ILogger<MainWindowViewModel>? logger = null;
-                try {
-                    logger = services.GetRequiredService<ILogger<MainWindowViewModel>>();
-                    Console.WriteLine("[App] ILogger<MainWindowViewModel> resolved.");
-                } catch (Exception ex) {
-                    Console.WriteLine($"[App] Error resolving ILogger<MainWindowViewModel>: {ex.Message}");
-                }
-
-                IUpdateService? updateService = null;
-                try {
-                    updateService = services.GetRequiredService<Log_Parser_App.Models.Interfaces.IUpdateService>();
-                    Console.WriteLine("[App] IUpdateService resolved.");
-                } catch (Exception ex) {
-                    Console.WriteLine($"[App] Error resolving IUpdateService: {ex.Message}");
-                }
-
                 MainWindowViewModel? mainWindowViewModel = null;
-                if (logger != null && mainViewModel != null && updateService != null) {
-                    try {
-                        mainWindowViewModel = new MainWindowViewModel(logger, mainViewModel, updateService);
-                        Console.WriteLine("[App] MainWindowViewModel created.");
-                    } catch (Exception ex) {
-                        Console.WriteLine($"[App] Error creating MainWindowViewModel: {ex.Message}");
-                    }
-                } else {
-                    Console.WriteLine("[App] Skipping MainWindowViewModel creation due to missing dependencies.");
+                try {
+                    mainWindowViewModel = services.GetRequiredService<MainWindowViewModel>();
+                    Console.WriteLine("[App] MainWindowViewModel resolved.");
+                } catch (Exception ex) {
+                    Console.WriteLine($"[App] Error resolving MainWindowViewModel: {ex.Message}");
                 }
 
                 var splashScreen = new Views.SplashScreen();
@@ -121,12 +95,12 @@ namespace Log_Parser_App
                                 Console.WriteLine("[App] desktop.MainWindow assigned to MainWindow.");
 
                                 // Process command line arguments for file opening after UI is ready
-                                if (mainViewModel != null) {
+                                if (mainWindowViewModel?.MainView != null) {
                                     Console.WriteLine("[App] Processing command line arguments for file opening...");
                                     // Call CheckCommandLineArgs via reflection to avoid making it public
                                     var checkMethod = typeof(MainViewModel).GetMethod("CheckCommandLineArgs",
                                         System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                                    checkMethod?.Invoke(mainViewModel, null);
+                                    checkMethod?.Invoke(mainWindowViewModel.MainView, null);
                                 }
 
                                 IFileService? fileService = null;
@@ -245,19 +219,31 @@ namespace Log_Parser_App
             services.AddSingleton<ILogFilesLoader, LogFilesLoader>();
             services.AddSingleton<StandardLogLineParser>();
             services.AddSingleton<SimpleLogLineParser>();
-            services.AddSingleton<Log_Parser_App.Models.Interfaces.ILogLineParser>(provider => new LogLineParserChain([
+            services.AddSingleton<Log_Parser_App.Interfaces.ILogLineParser>(provider => new LogLineParserChain([
                 provider.GetRequiredService<StandardLogLineParser>(),
                 provider.GetRequiredService<SimpleLogLineParser>()
             ]));
             // FilePickerService registration updated
-            services.AddSingleton<Log_Parser_App.Models.Interfaces.IFilePickerService, Log_Parser_App.Services.FilePickerService>();
+            services.AddSingleton<Log_Parser_App.Interfaces.IFilePickerService, Log_Parser_App.Services.FilePickerService>();
+
+            // Register SOLID refactored services (Phase 2)
+            services.AddSingleton<IChartService, ChartService>();
+            services.AddSingleton<ITabManagerService, TabManagerService>();
+            services.AddSingleton<IFilterService, FilterService>();
+
+            // Phase 3 Advanced pattern services
+            services.AddSingleton<IStatisticsService, StatisticsService>();
+            services.AddSingleton<ILogTypeHandler, StandardLogHandler>();
+            services.AddSingleton<ILogTypeHandler, IISLogHandler>();
+            services.AddSingleton<ILogTypeHandler, RabbitMqLogHandler>();
+            services.AddSingleton<ILogTypeHandlerFactory, LogTypeHandlerFactory>();
 
             // Регистрируем сервис ассоциаций файлов
             if (OperatingSystem.IsWindows()) {
                 services.AddSingleton<IFileAssociationService, WindowsFileAssociationService>();
             }
 
-            services.AddSingleton<Log_Parser_App.Models.Interfaces.IUpdateService>(provider =>
+            services.AddSingleton<Log_Parser_App.Interfaces.IUpdateService>(provider =>
                 new GitHubUpdateService(provider.GetRequiredService<ILogger<GitHubUpdateService>>(), "BlessedDayss", "Log_Parser_App"));
             services.AddSingleton<UpdateViewModel>();
         }

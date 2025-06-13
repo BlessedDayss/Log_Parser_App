@@ -4,8 +4,9 @@ using System;
 using System.Globalization;
 using Avalonia.Data.Converters;
 using Log_Parser_App.Models;
+using Log_Parser_App.ViewModels;
 
-	#region Class: TabToVisibilityConverter
+#region Class: TabToVisibilityConverter
 
 	public class TabToVisibilityConverter : IValueConverter
 	{
