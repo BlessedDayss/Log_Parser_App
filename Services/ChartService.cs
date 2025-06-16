@@ -15,8 +15,8 @@ using SkiaSharp;
 namespace Log_Parser_App.Services;
 
 /// <summary>
-/// Service responsible for chart calculations and statistics
-/// Extracted from MainViewModel to follow Single Responsibility Principle
+/// Chart service implementation handling chart generation and management for different log types.
+/// Extracted from MainViewModel to follow SRP principle.
 /// </summary>
 public class ChartService : IChartService
 {
@@ -36,15 +36,18 @@ public class ChartService : IChartService
         {
             var entries = logEntries.ToList();
             if (!entries.Any())
-                return Array.Empty<ISeries>();
+                return Enumerable.Empty<ISeries>();
 
-            return logType switch
+            try
             {
-                LogFormatType.IIS => GenerateIISChartSeries(entries),
-                LogFormatType.Standard => GenerateStandardChartSeries(entries),
-                LogFormatType.RabbitMQ => GenerateRabbitMQChartSeries(entries),
-                _ => GenerateStandardChartSeries(entries)
-            };
+                var result = CalculateStatisticsAndCharts(entries);
+                return result.AllSeries;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calculating chart series for log type {LogType}", logType);
+                return Enumerable.Empty<ISeries>();
+            }
         });
     }
 
@@ -62,11 +65,15 @@ public class ChartService : IChartService
                 .Select(g => new ObservablePoint(g.Key, g.Count()))
                 .ToArray();
 
-            return new ColumnSeries<ObservablePoint>
+            return new LineSeries<ObservablePoint>
             {
                 Values = hourlyData,
                 Name = "Hourly Distribution",
-                Fill = new SolidColorPaint(SKColors.Blue)
+                Stroke = new SolidColorPaint(SKColors.Blue) { StrokeThickness = 2 },
+                Fill = null,
+                GeometryStroke = new SolidColorPaint(SKColors.Blue) { StrokeThickness = 2 },
+                GeometryFill = new SolidColorPaint(SKColors.White),
+                GeometrySize = 4
             };
         });
     }
@@ -79,23 +86,14 @@ public class ChartService : IChartService
         return await Task.Run(() =>
         {
             var entries = logEntries.ToList();
-            var errorCount = entries.Count(e => e.Level.Equals("ERROR", StringComparison.OrdinalIgnoreCase));
-            var warningCount = entries.Count(e => e.Level.Equals("WARNING", StringComparison.OrdinalIgnoreCase) || 
-                                                 e.Level.Equals("WARN", StringComparison.OrdinalIgnoreCase));
-            var infoCount = entries.Count(e => e.Level.Equals("INFO", StringComparison.OrdinalIgnoreCase));
-            var otherCount = entries.Count - errorCount - warningCount - infoCount;
+            var levelData = entries
+                .GroupBy(e => e.Level.ToUpperInvariant())
+                .Select(g => new ObservablePoint(g.Key.GetHashCode(), g.Count()))
+                .ToArray();
 
-            var data = new[]
+            return new PieSeries<ObservablePoint>
             {
-                new ObservableValue(errorCount),
-                new ObservableValue(warningCount),
-                new ObservableValue(infoCount),
-                new ObservableValue(otherCount)
-            };
-
-            return new PieSeries<ObservableValue>
-            {
-                Values = data,
+                Values = levelData,
                 Name = "Error Level Distribution"
             };
         });
@@ -126,354 +124,312 @@ public class ChartService : IChartService
     }
 
     /// <summary>
+    /// Generate comprehensive chart data for statistics view
+    /// </summary>
+    public ChartDataResult GenerateCharts(IEnumerable<LogEntry> logEntries)
+    {
+        try
+        {
+            var entries = logEntries.ToList();
+            if (!entries.Any())
+            {
+                return new ChartDataResult();
+            }
+
+            var result = CalculateStatisticsAndCharts(entries);
+            
+            return new ChartDataResult
+            {
+                LevelsOverTimeSeries = result.LevelsOverTimeSeries,
+                TopErrorsSeries = result.TopErrorsSeries,
+                LogDistributionSeries = result.LogDistributionSeries,
+                TimeHeatmapSeries = result.TimeHeatmapSeries,
+                ErrorTrendSeries = result.ErrorTrendSeries,
+                SourcesDistributionSeries = result.SourcesDistributionSeries,
+                TimeAxis = result.TimeAxis,
+                CountAxis = result.CountAxis,
+                DaysAxis = result.DaysAxis,
+                HoursAxis = result.HoursAxis,
+                SourceAxis = result.SourceAxis,
+                ErrorMessageAxis = result.ErrorMessageAxis
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating charts");
+            return new ChartDataResult();
+        }
+    }
+
+    /// <summary>
     /// Main chart calculation method extracted from MainViewModel
     /// </summary>
     private ChartCalculationResult CalculateStatisticsAndCharts(List<LogEntry> logEntries)
     {
+        var result = new ChartCalculationResult();
+        
         if (!logEntries.Any())
+            return result;
+
+        try
         {
-            return CreateEmptyResult();
+            // Calculate basic statistics
+            var errorEntries = logEntries.Where(e => e.Level.Contains("Error", StringComparison.OrdinalIgnoreCase) 
+                                                  || e.Level.Contains("Fatal", StringComparison.OrdinalIgnoreCase)
+                                                  || e.Level.Contains("Critical", StringComparison.OrdinalIgnoreCase)).ToList();
+            var warningEntries = logEntries.Where(e => e.Level.Contains("Warning", StringComparison.OrdinalIgnoreCase) 
+                                                    || e.Level.Contains("Warn", StringComparison.OrdinalIgnoreCase)).ToList();
+            var infoEntries = logEntries.Where(e => e.Level.Contains("Info", StringComparison.OrdinalIgnoreCase)).ToList();
+            var otherEntries = logEntries.Except(errorEntries).Except(warningEntries).Except(infoEntries).ToList();
+
+            var totalCount = logEntries.Count;
+            result.ErrorCount = errorEntries.Count;
+            result.WarningCount = warningEntries.Count;
+            result.InfoCount = infoEntries.Count;
+            result.OtherCount = otherEntries.Count;
+
+            if (totalCount > 0)
+            {
+                result.ErrorPercent = (double)result.ErrorCount / totalCount * 100;
+                result.WarningPercent = (double)result.WarningCount / totalCount * 100;
+                result.InfoPercent = (double)result.InfoCount / totalCount * 100;
+                result.OtherPercent = (double)result.OtherCount / totalCount * 100;
+            }
+
+            // Generate chart series
+            result.LevelsOverTimeSeries = GenerateLevelsOverTimeSeries(logEntries);
+            result.TopErrorsSeries = GenerateTopErrorsSeries(errorEntries);
+            result.LogDistributionSeries = GenerateLogDistributionSeries(result);
+            result.TimeHeatmapSeries = GenerateTimeHeatmapSeries(logEntries);
+            result.ErrorTrendSeries = GenerateErrorTrendSeries(errorEntries);
+            result.SourcesDistributionSeries = GenerateSourcesDistributionSeries(logEntries);
+
+            // Generate axes
+            var timeAxisData = GenerateTimeAxis(logEntries);
+            result.TimeAxis = timeAxisData.axes;
+            result.CountAxis = GenerateCountAxis();
+            result.DaysAxis = GenerateDaysAxis();
+            result.HoursAxis = GenerateHoursAxis();
+            result.SourceAxis = GenerateSourceAxis(logEntries);
+            result.ErrorMessageAxis = GenerateErrorMessageAxis(errorEntries);
+
+            // Create LogStatistics
+            result.LogStatistics = new LogStatistics
+            {
+                TotalCount = totalCount,
+                ErrorCount = result.ErrorCount,
+                WarningCount = result.WarningCount,
+                InfoCount = result.InfoCount,
+                OtherCount = result.OtherCount
+            };
+
+            // Combine all series
+            result.AllSeries = new List<ISeries>()
+                .Concat(result.LevelsOverTimeSeries)
+                .Concat(result.TopErrorsSeries)
+                .Concat(result.LogDistributionSeries)
+                .Concat(result.TimeHeatmapSeries)
+                .Concat(result.ErrorTrendSeries)
+                .Concat(result.SourcesDistributionSeries)
+                .ToArray();
+
+            return result;
         }
-
-        // Count log levels
-        var errorCount = logEntries.Count(e => e.Level.Equals("ERROR", StringComparison.OrdinalIgnoreCase));
-        var warningCount = logEntries.Count(e => e.Level.Equals("WARNING", StringComparison.OrdinalIgnoreCase) || 
-                                               e.Level.Equals("WARN", StringComparison.OrdinalIgnoreCase));
-        var infoCount = logEntries.Count(e => e.Level.Equals("INFO", StringComparison.OrdinalIgnoreCase));
-        var otherCount = logEntries.Count - errorCount - warningCount - infoCount;
-
-        var totalCount = logEntries.Count;
-        var errorPercent = totalCount > 0 ? (double)errorCount / totalCount * 100 : 0;
-        var warningPercent = totalCount > 0 ? (double)warningCount / totalCount * 100 : 0;
-        var infoPercent = totalCount > 0 ? (double)infoCount / totalCount * 100 : 0;
-        var otherPercent = totalCount > 0 ? (double)otherCount / totalCount * 100 : 0;
-
-        // Generate charts
-        var levelsOverTimeSeries = CreateLevelsOverTimeSeries(logEntries);
-        var topErrorsSeries = CreateTopErrorsSeries(logEntries);
-        var logDistributionSeries = CreateLogDistributionSeries(errorCount, warningCount, infoCount, otherCount);
-        var timeHeatmapSeries = CreateTimeHeatmapSeries(logEntries);
-        var errorTrendSeries = CreateErrorTrendSeries(logEntries);
-        var sourcesDistributionSeries = CreateSourcesDistributionSeries(logEntries);
-
-        // Create axes
-        var timeAxis = CreateTimeAxis(logEntries);
-        var countAxis = CreateCountAxis();
-        var daysAxis = CreateDaysAxis();
-        var hoursAxis = CreateHoursAxis();
-        var sourceAxis = CreateSourceAxis(logEntries);
-        var errorMessageAxis = CreateErrorMessageAxis(logEntries);
-
-        // Create statistics
-        var logStatistics = new LogStatistics
+        catch (Exception ex)
         {
-            TotalCount = totalCount,
-            ErrorCount = errorCount,
-            WarningCount = warningCount,
-            InfoCount = infoCount,
-            OtherCount = otherCount,
-            ErrorPercentage = errorPercent,
-            WarningPercentage = warningPercent,
-            InfoPercentage = infoPercent,
-            OtherPercentage = otherPercent,
-            FirstTimestamp = logEntries.Min(e => e.Timestamp),
-            LastTimestamp = logEntries.Max(e => e.Timestamp)
-        };
-
-        return new ChartCalculationResult
-        {
-            ErrorCount = errorCount,
-            WarningCount = warningCount,
-            InfoCount = infoCount,
-            OtherCount = otherCount,
-            ErrorPercent = errorPercent,
-            WarningPercent = warningPercent,
-            InfoPercent = infoPercent,
-            OtherPercent = otherPercent,
-            LevelsOverTimeSeries = levelsOverTimeSeries,
-            TopErrorsSeries = topErrorsSeries,
-            LogDistributionSeries = logDistributionSeries,
-            TimeHeatmapSeries = timeHeatmapSeries,
-            ErrorTrendSeries = errorTrendSeries,
-            SourcesDistributionSeries = sourcesDistributionSeries,
-            LogStatistics = logStatistics,
-            TimeAxis = timeAxis,
-            CountAxis = countAxis,
-            DaysAxis = daysAxis,
-            HoursAxis = hoursAxis,
-            SourceAxis = sourceAxis,
-            ErrorMessageAxis = errorMessageAxis
-        };
+            _logger.LogError(ex, "Error in chart calculation");
+            return result;
+        }
     }
 
-            #region Private Helper Methods
-
-    private ISeries[] CreateLevelsOverTimeSeries(List<LogEntry> logEntries)
+    private ISeries[] GenerateLevelsOverTimeSeries(List<LogEntry> logEntries)
     {
-        var minTimestamp = logEntries.Min(e => e.Timestamp);
-        var maxTimestamp = logEntries.Max(e => e.Timestamp);
-        var interval = DetermineOptimalTimeInterval(minTimestamp, maxTimestamp);
-
-        var groupedData = logEntries
-            .GroupBy(e => new DateTime(e.Timestamp.Year, e.Timestamp.Month, e.Timestamp.Day, 
-                e.Timestamp.Hour - (e.Timestamp.Hour % interval), 0, 0))
+        var timeGroups = logEntries
+            .GroupBy(e => new DateTime(e.Timestamp.Year, e.Timestamp.Month, e.Timestamp.Day, e.Timestamp.Hour, 0, 0))
             .OrderBy(g => g.Key)
             .ToList();
 
-        var errorData = new List<DateTimePoint>();
-        var warningData = new List<DateTimePoint>();
-        var infoData = new List<DateTimePoint>();
-
-        foreach (var group in groupedData)
+        var errorSeries = new LineSeries<ObservablePoint>
         {
-            var timestamp = group.Key;
-            var errors = group.Count(e => e.Level.Equals("ERROR", StringComparison.OrdinalIgnoreCase));
-            var warnings = group.Count(e => e.Level.Equals("WARNING", StringComparison.OrdinalIgnoreCase) || 
-                                            e.Level.Equals("WARN", StringComparison.OrdinalIgnoreCase));
-            var infos = group.Count(e => e.Level.Equals("INFO", StringComparison.OrdinalIgnoreCase));
-
-            errorData.Add(new DateTimePoint(timestamp, errors));
-            warningData.Add(new DateTimePoint(timestamp, warnings));
-            infoData.Add(new DateTimePoint(timestamp, infos));
-        }
-
-        return new ISeries[]
-        {
-            new LineSeries<DateTimePoint>
-            {
-                Values = errorData,
-                Name = "Errors",
-                Stroke = new SolidColorPaint(SKColors.Red) { StrokeThickness = 2 },
-                Fill = null,
-                GeometryStroke = new SolidColorPaint(SKColors.Red) { StrokeThickness = 2 },
-                GeometryFill = new SolidColorPaint(SKColors.Red),
-                GeometrySize = 4
-            },
-            new LineSeries<DateTimePoint>
-            {
-                Values = warningData,
-                Name = "Warnings",
-                Stroke = new SolidColorPaint(SKColors.Orange) { StrokeThickness = 2 },
-                Fill = null,
-                GeometryStroke = new SolidColorPaint(SKColors.Orange) { StrokeThickness = 2 },
-                GeometryFill = new SolidColorPaint(SKColors.Orange),
-                GeometrySize = 4
-            },
-            new LineSeries<DateTimePoint>
-            {
-                Values = infoData,
-                Name = "Info",
-                Stroke = new SolidColorPaint(SKColors.Green) { StrokeThickness = 2 },
-                Fill = null,
-                GeometryStroke = new SolidColorPaint(SKColors.Green) { StrokeThickness = 2 },
-                GeometryFill = new SolidColorPaint(SKColors.Green),
-                GeometrySize = 4
-            }
+            Values = timeGroups.Select(g => new ObservablePoint(g.Key.Ticks, g.Count(e => e.Level.Contains("Error", StringComparison.OrdinalIgnoreCase)))).ToArray(),
+            Name = "Errors",
+            Stroke = new SolidColorPaint(SKColors.Red) { StrokeThickness = 2 },
+            Fill = null
         };
+
+        var warningSeries = new LineSeries<ObservablePoint>
+        {
+            Values = timeGroups.Select(g => new ObservablePoint(g.Key.Ticks, g.Count(e => e.Level.Contains("Warning", StringComparison.OrdinalIgnoreCase)))).ToArray(),
+            Name = "Warnings",
+            Stroke = new SolidColorPaint(SKColors.Orange) { StrokeThickness = 2 },
+            Fill = null
+        };
+
+        var infoSeries = new LineSeries<ObservablePoint>
+        {
+            Values = timeGroups.Select(g => new ObservablePoint(g.Key.Ticks, g.Count(e => e.Level.Contains("Info", StringComparison.OrdinalIgnoreCase)))).ToArray(),
+            Name = "Info",
+            Stroke = new SolidColorPaint(SKColors.Blue) { StrokeThickness = 2 },
+            Fill = null
+        };
+
+        return new ISeries[] { errorSeries, warningSeries, infoSeries };
     }
 
-    private ISeries[] CreateTopErrorsSeries(List<LogEntry> logEntries)
+    private ISeries[] GenerateTopErrorsSeries(List<LogEntry> errorEntries)
     {
-        var errorEntries = logEntries.Where(e => e.Level.Equals("ERROR", StringComparison.OrdinalIgnoreCase));
         var topErrors = errorEntries
             .GroupBy(e => TruncateMessage(e.Message, 50))
             .OrderByDescending(g => g.Count())
             .Take(10)
-            .Select(g => new { Message = g.Key, Count = g.Count() })
-            .ToList();
-
-        if (!topErrors.Any())
-        {
-            return Array.Empty<ISeries>();
-        }
+            .Select(g => new ObservablePoint(g.Key.GetHashCode(), g.Count()))
+            .ToArray();
 
         return new ISeries[]
         {
-            new ColumnSeries<int>
+            new ColumnSeries<ObservablePoint>
             {
-                Values = topErrors.Select(e => e.Count).ToArray(),
-                Name = "Error Count",
-                Fill = new SolidColorPaint(SKColors.Red)
+                Values = topErrors,
+                Name = "Top Errors",
+                Fill = new SolidColorPaint(SKColors.DarkRed)
             }
         };
     }
 
-    private ISeries[] CreateLogDistributionSeries(int errorCount, int warningCount, int infoCount, int otherCount)
+    private ISeries[] GenerateLogDistributionSeries(ChartCalculationResult result)
     {
-        var data = new List<ObservableValue>
+        var distributionData = new List<ObservablePoint>
         {
-            new(errorCount),
-            new(warningCount), 
-            new(infoCount),
-            new(otherCount)
+            new(0, result.ErrorCount),
+            new(1, result.WarningCount),
+            new(2, result.InfoCount),
+            new(3, result.OtherCount)
         };
 
         return new ISeries[]
         {
-            new PieSeries<ObservableValue>
+            new PieSeries<ObservablePoint>
             {
-                Values = new[] { data[0] },
-                Name = "Errors",
-                Fill = new SolidColorPaint(SKColors.Red)
-            },
-            new PieSeries<ObservableValue>
-            {
-                Values = new[] { data[1] },
-                Name = "Warnings",
-                Fill = new SolidColorPaint(SKColors.Orange)
-            },
-            new PieSeries<ObservableValue>
-            {
-                Values = new[] { data[2] },
-                Name = "Info",
-                Fill = new SolidColorPaint(SKColors.Green)
-            },
-            new PieSeries<ObservableValue>
-            {
-                Values = new[] { data[3] },
-                Name = "Other",
-                Fill = new SolidColorPaint(SKColors.Gray)
+                Values = distributionData.ToArray(),
+                Name = "Log Distribution"
             }
         };
     }
 
-    private ISeries[] CreateTimeHeatmapSeries(List<LogEntry> logEntries)
+    private ISeries[] GenerateTimeHeatmapSeries(List<LogEntry> logEntries)
     {
-        var heatmapData = new List<ObservablePoint>();
-
-        for (int day = 0; day < 7; day++)
-        {
-            for (int hour = 0; hour < 24; hour++)
-            {
-                var count = logEntries.Count(e => 
-                    (int)e.Timestamp.DayOfWeek == day && 
-                    e.Timestamp.Hour == hour);
-                
-                heatmapData.Add(new ObservablePoint(hour, day));
-            }
-        }
+        var heatmapData = logEntries
+            .GroupBy(e => new { Day = (int)e.Timestamp.DayOfWeek, Hour = e.Timestamp.Hour })
+            .Select(g => new ObservablePoint(g.Key.Day * 24 + g.Key.Hour, g.Count()))
+            .ToArray();
 
         return new ISeries[]
         {
             new HeatSeries<ObservablePoint>
             {
                 Values = heatmapData,
-                Name = "Time Heatmap"
+                Name = "Activity Heatmap"
             }
         };
     }
 
-    private ISeries[] CreateErrorTrendSeries(List<LogEntry> logEntries)
+    private ISeries[] GenerateErrorTrendSeries(List<LogEntry> errorEntries)
     {
-        var errorEntries = logEntries.Where(e => e.Level.Equals("ERROR", StringComparison.OrdinalIgnoreCase));
-        var trendData = errorEntries
+        var dailyErrors = errorEntries
             .GroupBy(e => e.Timestamp.Date)
             .OrderBy(g => g.Key)
-            .Select(g => new DateTimePoint(g.Key, g.Count()))
-            .ToList();
+            .Select(g => new ObservablePoint(g.Key.Ticks, g.Count()))
+            .ToArray();
 
         return new ISeries[]
         {
-            new LineSeries<DateTimePoint>
+            new LineSeries<ObservablePoint>
             {
-                Values = trendData,
+                Values = dailyErrors,
                 Name = "Error Trend",
                 Stroke = new SolidColorPaint(SKColors.DarkRed) { StrokeThickness = 3 },
-                Fill = new SolidColorPaint(SKColors.Red.WithAlpha(50)),
-                GeometryStroke = new SolidColorPaint(SKColors.DarkRed) { StrokeThickness = 2 },
-                GeometryFill = new SolidColorPaint(SKColors.Red),
-                GeometrySize = 6
+                Fill = new SolidColorPaint(SKColors.DarkRed.WithAlpha(50))
             }
         };
     }
 
-    private ISeries[] CreateSourcesDistributionSeries(List<LogEntry> logEntries)
+    private ISeries[] GenerateSourcesDistributionSeries(List<LogEntry> logEntries)
     {
-        var sources = logEntries
+        var sourceData = logEntries
             .GroupBy(e => e.Source ?? "Unknown")
-            .OrderByDescending(g => g.Count())
-            .Take(10)
-            .Select(g => new { Source = g.Key, Count = g.Count() })
-            .ToList();
+            .Select(g => new ObservablePoint(g.Key.GetHashCode(), g.Count()))
+            .ToArray();
 
         return new ISeries[]
         {
-            new ColumnSeries<int>
+            new PieSeries<ObservablePoint>
             {
-                Values = sources.Select(s => s.Count).ToArray(),
-                Name = "Log Count by Source",
-                Fill = new SolidColorPaint(SKColors.Blue)
+                Values = sourceData,
+                Name = "Sources Distribution"
             }
         };
     }
 
-    
-
-    private Axis[] CreateTimeAxis(List<LogEntry> logEntries)
+    private (Axis[] axes, int tickInterval, string timeFormat) GenerateTimeAxis(List<LogEntry> logEntries)
     {
+        if (!logEntries.Any())
+            return (new Axis[0], 1, "HH:mm");
+
         var minTimestamp = logEntries.Min(e => e.Timestamp);
         var maxTimestamp = logEntries.Max(e => e.Timestamp);
-        var interval = DetermineOptimalTimeInterval(minTimestamp, maxTimestamp);
+        var tickInterval = DetermineOptimalTimeInterval(minTimestamp, maxTimestamp);
+        var timeFormat = DetermineTimeFormat(minTimestamp, maxTimestamp, tickInterval);
 
-        return new[]
+        var axis = new Axis
         {
-            new Axis
-            {
-                Name = "Time",
-                Labeler = value => new DateTime((long)value).ToString("HH:mm"),
-                UnitWidth = TimeSpan.FromHours(interval).Ticks,
-                MinStep = TimeSpan.FromHours(interval).Ticks
-            }
+            Name = "Time",
+            Labeler = value => new DateTime((long)value).ToString(timeFormat, CultureInfo.InvariantCulture),
+            UnitWidth = TimeSpan.FromMinutes(tickInterval).Ticks,
+            MinStep = TimeSpan.FromMinutes(tickInterval).Ticks
         };
+
+        return (new[] { axis }, tickInterval, timeFormat);
     }
 
-    private Axis[] CreateCountAxis()
+    private Axis[] GenerateCountAxis()
     {
         return new[]
         {
             new Axis
             {
                 Name = "Count",
-                MinLimit = 0
+                Labeler = value => value.ToString("N0")
             }
         };
     }
 
-    private Axis[] CreateDaysAxis()
+    private Axis[] GenerateDaysAxis()
     {
         return new[]
         {
             new Axis
             {
                 Name = "Day of Week",
-                Labels = new[] { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" }
+                Labeler = value => ((DayOfWeek)(int)value).ToString()
             }
         };
     }
 
-    private Axis[] CreateHoursAxis()
+    private Axis[] GenerateHoursAxis()
     {
         return new[]
         {
             new Axis
             {
                 Name = "Hour",
-                MinLimit = 0,
-                MaxLimit = 23,
-                MinStep = 1
+                Labeler = value => $"{value:00}:00"
             }
         };
     }
 
-    private Axis[] CreateSourceAxis(List<LogEntry> logEntries)
+    private Axis[] GenerateSourceAxis(List<LogEntry> logEntries)
     {
-        var sources = logEntries
-            .GroupBy(e => e.Source ?? "Unknown")
-            .OrderByDescending(g => g.Count())
-            .Take(10)
-            .Select(g => g.Key)
-            .ToArray();
-
+        var sources = logEntries.Select(e => e.Source ?? "Unknown").Distinct().ToArray();
         return new[]
         {
             new Axis
@@ -484,11 +440,10 @@ public class ChartService : IChartService
         };
     }
 
-    private Axis[] CreateErrorMessageAxis(List<LogEntry> logEntries)
+    private Axis[] GenerateErrorMessageAxis(List<LogEntry> errorEntries)
     {
-        var errorMessages = logEntries
-            .Where(e => e.Level.Equals("ERROR", StringComparison.OrdinalIgnoreCase))
-            .GroupBy(e => TruncateMessage(e.Message, 50))
+        var errorMessages = errorEntries
+            .GroupBy(e => TruncateMessage(e.Message, 30))
             .OrderByDescending(g => g.Count())
             .Take(10)
             .Select(g => g.Key)
@@ -504,163 +459,56 @@ public class ChartService : IChartService
         };
     }
 
+    private Axis[] GenerateIISAxes()
+    {
+        return new[]
+        {
+            new Axis { Name = "Time", Labeler = value => new DateTime((long)value).ToString("HH:mm", CultureInfo.InvariantCulture) },
+            new Axis { Name = "Response Code", Labeler = value => value.ToString("N0") }
+        };
+    }
+
+    private Axis[] GenerateStandardAxes()
+    {
+        return new[]
+        {
+            new Axis { Name = "Time", Labeler = value => new DateTime((long)value).ToString("HH:mm", CultureInfo.InvariantCulture) },
+            new Axis { Name = "Count", Labeler = value => value.ToString("N0") }
+        };
+    }
+
+    private Axis[] GenerateRabbitMQAxes()
+    {
+        return new[]
+        {
+            new Axis { Name = "Time", Labeler = value => new DateTime((long)value).ToString("HH:mm", CultureInfo.InvariantCulture) },
+            new Axis { Name = "Queue Activity", Labeler = value => value.ToString("N0") }
+        };
+    }
+
     private string TruncateMessage(string message, int maxLength)
     {
-        if (string.IsNullOrEmpty(message) || message.Length <= maxLength)
-            return message ?? string.Empty;
-        
-        return message.Substring(0, maxLength) + "...";
+        return message.Length <= maxLength ? message : message.Substring(0, maxLength) + "...";
     }
 
     private int DetermineOptimalTimeInterval(DateTime minTimestamp, DateTime maxTimestamp)
     {
-        var duration = maxTimestamp - minTimestamp;
-        
-        if (duration.TotalDays <= 1)
-            return 1; // 1 hour intervals
-        else if (duration.TotalDays <= 7)
-            return 6; // 6 hour intervals
-        else if (duration.TotalDays <= 30)
-            return 24; // 1 day intervals
-        else
-            return 168; // 1 week intervals
-    }
-
-    // Missing methods from original implementation
-    private IEnumerable<ISeries> GenerateIISChartSeries(IEnumerable<LogEntry> entries)
-    {
-        var entriesList = entries.ToList();
-        return new List<ISeries>
+        var timeSpan = maxTimestamp - minTimestamp;
+        return timeSpan.TotalHours switch
         {
-            new ColumnSeries<ObservablePoint>
-            {
-                Values = entriesList.GroupBy(e => e.Timestamp.Hour)
-                    .Select(g => new ObservablePoint(g.Key, g.Count()))
-                    .ToArray(),
-                Name = "IIS Hourly Distribution",
-                Fill = new SolidColorPaint(SKColors.Orange)
-            }
+            <= 1 => 5,    // 5 minutes
+            <= 6 => 30,   // 30 minutes
+            <= 24 => 60,  // 1 hour
+            <= 168 => 360, // 6 hours
+            _ => 1440     // 24 hours
         };
     }
 
-    private IEnumerable<ISeries> GenerateStandardChartSeries(IEnumerable<LogEntry> entries)
+    private string DetermineTimeFormat(DateTime minTimestamp, DateTime maxTimestamp, int tickInterval)
     {
-        var entriesList = entries.ToList();
-        return new List<ISeries>
-        {
-            new ColumnSeries<ObservablePoint>
-            {
-                Values = entriesList.GroupBy(e => e.Timestamp.Hour)
-                    .Select(g => new ObservablePoint(g.Key, g.Count()))
-                    .ToArray(),
-                Name = "Standard Hourly Distribution",
-                Fill = new SolidColorPaint(SKColors.Blue)
-            }
-        };
+        var timeSpan = maxTimestamp - minTimestamp;
+        return timeSpan.TotalDays > 1 ? "MM/dd HH:mm" : "HH:mm";
     }
-
-    private IEnumerable<ISeries> GenerateRabbitMQChartSeries(IEnumerable<LogEntry> entries)
-    {
-        var entriesList = entries.ToList();
-        return new List<ISeries>
-        {
-            new ColumnSeries<ObservablePoint>
-            {
-                Values = entriesList.GroupBy(e => e.Timestamp.Hour)
-                    .Select(g => new ObservablePoint(g.Key, g.Count()))
-                    .ToArray(),
-                Name = "RabbitMQ Hourly Distribution",
-                Fill = new SolidColorPaint(SKColors.Green)
-            }
-        };
-    }
-
-    private IEnumerable<Axis> GenerateIISAxes()
-    {
-        return new[]
-        {
-            new Axis
-            {
-                Name = "HTTP Status Codes",
-                Position = 0 // Bottom
-            }
-        };
-    }
-
-    private IEnumerable<Axis> GenerateStandardAxes()
-    {
-        return new[]
-        {
-            new Axis
-            {
-                Name = "Log Levels",
-                Position = 0 // Bottom
-            }
-        };
-    }
-
-    private IEnumerable<Axis> GenerateRabbitMQAxes()
-    {
-        return new[]
-        {
-            new Axis
-            {
-                Name = "Queue Operations",
-                Position = 0 // Bottom
-            }
-        };
-    }
-
-    private ChartCalculationResult CreateEmptyResult()
-    {
-        return new ChartCalculationResult
-        {
-            ErrorCount = 0,
-            WarningCount = 0,
-            InfoCount = 0,
-            OtherCount = 0,
-            ErrorPercent = 0,
-            WarningPercent = 0,
-            InfoPercent = 0,
-            OtherPercent = 0,
-            LevelsOverTimeSeries = Array.Empty<ISeries>(),
-            TopErrorsSeries = Array.Empty<ISeries>(),
-            LogDistributionSeries = Array.Empty<ISeries>(),
-            TimeHeatmapSeries = Array.Empty<ISeries>(),
-            ErrorTrendSeries = Array.Empty<ISeries>(),
-            SourcesDistributionSeries = Array.Empty<ISeries>(),
-            LogStatistics = new LogStatistics(),
-            TimeAxis = Array.Empty<Axis>(),
-            CountAxis = Array.Empty<Axis>(),
-            DaysAxis = Array.Empty<Axis>(),
-            HoursAxis = Array.Empty<Axis>(),
-            SourceAxis = Array.Empty<Axis>(),
-            ErrorMessageAxis = Array.Empty<Axis>()
-        };
-    }
-
-    public ISeries[] GenerateStandardLogSeries(LogStatistics stats)
-    {
-        return new ISeries[]
-        {
-            new ColumnSeries<double> { Values = new double[] { stats.TotalCount }, Name = "Total" },
-            new ColumnSeries<double> { Values = new double[] { stats.ErrorCount }, Name = "Errors" },
-            new ColumnSeries<double> { Values = new double[] { stats.WarningCount }, Name = "Warnings" },
-            new ColumnSeries<double> { Values = new double[] { stats.InfoCount }, Name = "Info" },
-            new ColumnSeries<double> { Values = new double[] { stats.OtherCount }, Name = "Other" }
-        };
-    }
-
-    public Axis[] GenerateStandardLogAxes(LogStatistics stats)
-    {
-        return new[]
-        {
-            new Axis { Labels = new[] { stats.FirstTimestamp.ToString("HH:mm") } },
-            new Axis { Labels = new[] { stats.LastTimestamp.ToString("HH:mm") } }
-        };
-    }
-
-    #endregion
 
     /// <summary>
     /// Result container for chart calculations

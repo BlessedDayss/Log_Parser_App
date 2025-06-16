@@ -12,31 +12,48 @@ namespace Log_Parser_App.Strategies
     /// <summary>
     /// Handler for standard log format processing
     /// Implements Strategy pattern for log type specific operations
+    /// Enhanced with performance optimization services
     /// </summary>
     public class StandardLogHandler : ILogTypeHandler
     {
         private readonly ILogger<StandardLogHandler> _logger;
         private readonly ILogParserService _logParserService;
+        private readonly IAsyncLogParser _asyncLogParser;
+        private readonly ILogEntryPool _logEntryPool;
+        private readonly IBackgroundProcessingService _backgroundProcessingService;
+        private readonly IBatchProcessor<LogEntry> _batchProcessor;
 
         public LogFormatType SupportedLogType => LogFormatType.Standard;
 
-        public StandardLogHandler(ILogger<StandardLogHandler> logger, ILogParserService logParserService)
+        public StandardLogHandler(
+            ILogger<StandardLogHandler> logger, 
+            ILogParserService logParserService,
+            IAsyncLogParser asyncLogParser,
+            ILogEntryPool logEntryPool,
+            IBackgroundProcessingService backgroundProcessingService,
+            IBatchProcessor<LogEntry> batchProcessor)
         {
             _logger = logger;
             _logParserService = logParserService;
+            _asyncLogParser = asyncLogParser;
+            _logEntryPool = logEntryPool;
+            _backgroundProcessingService = backgroundProcessingService;
+            _batchProcessor = batchProcessor;
         }
 
         /// <summary>
-        /// Parse log file using standard log parsing logic
+        /// Parse log file using optimized streaming approach
         /// </summary>
         public async Task<IEnumerable<LogEntry>> ParseLogFileAsync(string filePath)
         {
             try
             {
-                _logger.LogDebug($"Parsing standard log file: {filePath}");
+                _logger.LogDebug($"Parsing standard log file with performance optimization: {filePath}");
 
                 var entries = new List<LogEntry>();
-                await foreach (var entry in _logParserService.ParseLogFileAsync(filePath, default))
+                
+                // Use streaming parser for better performance
+                await foreach (var entry in _asyncLogParser.ParseAsync(filePath))
                 {
                     // Apply standard log specific processing
                     ProcessStandardLogEntry(entry);

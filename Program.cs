@@ -2,6 +2,7 @@ namespace Log_Parser_App
 {
 	using System;
 	using Avalonia;
+	using System.Threading.Tasks;
 
 	#region Class: Program
 
@@ -23,22 +24,29 @@ namespace Log_Parser_App
 		#region Methods: Public
 
 		[STAThread]
-		public static void Main(string[] args) {
+		public static async Task<int> Main(string[] args) {
 			try {
 				StartupArgs = args;
 				// Process command line arguments for file opening
 				ProcessCommandLineArguments(args);
+				// Check for performance test argument
+				if (args.Length > 0 && args[0] == "--perf-test") {
+					Console.WriteLine("Running Performance Tests...");
+					var perfTest = new PerformanceTest();
+					await perfTest.RunPerformanceTests();
+					return 0;
+				}
 				// Test parsing logic if --test-parsing argument is provided
 				if (args.Length > 0 && args[0] == "--test-parsing") {
 
 					// TODO: Implement test parsing functionality
 					Console.WriteLine("Test parsing functionality not implemented yet.");
-					return;
+					return 1;
 				}
-				BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+				return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
 			} catch (Exception ex) {
 				Console.WriteLine($"[Program.Main] Unhandled exception: {ex}");
-				Environment.Exit(1);
+				return 1;
 			}
 		}
 
@@ -57,7 +65,7 @@ namespace Log_Parser_App
 		private static void ProcessCommandLineArguments(string[] args) {
 			if (args.Length == 0)
 				return;
-			// Skip special arguments like --test-parsing
+			// Skip special arguments like --test-parsing or --perf-test
 			if (args[0].StartsWith("--"))
 				return;
 			// First argument should be file path

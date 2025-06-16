@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using LiveChartsCore;
@@ -47,4 +48,31 @@ public interface IChartService
     /// <param name="isDashboardVisible">Whether dashboard mode is active</param>
     /// <param name="logType">Current log format type</param>
     void UpdateChartConfiguration(bool isDashboardVisible, LogFormatType logType);
+    
+    /// <summary>
+    /// Generate comprehensive chart data for statistics view
+    /// </summary>
+    /// <param name="logEntries">Log entries to analyze</param>
+    /// <returns>Complete chart data including series and axes</returns>
+    ChartDataResult GenerateCharts(IEnumerable<LogEntry> logEntries);
+}
+
+/// <summary>
+/// Result model for chart generation containing all chart data
+/// </summary>
+public class ChartDataResult
+{
+    public ISeries[] LevelsOverTimeSeries { get; set; } = Array.Empty<ISeries>();
+    public ISeries[] TopErrorsSeries { get; set; } = Array.Empty<ISeries>();
+    public ISeries[] LogDistributionSeries { get; set; } = Array.Empty<ISeries>();
+    public ISeries[] TimeHeatmapSeries { get; set; } = Array.Empty<ISeries>();
+    public ISeries[] ErrorTrendSeries { get; set; } = Array.Empty<ISeries>();
+    public ISeries[] SourcesDistributionSeries { get; set; } = Array.Empty<ISeries>();
+    
+    public Axis[] TimeAxis { get; set; } = Array.Empty<Axis>();
+    public Axis[] CountAxis { get; set; } = Array.Empty<Axis>();
+    public Axis[] DaysAxis { get; set; } = Array.Empty<Axis>();
+    public Axis[] HoursAxis { get; set; } = Array.Empty<Axis>();
+    public Axis[] SourceAxis { get; set; } = Array.Empty<Axis>();
+    public Axis[] ErrorMessageAxis { get; set; } = Array.Empty<Axis>();
 } 

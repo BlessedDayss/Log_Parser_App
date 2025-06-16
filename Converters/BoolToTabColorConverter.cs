@@ -1,32 +1,37 @@
-namespace Log_Parser_App.Converters
-{
 using System;
 using System.Globalization;
 using Avalonia.Data.Converters;
-using Avalonia.Media;
+using Log_Parser_App.Converters.ColorSchemes;
+using Log_Parser_App.Converters.Interfaces;
 
-	#region Class: BoolToTabColorConverter
-
-	public class BoolToTabColorConverter : IValueConverter
+namespace Log_Parser_App.Converters
+{
+	public class BoolToTabColorConverter : IValueConverter, IColorConverter
 	{
+		private readonly IColorScheme _colorScheme;
 
-		#region Methods: Public
-
-		public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) {
-			if (value is bool isSelected && isSelected) {
-				return new SolidColorBrush(Color.Parse("#3A3B3E"));
-			}
-			return new SolidColorBrush(Color.Parse("#2A2B2D"));
+		public BoolToTabColorConverter()
+		{
+			_colorScheme = new TabColorScheme();
 		}
 
-		public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) {
+		public BoolToTabColorConverter(IColorScheme colorScheme)
+		{
+			_colorScheme = colorScheme;
+		}
+
+		public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+		{
+			if (value is bool isSelected)
+			{
+				return _colorScheme.GetBrush(isSelected ? "SELECTED" : "UNSELECTED");
+			}
+			return _colorScheme.GetBrush("DEFAULT");
+		}
+
+		public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+		{
 			throw new NotImplementedException();
 		}
-
-		#endregion
-
 	}
-
-	#endregion
-
 }

@@ -484,7 +484,7 @@ namespace Log_Parser_App.Services
                 .Where(e => !string.IsNullOrEmpty(e.RawData) && e.RawData.Contains("processing_time"))
                 .Select(e => TryExtractProcessingTime(e.RawData))
                 .Where(time => time.HasValue)
-                .Select(time => time.Value)
+                .Select(time => time!.Value)
                 .ToList();
 
             return await Task.FromResult(processingTimes.Any() ? processingTimes.Average() : 0.0);

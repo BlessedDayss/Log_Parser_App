@@ -20,6 +20,8 @@ public class FilterService : IFilterService
     private readonly ILogger<FilterService> _logger;
     private readonly ObservableCollection<FilterCriterion> _currentFilters;
 
+    #region Events
+
     /// <summary>
     /// Event fired when filters are applied
     /// </summary>
@@ -29,6 +31,8 @@ public class FilterService : IFilterService
     /// Event fired when filters are reset
     /// </summary>
     public event EventHandler? FiltersReset;
+
+    #endregion
 
     // Master list of available fields for filtering
     private readonly Dictionary<LogFormatType, List<string>> _availableFieldsByLogType = new()
@@ -319,63 +323,68 @@ public class FilterService : IFilterService
 
     private IEnumerable<LogEntry> ApplyMessageFilter(IEnumerable<LogEntry> entries, FilterCriterion criterion)
     {
+        var value = criterion.Value ?? string.Empty;
         return criterion.Operator switch
         {
-            "Contains" => entries.Where(e => e.Message.Contains(criterion.Value, StringComparison.OrdinalIgnoreCase)),
-            "Not Contains" => entries.Where(e => !e.Message.Contains(criterion.Value, StringComparison.OrdinalIgnoreCase)),
-            "Equals" => entries.Where(e => string.Equals(e.Message, criterion.Value, StringComparison.OrdinalIgnoreCase)),
-            "StartsWith" => entries.Where(e => e.Message.StartsWith(criterion.Value, StringComparison.OrdinalIgnoreCase)),
-            "EndsWith" => entries.Where(e => e.Message.EndsWith(criterion.Value, StringComparison.OrdinalIgnoreCase)),
-            "Regex" => ApplyRegexFilter(entries, e => e.Message, criterion.Value),
+            "Contains" => entries.Where(e => e.Message.Contains(value, StringComparison.OrdinalIgnoreCase)),
+            "Not Contains" => entries.Where(e => !e.Message.Contains(value, StringComparison.OrdinalIgnoreCase)),
+            "Equals" => entries.Where(e => string.Equals(e.Message, value, StringComparison.OrdinalIgnoreCase)),
+            "StartsWith" => entries.Where(e => e.Message.StartsWith(value, StringComparison.OrdinalIgnoreCase)),
+            "EndsWith" => entries.Where(e => e.Message.EndsWith(value, StringComparison.OrdinalIgnoreCase)),
+            "Regex" => ApplyRegexFilter(entries, e => e.Message, value),
             _ => entries
         };
     }
 
     private IEnumerable<LogEntry> ApplySourceFilter(IEnumerable<LogEntry> entries, FilterCriterion criterion)
     {
+        var value = criterion.Value ?? string.Empty;
         return criterion.Operator switch
         {
-            "Contains" => entries.Where(e => (e.Source ?? "").Contains(criterion.Value, StringComparison.OrdinalIgnoreCase)),
-            "Not Contains" => entries.Where(e => !(e.Source ?? "").Contains(criterion.Value, StringComparison.OrdinalIgnoreCase)),
-            "Equals" => entries.Where(e => string.Equals(e.Source, criterion.Value, StringComparison.OrdinalIgnoreCase)),
-            "StartsWith" => entries.Where(e => (e.Source ?? "").StartsWith(criterion.Value, StringComparison.OrdinalIgnoreCase)),
-            "EndsWith" => entries.Where(e => (e.Source ?? "").EndsWith(criterion.Value, StringComparison.OrdinalIgnoreCase)),
+            "Contains" => entries.Where(e => (e.Source ?? "").Contains(value, StringComparison.OrdinalIgnoreCase)),
+            "Not Contains" => entries.Where(e => !(e.Source ?? "").Contains(value, StringComparison.OrdinalIgnoreCase)),
+            "Equals" => entries.Where(e => string.Equals(e.Source, value, StringComparison.OrdinalIgnoreCase)),
+            "StartsWith" => entries.Where(e => (e.Source ?? "").StartsWith(value, StringComparison.OrdinalIgnoreCase)),
+            "EndsWith" => entries.Where(e => (e.Source ?? "").EndsWith(value, StringComparison.OrdinalIgnoreCase)),
             _ => entries
         };
     }
 
     private IEnumerable<LogEntry> ApplyRawDataFilter(IEnumerable<LogEntry> entries, FilterCriterion criterion)
     {
+        var value = criterion.Value ?? string.Empty;
         return criterion.Operator switch
         {
-            "Contains" => entries.Where(e => (e.RawData ?? "").Contains(criterion.Value, StringComparison.OrdinalIgnoreCase)),
-            "Not Contains" => entries.Where(e => !(e.RawData ?? "").Contains(criterion.Value, StringComparison.OrdinalIgnoreCase)),
-            "Equals" => entries.Where(e => string.Equals(e.RawData, criterion.Value, StringComparison.OrdinalIgnoreCase)),
-            "StartsWith" => entries.Where(e => (e.RawData ?? "").StartsWith(criterion.Value, StringComparison.OrdinalIgnoreCase)),
-            "EndsWith" => entries.Where(e => (e.RawData ?? "").EndsWith(criterion.Value, StringComparison.OrdinalIgnoreCase)),
-            "Regex" => ApplyRegexFilter(entries, e => e.RawData ?? "", criterion.Value),
+            "Contains" => entries.Where(e => (e.RawData ?? "").Contains(value, StringComparison.OrdinalIgnoreCase)),
+            "Not Contains" => entries.Where(e => !(e.RawData ?? "").Contains(value, StringComparison.OrdinalIgnoreCase)),
+            "Equals" => entries.Where(e => string.Equals(e.RawData, value, StringComparison.OrdinalIgnoreCase)),
+            "StartsWith" => entries.Where(e => (e.RawData ?? "").StartsWith(value, StringComparison.OrdinalIgnoreCase)),
+            "EndsWith" => entries.Where(e => (e.RawData ?? "").EndsWith(value, StringComparison.OrdinalIgnoreCase)),
+            "Regex" => ApplyRegexFilter(entries, e => e.RawData ?? "", value),
             _ => entries
         };
     }
 
     private IEnumerable<LogEntry> ApplyCorrelationIdFilter(IEnumerable<LogEntry> entries, FilterCriterion criterion)
     {
+        var value = criterion.Value ?? string.Empty;
         return criterion.Operator switch
         {
-            "Equals" => entries.Where(e => string.Equals(e.CorrelationId, criterion.Value, StringComparison.OrdinalIgnoreCase)),
-            "Not Equals" => entries.Where(e => !string.Equals(e.CorrelationId, criterion.Value, StringComparison.OrdinalIgnoreCase)),
-            "Contains" => entries.Where(e => (e.CorrelationId ?? "").Contains(criterion.Value, StringComparison.OrdinalIgnoreCase)),
+            "Equals" => entries.Where(e => string.Equals(e.CorrelationId, value, StringComparison.OrdinalIgnoreCase)),
+            "Not Equals" => entries.Where(e => !string.Equals(e.CorrelationId, value, StringComparison.OrdinalIgnoreCase)),
+            "Contains" => entries.Where(e => (e.CorrelationId ?? "").Contains(value, StringComparison.OrdinalIgnoreCase)),
             _ => entries
         };
     }
 
     private IEnumerable<LogEntry> ApplyErrorTypeFilter(IEnumerable<LogEntry> entries, FilterCriterion criterion)
     {
+        var value = criterion.Value ?? string.Empty;
         return criterion.Operator switch
         {
-            "Equals" => entries.Where(e => string.Equals(e.ErrorType, criterion.Value, StringComparison.OrdinalIgnoreCase)),
-            "Not Equals" => entries.Where(e => !string.Equals(e.ErrorType, criterion.Value, StringComparison.OrdinalIgnoreCase)),
-            "Contains" => entries.Where(e => (e.ErrorType ?? "").Contains(criterion.Value, StringComparison.OrdinalIgnoreCase)),
+            "Equals" => entries.Where(e => string.Equals(e.ErrorType, value, StringComparison.OrdinalIgnoreCase)),
+            "Not Equals" => entries.Where(e => !string.Equals(e.ErrorType, value, StringComparison.OrdinalIgnoreCase)),
+            "Contains" => entries.Where(e => (e.ErrorType ?? "").Contains(value, StringComparison.OrdinalIgnoreCase)),
             _ => entries
         };
     }
@@ -426,6 +435,9 @@ public class FilterService : IFilterService
 
     private IEnumerable<LogEntry> ApplyRegexFilter(IEnumerable<LogEntry> entries, Func<LogEntry, string> fieldSelector, string pattern)
     {
+        if (string.IsNullOrEmpty(pattern))
+            return entries;
+
         try
         {
             var regex = new Regex(pattern, RegexOptions.IgnoreCase | RegexOptions.Compiled);

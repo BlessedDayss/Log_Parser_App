@@ -12,6 +12,9 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
+                <!-- Modern Theme Resources -->
+                <ResourceInclude Source="/Themes/ModernThemeResources.axaml" />
+                <ResourceInclude Source="/Themes/ModernComponentStyles.axaml" />
                 <!-- Temporarily commented out to isolate other XAML issues -->
                 <!-- <ResourceInclude Source="/Assets/Styles/Accents.axaml" /> -->
                 <!-- <ResourceInclude Source="/Assets/Styles/Dark.axaml" />   -->
@@ -19,6 +22,7 @@
                 <!-- <ResourceInclude Source="/Assets/Styles/MaterialDesign.axaml"/> -->
             </ResourceDictionary.MergedDictionaries>
             <converters:TabToVisibilityConverter x:Key="TabToVisibilityConv"/>
+            <converters:DashboardTypeToColorConverter x:Key="DashboardTypeToColorConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 

@@ -10,6 +10,7 @@ namespace Log_Parser_App.ViewModels
     using CommunityToolkit.Mvvm.Input;
     using Log_Parser_App.Models;
     using Log_Parser_App.Services;
+    using Log_Parser_App.Services.Dashboard;
     using Microsoft.Extensions.Logging;
     using LiveChartsCore;
     using LiveChartsCore.SkiaSharpView;
@@ -36,6 +37,9 @@ namespace Log_Parser_App.ViewModels
         private readonly IChartService _chartService;
         private readonly ITabManagerService _tabManagerService;
         private readonly IFilterService _filterService;
+        
+        // Phase 3 Dashboard services
+        private readonly IDashboardTypeService _dashboardTypeService;
 
         [ObservableProperty]
         private string _statusMessage = "Ready to work";
@@ -57,6 +61,21 @@ namespace Log_Parser_App.ViewModels
 
         [ObservableProperty]
         private int _selectedTabIndex = 0;
+
+        // Dashboard properties
+        [ObservableProperty]
+        private DashboardType _currentDashboardType = DashboardType.Overview;
+
+        [ObservableProperty]
+        private DashboardData? _currentDashboardData;
+
+        [ObservableProperty]
+        private bool _isDashboardLoading;
+
+        [ObservableProperty]
+        private string _dashboardErrorMessage = string.Empty;
+
+        public IReadOnlyList<DashboardType> AvailableDashboardTypes => _dashboardTypeService?.AvailableDashboardTypes ?? new List<DashboardType>();
 
         private ObservableCollection<TabViewModel> _fileTabs = new();
         public ObservableCollection<TabViewModel> FileTabs {
@@ -84,7 +103,10 @@ namespace Log_Parser_App.ViewModels
                         FilePath = _selectedTab.FilePath;
                         FileStatus = _selectedTab.Title;
 
-                        // Auto-switch dashboard type based on log type
+                        // Don't automatically show dashboard - user should choose
+                        IsStartScreenVisible = false;
+
+                        // Set dashboard type context based on log type (but don't show dashboard)
                         if (_selectedTab.LogType == LogFormatType.IIS) {
                             IsIISDashboardVisible = true;
                             IsStandardDashboardVisible = false;
@@ -93,14 +115,17 @@ namespace Log_Parser_App.ViewModels
                             IsIISDashboardVisible = false;
                             IsStandardDashboardVisible = true;
                         }
-                        IsStartScreenVisible = false;
+
+                        // Update dashboard context and determine best dashboard type
+                        _ = UpdateDashboardContextAsync();
 
                         // UpdateLogStatistics will be called due to PropertyChanged event if counts change, 
                         // or immediately if the tab type dictates a full refresh.
                     } else {
                         FilePath = string.Empty;
                         FileStatus = "No file selected";
-                        IsDashboardVisible = !FileTabs.Any();
+                        IsDashboardVisible = false;
+                        IsStartScreenVisible = !FileTabs.Any();
                     }
                     UpdateLogStatistics(); // Call this to refresh stats when tab selection changes
                 }
@@ -268,7 +293,8 @@ namespace Log_Parser_App.ViewModels
             IRabbitMqLogParserService rabbitMqLogParserService,
             IChartService chartService,
             ITabManagerService tabManagerService,
-            IFilterService filterService) {
+            IFilterService filterService,
+            IDashboardTypeService dashboardTypeService) {
             _logParserService = logParserService;
             _logger = logger;
             _fileService = fileService;
@@ -279,14 +305,16 @@ namespace Log_Parser_App.ViewModels
             _chartService = chartService;
             _tabManagerService = tabManagerService;
             _filterService = filterService;
+            _dashboardTypeService = dashboardTypeService;
 
             InitializeErrorRecommendationService();
 
             // Subscribe to service events
             _tabManagerService.TabChanged += OnTabChanged;
             _tabManagerService.TabClosed += OnTabClosed;
-            _filterService.FiltersApplied += OnFiltersApplied;
-            _filterService.FiltersReset += OnFiltersReset;
+            // TODO: Refactor to use new FilteringViewModel events
+            // _filterService.FiltersApplied += OnFiltersApplied;
+            // _filterService.FiltersReset += OnFiltersReset;
 
             // Проверяем аргументы командной строки для автоматической загрузки файла
             CheckCommandLineArgs();
@@ -341,7 +369,6 @@ namespace Log_Parser_App.ViewModels
                 StatusMessage = $"Opening {Path.GetFileName(filePath)}...";
                 IsLoading = true;
                 FileStatus = Path.GetFileName(filePath);
-                IsDashboardVisible = true;
                 _logger.LogInformation("PERF: Начало загрузки файла {FilePath}", filePath);
                 var sw = System.Diagnostics.Stopwatch.StartNew();
 
@@ -517,9 +544,8 @@ namespace Log_Parser_App.ViewModels
                 var files = await _filePickerService.PickFilesAsync(mainWindow);
                 if (files != null && files.Any()) {
                     await LoadFilesAsync(files);
+                    // Dashboard visibility will be set by SelectedTab setter
                     IsStartScreenVisible = false;
-                    IsStandardDashboardVisible = true;
-                    IsIISDashboardVisible = false;
                 }
             } catch (Exception ex) {
                 _logger.LogError(ex, "Ошибка загрузки файлов логов");
@@ -534,7 +560,6 @@ namespace Log_Parser_App.ViewModels
             StatusMessage = $"Opening {files.Count()} files...";
             IsLoading = true;
             FileStatus = $"{files.Count()} files";
-            IsDashboardVisible = true;
 
             foreach (var file in files) {
                 // Check if the file is already opened
@@ -648,7 +673,6 @@ namespace Log_Parser_App.ViewModels
             StatusMessage = $"Opening directory {Path.GetFileName(dir)}...";
             IsLoading = true;
             FileStatus = $"Dir: {Path.GetFileName(dir)}";
-            IsDashboardVisible = true;
 
             try {
                 var txtFiles = Directory.EnumerateFiles(dir, "*.txt", SearchOption.TopDirectoryOnly).ToList();
@@ -879,9 +903,19 @@ namespace Log_Parser_App.ViewModels
                 OtherPercent = 0;
                 LogStatistics = new LogStatistics();
                 ClearAllCharts();
-                IsIISDashboardVisible = false;
-                IsStandardDashboardVisible = false;
+                // Don't automatically show dashboard - user should choose
+                // IsIISDashboardVisible = false;
+                // IsStandardDashboardVisible = false;
             }
+            
+            // Update dashboard context after statistics change
+            _ = Task.Run(async () => {
+                try {
+                    await UpdateDashboardContextAsync();
+                } catch (Exception ex) {
+                    _logger.LogError(ex, "Error updating dashboard context from UpdateLogStatistics");
+                }
+            });
         }
 
         private void CalculateIISCharts() {
@@ -1636,11 +1670,8 @@ namespace Log_Parser_App.ViewModels
                         await LoadIISFileAsync(file);
                     }
 
-                    // Switch to IIS dashboard mode
-                    IsDashboardVisible = true;
+                    // Don't automatically show dashboard - user should choose
                     IsStartScreenVisible = false;
-                    IsStandardDashboardVisible = false;
-                    IsIISDashboardVisible = true;
                 }
             } catch (Exception ex) {
                 _logger.LogError(ex, "Ошибка загрузки IIS файлов логов");
@@ -1750,10 +1781,7 @@ namespace Log_Parser_App.ViewModels
                 }
 
                 if (FileTabs.Any()) {
-                    IsDashboardVisible = true;
                     IsStartScreenVisible = false;
-                    IsStandardDashboardVisible = true;
-                    IsIISDashboardVisible = false;
                 }
             } catch (Exception ex) {
                 _logger.LogError(ex, "Error loading RabbitMQ log files");
@@ -1958,6 +1986,211 @@ namespace Log_Parser_App.ViewModels
             {
                 _logger.LogError(ex, "Error handling filters reset event");
             }
+        }
+
+        #endregion
+
+        #region Dashboard Management
+
+        /// <summary>
+        /// Updates dashboard context based on current application state
+        /// </summary>
+        private async Task UpdateDashboardContextAsync()
+        {
+            try
+            {
+                if (_dashboardTypeService == null) return;
+
+                var context = new DashboardContext
+                {
+                    LoadedFiles = FileTabs.Select(t => t.FilePath).ToList(),
+                    IsParsingActive = IsLoading,
+                    ParsedEntriesCount = LogEntries.Count,
+                    ErrorCount = ErrorCount,
+                    HasPerformanceData = LogEntries.Any(e => e.Level.Equals("Performance", StringComparison.OrdinalIgnoreCase)),
+                    PreferredDashboardType = CurrentDashboardType
+                };
+
+                // Determine best dashboard type for current context
+                var recommendedType = _dashboardTypeService.DetermineBestDashboardType(context);
+                
+                // Auto-switch if recommended type is different and available
+                if (recommendedType != CurrentDashboardType && _dashboardTypeService.IsDashboardTypeAvailable(recommendedType))
+                {
+                    await ChangeDashboardTypeAsync(recommendedType);
+                }
+                else
+                {
+                    // Refresh current dashboard with new context
+                    await RefreshCurrentDashboardAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating dashboard context");
+                DashboardErrorMessage = $"Error updating dashboard: {ex.Message}";
+            }
+        }
+
+        /// <summary>
+        /// Changes the current dashboard type
+        /// </summary>
+        [RelayCommand]
+        private async Task ChangeDashboardType(DashboardType dashboardType)
+        {
+            await ChangeDashboardTypeAsync(dashboardType);
+        }
+        
+        /// <summary>
+        /// Changes the current dashboard type from string parameter (for XAML binding)
+        /// </summary>
+        [RelayCommand]
+        private async Task ChangeDashboardTypeFromString(string dashboardTypeString)
+        {
+            _logger.LogInformation("Dashboard button clicked: {DashboardTypeString}", dashboardTypeString);
+            
+            if (Enum.TryParse<DashboardType>(dashboardTypeString, out var dashboardType))
+            {
+                _logger.LogInformation("Changing dashboard type to: {DashboardType}", dashboardType);
+                await ChangeDashboardTypeAsync(dashboardType);
+            }
+            else
+            {
+                _logger.LogWarning("Invalid dashboard type string: {DashboardTypeString}", dashboardTypeString);
+            }
+        }
+
+        private async Task ChangeDashboardTypeAsync(DashboardType dashboardType)
+        {
+            try
+            {
+                _logger.LogInformation("Starting ChangeDashboardTypeAsync with type: {DashboardType}", dashboardType);
+                
+                if (_dashboardTypeService == null) 
+                {
+                    _logger.LogWarning("Dashboard type service is null!");
+                    return;
+                }
+
+                IsDashboardLoading = true;
+                DashboardErrorMessage = string.Empty;
+
+                // Don't automatically show dashboard - user must click dashboard button
+                _logger.LogInformation("Dashboard type context prepared, visibility: {IsVisible}", IsDashboardVisible);
+
+                await _dashboardTypeService.ChangeDashboardTypeAsync(dashboardType);
+                CurrentDashboardType = dashboardType;
+                _logger.LogInformation("Dashboard type service completed, current type: {CurrentType}", CurrentDashboardType);
+
+                // Load dashboard data
+                await RefreshCurrentDashboardAsync();
+
+                _logger.LogInformation("Dashboard type changed successfully to {DashboardType}, IsDashboardVisible: {IsVisible}", dashboardType, IsDashboardVisible);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error changing dashboard type to {DashboardType}", dashboardType);
+                DashboardErrorMessage = $"Error changing dashboard: {ex.Message}";
+            }
+            finally
+            {
+                IsDashboardLoading = false;
+            }
+        }
+
+        /// <summary>
+        /// Refreshes the current dashboard data
+        /// </summary>
+        [RelayCommand]
+        private async Task RefreshCurrentDashboard()
+        {
+            await RefreshCurrentDashboardAsync();
+        }
+
+        private async Task RefreshCurrentDashboardAsync()
+        {
+            try
+            {
+                if (_dashboardTypeService?.CurrentStrategy == null) return;
+
+                IsDashboardLoading = true;
+                DashboardErrorMessage = string.Empty;
+
+                // Get current log entries for dashboard
+                var currentEntries = SelectedTab?.LogEntries ?? LogEntries;
+                
+                // Load dashboard data using current strategy
+                var dashboardData = await _dashboardTypeService.CurrentStrategy.LoadDashboardDataAsync(currentEntries);
+                CurrentDashboardData = dashboardData;
+
+                _logger.LogInformation("Dashboard data refreshed for {DashboardType}", CurrentDashboardType);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error refreshing dashboard data");
+                DashboardErrorMessage = $"Error refreshing dashboard: {ex.Message}";
+            }
+            finally
+            {
+                IsDashboardLoading = false;
+            }
+        }
+
+        /// <summary>
+        /// Shows the file options dashboard
+        /// </summary>
+        [RelayCommand]
+        private async Task ShowFileOptionsDashboard()
+        {
+            await ChangeDashboardTypeAsync(DashboardType.FileOptions);
+        }
+
+        /// <summary>
+        /// Shows the performance dashboard
+        /// </summary>
+        [RelayCommand]
+        private async Task ShowPerformanceDashboard()
+        {
+            await ChangeDashboardTypeAsync(DashboardType.Performance);
+        }
+
+        /// <summary>
+        /// Shows the error analysis dashboard
+        /// </summary>
+        [RelayCommand]
+        private async Task ShowErrorAnalysisDashboard()
+        {
+            await ChangeDashboardTypeAsync(DashboardType.ErrorAnalysis);
+        }
+
+        /// <summary>
+        /// Gets the display name for a dashboard type
+        /// </summary>
+        public string GetDashboardDisplayName(DashboardType dashboardType)
+        {
+            if (_dashboardTypeService == null) return dashboardType.ToString();
+
+            var strategy = _dashboardTypeService.GetStrategy(dashboardType);
+            return strategy?.DisplayName ?? dashboardType.ToString();
+        }
+
+        /// <summary>
+        /// Gets the description for a dashboard type
+        /// </summary>
+        public string GetDashboardDescription(DashboardType dashboardType)
+        {
+            if (_dashboardTypeService == null) return string.Empty;
+
+            var strategy = _dashboardTypeService.GetStrategy(dashboardType);
+            return strategy?.Description ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Checks if a dashboard type is available in current context
+        /// </summary>
+        public bool IsDashboardTypeAvailable(DashboardType dashboardType)
+        {
+            return _dashboardTypeService?.IsDashboardTypeAvailable(dashboardType) ?? false;
         }
 
         #endregion

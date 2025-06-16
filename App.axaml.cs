@@ -18,6 +18,7 @@ namespace Log_Parser_App
     using Log_Parser_App.Interfaces;
     using Log_Parser_App.Strategies;
     using Log_Parser_App.Factories;
+    using Log_Parser_App.Services.Dashboard;
 
 
 
@@ -238,6 +239,21 @@ namespace Log_Parser_App
             services.AddSingleton<ILogTypeHandler, RabbitMqLogHandler>();
             services.AddSingleton<ILogTypeHandlerFactory, LogTypeHandlerFactory>();
 
+            // Performance Optimization Services (Phase 3 - BUILD)
+            services.AddSingleton<ILogEntryPool, LogEntryPool>();
+            services.AddSingleton<IAsyncLogParser, AsyncLogParser>();
+            services.AddSingleton<IBackgroundProcessingService, BackgroundProcessingService>();
+            services.AddSingleton(typeof(IBatchProcessor<>), typeof(BatchProcessor<>));
+            services.AddSingleton(typeof(ICacheService<,>), typeof(CacheService<,>));
+
+            // Dashboard Strategy Services (Phase 3.4 - Adaptive Dashboard Enhancement)
+            services.AddSingleton<Log_Parser_App.Services.Dashboard.IDashboardStrategyFactory, Log_Parser_App.Services.Dashboard.DashboardStrategyFactory>();
+            services.AddSingleton<Log_Parser_App.Services.Dashboard.IDashboardTypeService, Log_Parser_App.Services.Dashboard.DashboardTypeService>();
+            
+            // Dashboard Strategy Implementations
+            services.AddTransient<Log_Parser_App.Services.Dashboard.OverviewDashboardStrategy>();
+            services.AddTransient<Log_Parser_App.Services.Dashboard.FileOptionsDashboardStrategy>();
+
             // Регистрируем сервис ассоциаций файлов
             if (OperatingSystem.IsWindows()) {
                 services.AddSingleton<IFileAssociationService, WindowsFileAssociationService>();
@@ -249,6 +265,16 @@ namespace Log_Parser_App
         }
 
         private void RegisterViewModels(ServiceCollection services) {
+            // Register SOLID refactored ViewModels
+            services.AddSingleton<FileLoadingViewModel>();
+            services.AddSingleton<FilteringViewModel>();
+            services.AddSingleton<TabManagerViewModel>();
+            services.AddSingleton<StatisticsViewModel>();
+            
+            // Register main coordinating ViewModel
+            services.AddSingleton<MainViewModelRefactored>();
+            
+            // Keep original for backward compatibility during transition
             services.AddSingleton<MainViewModel>();
             services.AddSingleton<MainWindowViewModel>();
         }
