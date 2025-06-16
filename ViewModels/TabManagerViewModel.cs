@@ -80,6 +80,7 @@ namespace Log_Parser_App.ViewModels
         public event EventHandler<TabSelectedEventArgs>? TabSelected;
         public event EventHandler<TabClosedEventArgs>? TabClosed;
         public event EventHandler<TabAddedEventArgs>? TabAdded;
+        public event EventHandler<ErrorsOnlyFilterChangedEventArgs>? ErrorsOnlyFilterChanged;
 
         #endregion
 
@@ -129,6 +130,10 @@ namespace Log_Parser_App.ViewModels
                 _logger.LogInformation("Closing tab: {Title}", tab.Title);
 
                 var wasSelected = SelectedTab == tab;
+                
+                // Unsubscribe from tab events
+                tab.ErrorsOnlyFilterChanged -= OnTabErrorsOnlyFilterChanged;
+                
                 FileTabs.Remove(tab);
 
                 if (wasSelected)
@@ -166,6 +171,9 @@ namespace Log_Parser_App.ViewModels
                 }
 
                 var tab = new TabViewModel(filePath, System.IO.Path.GetFileName(filePath), new List<LogEntry>(), logType);
+
+                // Subscribe to tab events
+                tab.ErrorsOnlyFilterChanged += OnTabErrorsOnlyFilterChanged;
 
                 FileTabs.Add(tab);
                 SelectedTab = tab;
@@ -317,6 +325,12 @@ namespace Log_Parser_App.ViewModels
         private void OnTabAdded(TabAddedEventArgs e)
         {
             TabAdded?.Invoke(this, e);
+        }
+
+        private void OnTabErrorsOnlyFilterChanged(object? sender, ErrorsOnlyFilterChangedEventArgs e)
+        {
+            // Forward the event to MainViewModel
+            ErrorsOnlyFilterChanged?.Invoke(this, e);
         }
 
         #endregion

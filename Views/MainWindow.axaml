@@ -837,8 +837,8 @@
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
-                                    <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*"/>
-                                    <DataGridTextColumn Header="Recommendation" Binding="{Binding Recommendation}" Width="*"/>
+                                    <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="4*"/>
+                                    <DataGridTextColumn Header="Recommendation" Binding="{Binding Recommendation}" Width="3*"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </TabItem>
@@ -866,9 +866,9 @@
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
-                                    <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="3*"/>
+                                    <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="4*"/>
                                     <DataGridTextColumn Header="Source File" Binding="{Binding SourceTabTitle}" Width="2*"/> 
-                                    <DataGridTextColumn Header="Recommendation" Binding="{Binding Recommendation}" Width="*"/>
+                                    <DataGridTextColumn Header="Recommendation" Binding="{Binding Recommendation}" Width="3*"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </TabItem>

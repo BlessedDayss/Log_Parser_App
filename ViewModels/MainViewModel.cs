@@ -40,6 +40,9 @@ namespace Log_Parser_App.ViewModels
         
         // Phase 3 Dashboard services
         private readonly IDashboardTypeService _dashboardTypeService;
+        
+        // Error Detection Service
+        private readonly Log_Parser_App.Services.ErrorDetection.IErrorDetectionService _errorDetectionService;
 
         [ObservableProperty]
         private string _statusMessage = "Ready to work";
@@ -118,6 +121,9 @@ namespace Log_Parser_App.ViewModels
 
                         // Update dashboard context and determine best dashboard type
                         _ = UpdateDashboardContextAsync();
+
+                        // Update error entries for the new tab
+                        UpdateErrorLogEntries();
 
                         // UpdateLogStatistics will be called due to PropertyChanged event if counts change, 
                         // or immediately if the tab type dictates a full refresh.
@@ -294,7 +300,8 @@ namespace Log_Parser_App.ViewModels
             IChartService chartService,
             ITabManagerService tabManagerService,
             IFilterService filterService,
-            IDashboardTypeService dashboardTypeService) {
+            IDashboardTypeService dashboardTypeService,
+            Log_Parser_App.Services.ErrorDetection.IErrorDetectionService errorDetectionService) {
             _logParserService = logParserService;
             _logger = logger;
             _fileService = fileService;
@@ -306,6 +313,7 @@ namespace Log_Parser_App.ViewModels
             _tabManagerService = tabManagerService;
             _filterService = filterService;
             _dashboardTypeService = dashboardTypeService;
+            _errorDetectionService = errorDetectionService;
 
             InitializeErrorRecommendationService();
 
@@ -474,6 +482,8 @@ namespace Log_Parser_App.ViewModels
                                     entry.ErrorRecommendations.Clear();
                                     if (recommendation.Recommendations != null) {
                                         entry.ErrorRecommendations.AddRange(recommendation.Recommendations);
+                                        // Set the Recommendation field for UI display
+                                        entry.Recommendation = string.Join(" • ", recommendation.Recommendations);
                                     }
                                 } else {
                                     entry.ErrorType = "UnknownError";
@@ -481,6 +491,8 @@ namespace Log_Parser_App.ViewModels
                                     entry.ErrorRecommendations.Clear();
                                     entry.ErrorRecommendations.Add("Check error log for additional information.");
                                     entry.ErrorRecommendations.Add("Contact documentation or support.");
+                                    // Set default recommendation for UI display
+                                    entry.Recommendation = "Check logs for additional context. Verify system configuration and dependencies. Review error patterns for troubleshooting.";
                                 }
                             } catch (Exception ex) {
                                 _logger.LogError(ex, "Ошибка при обработке рекомендаций для записи {LineNumber}", entry.LineNumber);
@@ -784,11 +796,92 @@ namespace Log_Parser_App.ViewModels
             _logger.LogInformation("Theme changed to: {Theme}", IsDarkTheme ? "Dark" : "Light");
         }
 
-        private void UpdateErrorLogEntries() {
-            var errors = LogEntries.Where(e => e.Level.Equals("Error", StringComparison.OrdinalIgnoreCase)).ToList();
-            ErrorLogEntries = errors;
-            _logger.LogInformation("Updated ErrorLogEntries collection with {Count} entries", ErrorLogEntries.Count);
-            OnPropertyChanged(nameof(ErrorLogEntries));
+        private async void UpdateErrorLogEntries() {
+            try {
+                if (SelectedTab == null) {
+                    ErrorLogEntries = new List<LogEntry>();
+                    AllErrorLogEntries.Clear();
+                    OnPropertyChanged(nameof(ErrorLogEntries));
+                    _logger.LogInformation("No selected tab - clearing error collections");
+                    return;
+                }
+
+                // Use entries from the selected tab, not the global LogEntries
+                var tabEntries = SelectedTab.LogEntries;
+                if (tabEntries == null || tabEntries.Count == 0) {
+                    ErrorLogEntries = new List<LogEntry>();
+                    AllErrorLogEntries.Clear();
+                    OnPropertyChanged(nameof(ErrorLogEntries));
+                    _logger.LogInformation("No log entries in selected tab - clearing error collections");
+                    return;
+                }
+
+                _logger.LogInformation("🔍 Starting error detection for {LogType} with {Count} entries from tab '{TabTitle}'", 
+                    SelectedTab.LogType, tabEntries.Count, SelectedTab.Title);
+
+                // Use the new error detection service to detect ALL errors from tab data
+                var errorEntries = await _errorDetectionService.DetectErrorsAsync(tabEntries, SelectedTab.LogType);
+                var errorList = errorEntries.ToList();
+
+                // Apply recommendations to error entries (if not already set from LoadFileAsync)
+                foreach (var errorEntry in errorList) {
+                    if (!string.IsNullOrEmpty(errorEntry.Message)) {
+                        // Check if recommendation is already set from LoadFileAsync processing
+                        if (string.IsNullOrEmpty(errorEntry.Recommendation)) {
+                            var recommendationResult = _errorRecommendationService.AnalyzeError(errorEntry.Message);
+                            if (recommendationResult != null && recommendationResult.Recommendations.Any()) {
+                                // Combine all recommendations into a single string
+                                var combinedRecommendation = string.Join(" • ", recommendationResult.Recommendations);
+                                errorEntry.Recommendation = combinedRecommendation;
+                                _logger.LogDebug("Applied recommendation to error: {Message} -> {Recommendation}", 
+                                    errorEntry.Message.Substring(0, Math.Min(50, errorEntry.Message.Length)), 
+                                    combinedRecommendation.Substring(0, Math.Min(100, combinedRecommendation.Length)));
+                            } else {
+                                // Default recommendation when no specific pattern matched
+                                errorEntry.Recommendation = "Check logs for additional context. Verify system configuration and dependencies. Review error patterns for troubleshooting.";
+                                _logger.LogDebug("Applied default recommendation to error: {Message}", 
+                                    errorEntry.Message.Substring(0, Math.Min(50, errorEntry.Message.Length)));
+                            }
+                        } else {
+                            _logger.LogDebug("Error already has recommendation: {Message}", 
+                                errorEntry.Message.Substring(0, Math.Min(50, errorEntry.Message.Length)));
+                        }
+                    }
+                }
+                
+                ErrorLogEntries = errorList;
+
+                // Update the observable collection for UI binding
+                AllErrorLogEntries.Clear();
+                foreach (var entry in errorList) {
+                    AllErrorLogEntries.Add(entry);
+                }
+
+                OnPropertyChanged(nameof(ErrorLogEntries));
+                OnPropertyChanged(nameof(AllErrorLogEntries));
+                
+                var errorsWithRecommendations = errorList.Count(e => !string.IsNullOrEmpty(e.Recommendation));
+                _logger.LogInformation("✅ Updated ErrorLogEntries collection with {Count} errors using {LogType} strategy. {RecommendationCount} errors have recommendations", 
+                    ErrorLogEntries.Count, SelectedTab.LogType, errorsWithRecommendations);
+
+                // Log first error for debugging
+                if (errorList.Count > 0) {
+                    var firstError = errorList.First();
+                    var messagePreview = firstError.Message?.Substring(0, Math.Min(50, firstError.Message.Length)) ?? "No message";
+                    var recommendationPreview = !string.IsNullOrEmpty(firstError.Recommendation) 
+                        ? firstError.Recommendation.Substring(0, Math.Min(100, firstError.Recommendation.Length)) + "..."
+                        : "No recommendation";
+                    _logger.LogInformation("📋 First error: Level='{Level}', Message='{Message}', Recommendation='{Recommendation}'", 
+                        firstError.Level, messagePreview, recommendationPreview);
+                }
+            } catch (Exception ex) {
+                _logger.LogError(ex, "❌ Error updating error log entries using error detection service");
+                
+                // Fallback to empty collections on error
+                ErrorLogEntries = new List<LogEntry>();
+                AllErrorLogEntries.Clear();
+                OnPropertyChanged(nameof(ErrorLogEntries));
+            }
         }
 
         private void UpdateLogStatistics() {

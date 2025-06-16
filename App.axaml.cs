@@ -254,6 +254,15 @@ namespace Log_Parser_App
             services.AddTransient<Log_Parser_App.Services.Dashboard.OverviewDashboardStrategy>();
             services.AddTransient<Log_Parser_App.Services.Dashboard.FileOptionsDashboardStrategy>();
 
+            // Error Detection Services (EFS-001 - Error Filtering System Refactoring)
+            services.AddSingleton<Log_Parser_App.Services.ErrorDetection.IErrorDetectionServiceFactory, Log_Parser_App.Services.ErrorDetection.ErrorDetectionServiceFactory>();
+            services.AddSingleton<Log_Parser_App.Services.ErrorDetection.IErrorDetectionService, Log_Parser_App.Services.ErrorDetection.ErrorDetectionService>();
+            
+            // Error Detection Strategy Implementations
+            services.AddTransient<Log_Parser_App.Services.ErrorDetection.StandardLogErrorDetectionStrategy>();
+            services.AddTransient<Log_Parser_App.Services.ErrorDetection.IISLogErrorDetectionStrategy>();
+            services.AddTransient<Log_Parser_App.Services.ErrorDetection.RabbitMQLogErrorDetectionStrategy>();
+
             // Регистрируем сервис ассоциаций файлов
             if (OperatingSystem.IsWindows()) {
                 services.AddSingleton<IFileAssociationService, WindowsFileAssociationService>();
@@ -271,10 +280,7 @@ namespace Log_Parser_App
             services.AddSingleton<TabManagerViewModel>();
             services.AddSingleton<StatisticsViewModel>();
             
-            // Register main coordinating ViewModel
-            services.AddSingleton<MainViewModelRefactored>();
-            
-            // Keep original for backward compatibility during transition
+            // Use original MainViewModel with enhanced error detection
             services.AddSingleton<MainViewModel>();
             services.AddSingleton<MainWindowViewModel>();
         }

@@ -82,13 +82,14 @@ namespace Log_Parser_App.ViewModels
 			get => _isErrorsOnly;
 			set {
 				if (SetProperty(ref _isErrorsOnly, value)) {
-					// This is where you would trigger the re-filtering in the MainViewModel
-					// Since TabViewModel doesn't know about MainViewModel's ApplyFilters,
-					// you might need an event or another mechanism.
-					// For now, we assume MainViewModel will react to this change.
+					// Trigger error filtering change event
+					ErrorsOnlyFilterChanged?.Invoke(this, new ErrorsOnlyFilterChangedEventArgs(value, LogType));
 				}
 			}
 		}
+
+		// Event for notifying when errors-only filter changes
+		public event EventHandler<ErrorsOnlyFilterChangedEventArgs>? ErrorsOnlyFilterChanged;
 
 		// --- IIS Filtering Properties and Commands ---
 
