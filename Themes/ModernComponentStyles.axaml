@@ -1,0 +1,249 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Modern Card Style -->
+    <Style Selector="Border.ModernCard" x:Key="ModernCardStyle">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource LargeCornerRadius}" />
+        <Setter Property="Padding" Value="{DynamicResource SpacingMD}" />
+        <Setter Property="Margin" Value="{DynamicResource SpacingSM}" />
+        <Setter Property="BoxShadow" Value="{DynamicResource MediumShadow}" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" />
+                <BrushTransition Property="Background" Duration="0:0:0.2" />
+                <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.2" />
+            </Transitions>
+        </Setter>
+        <Style Selector="^:pointerover">
+            <Setter Property="RenderTransform" Value="translateY(-2px)" />
+            <Setter Property="BoxShadow" Value="{DynamicResource LargeShadow}" />
+        </Style>
+    </Style>
+
+    <!-- Glass Navigation Style -->
+    <Style Selector="Border.GlassNavigation" x:Key="GlassNavigationStyle">
+        <Setter Property="Background" Value="{DynamicResource GlassBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource GlassBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource MediumCornerRadius}" />
+        <Setter Property="Padding" Value="{DynamicResource SpacingSM}" />
+        <Setter Property="Margin" Value="{DynamicResource SpacingXS}" />
+        <Setter Property="ClipToBounds" Value="True" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.3" />
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.3" />
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <!-- Modern Button Style -->
+    <Style Selector="Button.ModernPrimary" x:Key="ModernPrimaryButtonStyle">
+        <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="{DynamicResource MediumCornerRadius}" />
+        <Setter Property="Padding" Value="{DynamicResource SpacingMD}" />
+        <Setter Property="FontFamily" Value="{DynamicResource PrimaryFontFamily}" />
+        <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" />
+                <BrushTransition Property="Background" Duration="0:0:0.15" />
+            </Transitions>
+        </Setter>
+        <Style Selector="^:pointerover">
+            <Setter Property="Background" Value="{DynamicResource PrimaryLightBrush}" />
+            <Setter Property="RenderTransform" Value="scale(1.02)" />
+        </Style>
+        <Style Selector="^:pressed">
+            <Setter Property="Background" Value="{DynamicResource PrimaryDarkBrush}" />
+            <Setter Property="RenderTransform" Value="scale(0.98)" />
+        </Style>
+    </Style>
+
+    <!-- Modern Secondary Button Style -->
+    <Style Selector="Button.ModernSecondary" x:Key="ModernSecondaryButtonStyle">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource MediumCornerRadius}" />
+        <Setter Property="Padding" Value="{DynamicResource SpacingMD}" />
+        <Setter Property="FontFamily" Value="{DynamicResource PrimaryFontFamily}" />
+        <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" />
+                <BrushTransition Property="Background" Duration="0:0:0.15" />
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+            </Transitions>
+        </Setter>
+        <Style Selector="^:pointerover">
+            <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="RenderTransform" Value="scale(1.02)" />
+        </Style>
+        <Style Selector="^:pressed">
+            <Setter Property="RenderTransform" Value="scale(0.98)" />
+        </Style>
+    </Style>
+
+    <!-- Modern TextBlock Styles -->
+    <Style Selector="TextBlock.DisplayText" x:Key="DisplayTextStyle">
+        <Setter Property="FontFamily" Value="{DynamicResource PrimaryFontFamily}" />
+        <Setter Property="FontSize" Value="{DynamicResource DisplayFontSize}" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{DynamicResource OnSurfaceBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.HeadlineText" x:Key="HeadlineTextStyle">
+        <Setter Property="FontFamily" Value="{DynamicResource PrimaryFontFamily}" />
+        <Setter Property="FontSize" Value="{DynamicResource HeadlineFontSize}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource OnSurfaceBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.TitleText" x:Key="TitleTextStyle">
+        <Setter Property="FontFamily" Value="{DynamicResource PrimaryFontFamily}" />
+        <Setter Property="FontSize" Value="{DynamicResource TitleFontSize}" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Foreground" Value="{DynamicResource OnSurfaceBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.BodyText" x:Key="BodyTextStyle">
+        <Setter Property="FontFamily" Value="{DynamicResource PrimaryFontFamily}" />
+        <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="{DynamicResource OnSurfaceBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.CaptionText" x:Key="CaptionTextStyle">
+        <Setter Property="FontFamily" Value="{DynamicResource PrimaryFontFamily}" />
+        <Setter Property="FontSize" Value="{DynamicResource CaptionFontSize}" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="{DynamicResource OnSurfaceVariantBrush}" />
+    </Style>
+
+    <!-- Modern TextBox Style -->
+    <Style Selector="TextBox.ModernInput" x:Key="ModernInputStyle">
+        <Setter Property="Background" Value="{DynamicResource SurfaceVariantBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource OnSurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource MediumCornerRadius}" />
+        <Setter Property="Padding" Value="{DynamicResource SpacingSM}" />
+        <Setter Property="FontFamily" Value="{DynamicResource PrimaryFontFamily}" />
+        <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}" />
+        <Setter Property="MinHeight" Value="40" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.2" />
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
+            </Transitions>
+        </Setter>
+        <Style Selector="^:focus">
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+        </Style>
+        <Style Selector="^:pointerover">
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryLightBrush}" />
+        </Style>
+    </Style>
+
+    <!-- Modern ComboBox Style -->
+    <Style Selector="ComboBox.ModernSelect" x:Key="ModernSelectStyle">
+        <Setter Property="Background" Value="{DynamicResource SurfaceVariantBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource OnSurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource MediumCornerRadius}" />
+        <Setter Property="Padding" Value="{DynamicResource SpacingSM}" />
+        <Setter Property="FontFamily" Value="{DynamicResource PrimaryFontFamily}" />
+        <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}" />
+        <Setter Property="MinHeight" Value="40" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.2" />
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
+            </Transitions>
+        </Setter>
+        <Style Selector="^:focus">
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+        </Style>
+        <Style Selector="^:pointerover">
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryLightBrush}" />
+        </Style>
+    </Style>
+
+    <!-- Dashboard Container Style -->
+    <Style Selector="Grid.DashboardContainer" x:Key="DashboardContainerStyle">
+        <Setter Property="Background" Value="{DynamicResource BackgroundBrush}" />
+        <Setter Property="Margin" Value="{DynamicResource SpacingMD}" />
+    </Style>
+
+    <!-- Chart Container Style -->
+    <Style Selector="Border.ChartContainer" x:Key="ChartContainerStyle">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource LargeCornerRadius}" />
+        <Setter Property="Padding" Value="{DynamicResource SpacingLG}" />
+        <Setter Property="Margin" Value="{DynamicResource SpacingSM}" />
+        <Setter Property="BoxShadow" Value="{DynamicResource SmallShadow}" />
+        <Setter Property="MinHeight" Value="300" />
+    </Style>
+
+    <!-- Status Indicator Styles -->
+    <Style Selector="Border.StatusSuccess" x:Key="StatusSuccessStyle">
+        <Setter Property="Background" Value="{DynamicResource SuccessBrush}" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Width" Value="24" />
+        <Setter Property="Height" Value="24" />
+    </Style>
+
+    <Style Selector="Border.StatusWarning" x:Key="StatusWarningStyle">
+        <Setter Property="Background" Value="{DynamicResource WarningBrush}" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Width" Value="24" />
+        <Setter Property="Height" Value="24" />
+    </Style>
+
+    <Style Selector="Border.StatusError" x:Key="StatusErrorStyle">
+        <Setter Property="Background" Value="{DynamicResource ErrorBrush}" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Width" Value="24" />
+        <Setter Property="Height" Value="24" />
+    </Style>
+
+    <!-- Loading Animation Style -->
+    <Style Selector="Border.LoadingSpinner" x:Key="LoadingSpinnerStyle">
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="CornerRadius" Value="16" />
+        <Setter Property="BorderThickness" Value="3" />
+        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Opacity" Value="0.3" />
+        <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
+        <Style.Animations>
+            <Animation Duration="0:0:1" IterationCount="Infinite">
+                <KeyFrame Cue="0%">
+                    <Setter Property="RenderTransform" Value="rotate(0deg)" />
+                </KeyFrame>
+                <KeyFrame Cue="100%">
+                    <Setter Property="RenderTransform" Value="rotate(360deg)" />
+                </KeyFrame>
+            </Animation>
+        </Style.Animations>
+    </Style>
+
+</ResourceDictionary>
