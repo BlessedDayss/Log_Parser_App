@@ -26,7 +26,7 @@ namespace Log_Parser_App.ViewModels
         private readonly IIISLogParserService _iisLogParserService; 
         private readonly IRabbitMqLogParserService _rabbitMqLogParserService;
         private readonly IFilePickerService _filePickerService;
-        private readonly IErrorRecommendationService _errorRecommendationService;
+        private readonly ISimpleErrorRecommendationService _simpleErrorRecommendationService;
         private readonly ILogger<FileLoadingViewModel> _logger;
 
         #endregion
@@ -75,14 +75,14 @@ namespace Log_Parser_App.ViewModels
             IIISLogParserService iisLogParserService,
             IRabbitMqLogParserService rabbitMqLogParserService,
             IFilePickerService filePickerService,
-            IErrorRecommendationService errorRecommendationService,
+            ISimpleErrorRecommendationService simpleErrorRecommendationService,
             ILogger<FileLoadingViewModel> logger)
         {
             _logParserService = logParserService;
             _iisLogParserService = iisLogParserService;
             _rabbitMqLogParserService = rabbitMqLogParserService;
             _filePickerService = filePickerService;
-            _errorRecommendationService = errorRecommendationService;
+            _simpleErrorRecommendationService = simpleErrorRecommendationService;
             _logger = logger;
         }
 
@@ -344,23 +344,22 @@ namespace Log_Parser_App.ViewModels
                 {
                     try
                     {
-                        var recommendation = _errorRecommendationService.AnalyzeError(entry.Message);
-                        if (recommendation != null)
+                        var simpleResult = _simpleErrorRecommendationService.AnalyzeError(entry.Message);
+                        if (simpleResult != null)
                         {
-                            entry.ErrorType = recommendation.ErrorType;
-                            entry.ErrorDescription = recommendation.Description;
+                            entry.ErrorType = "PatternMatch";
+                            entry.ErrorDescription = simpleResult.Message;
                             entry.ErrorRecommendations.Clear();
-                            if (recommendation.Recommendations != null)
-                            {
-                                entry.ErrorRecommendations.AddRange(recommendation.Recommendations);
-                            }
+                            entry.ErrorRecommendations.Add(simpleResult.Fix);
+                            entry.Recommendation = simpleResult.Fix;
                         }
                         else
                         {
                             entry.ErrorType = "UnknownError";
-                            entry.ErrorDescription = "Unknown error. Recommendations not found.";
+                            entry.ErrorDescription = "Unknown error pattern";
                             entry.ErrorRecommendations.Clear();
-                            entry.ErrorRecommendations.Add("Please contact with Developer to improve error_recommendations");
+                            entry.ErrorRecommendations.Add("Please contact developer to add this error pattern");
+                            entry.Recommendation = "Please contact developer to add this error pattern";
                         }
                     }
                     catch (Exception ex)

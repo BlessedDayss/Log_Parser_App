@@ -28,7 +28,7 @@ namespace Log_Parser_App.ViewModels
         private readonly ILogParserService _logParserService;
         private readonly ILogger<MainViewModel> _logger;
         private readonly IFileService _fileService;
-        private readonly IErrorRecommendationService _errorRecommendationService;
+        private readonly ISimpleErrorRecommendationService _simpleErrorRecommendationService;
         private readonly IFilePickerService _filePickerService;
         private readonly IIISLogParserService _iisLogParserService;
         private readonly IRabbitMqLogParserService _rabbitMqLogParserService;
@@ -293,7 +293,7 @@ namespace Log_Parser_App.ViewModels
             ILogParserService logParserService,
             ILogger<MainViewModel> logger,
             IFileService fileService,
-            IErrorRecommendationService errorRecommendationService,
+            ISimpleErrorRecommendationService simpleErrorRecommendationService,
             IFilePickerService filePickerService,
             IIISLogParserService iisLogParserService,
             IRabbitMqLogParserService rabbitMqLogParserService,
@@ -305,7 +305,7 @@ namespace Log_Parser_App.ViewModels
             _logParserService = logParserService;
             _logger = logger;
             _fileService = fileService;
-            _errorRecommendationService = errorRecommendationService;
+            _simpleErrorRecommendationService = simpleErrorRecommendationService;
             _filePickerService = filePickerService;
             _iisLogParserService = iisLogParserService;
             _rabbitMqLogParserService = rabbitMqLogParserService;
@@ -332,10 +332,10 @@ namespace Log_Parser_App.ViewModels
 
         private async void InitializeErrorRecommendationService() {
             try {
-                await _errorRecommendationService.InitializeAsync();
-                _logger.LogInformation("Error recommendation service initialized");
+                await _simpleErrorRecommendationService.LoadAsync();
+                _logger.LogInformation("Simple error recommendation service initialized");
             } catch (Exception ex) {
-                _logger.LogError(ex, "Failed to initialize error recommendation service");
+                _logger.LogError(ex, "Failed to initialize simple error recommendation service");
             }
         }
 
@@ -474,24 +474,22 @@ namespace Log_Parser_App.ViewModels
                     Parallel.ForEach(errorEntries,
                         entry => {
                             try {
-                                _logger.LogTrace("Обработка рекомендаций для ошибки: '{Message}'", entry.Message);
-                                var recommendation = _errorRecommendationService.AnalyzeError(entry.Message);
-                                if (recommendation != null) {
-                                    entry.ErrorType = recommendation.ErrorType;
-                                    entry.ErrorDescription = recommendation.Description;
+                                _logger.LogTrace("Processing recommendations for error: '{Message}'", entry.Message);
+                                
+                                var simpleResult = _simpleErrorRecommendationService.AnalyzeError(entry.Message);
+                                if (simpleResult != null) {
+                                    entry.ErrorType = "PatternMatch";
+                                    entry.ErrorDescription = simpleResult.Message;
                                     entry.ErrorRecommendations.Clear();
-                                    if (recommendation.Recommendations != null) {
-                                        entry.ErrorRecommendations.AddRange(recommendation.Recommendations);
-                                        // Set the Recommendation field for UI display
-                                        entry.Recommendation = string.Join(" • ", recommendation.Recommendations);
-                                    }
+                                    entry.ErrorRecommendations.Add(simpleResult.Fix);
+                                    entry.Recommendation = simpleResult.Fix;
+                                    _logger.LogDebug("Applied recommendation for error: {Type}", entry.ErrorType);
                                 } else {
                                     entry.ErrorType = "UnknownError";
-                                    entry.ErrorDescription = "Unknown error. Recommendations not found.";
+                                    entry.ErrorDescription = "Unknown error pattern";
                                     entry.ErrorRecommendations.Clear();
-                                    entry.ErrorRecommendations.Add("Please contact with Developer to improve error_recommendations");
-                                    // Set fallback recommendation for UI display
-                                    entry.Recommendation = "Please contact with Developer to improve error_recommendations";
+                                    entry.ErrorRecommendations.Add("Please contact developer to add this error pattern");
+                                    entry.Recommendation = "Please contact developer to add this error pattern";
                                 }
                             } catch (Exception ex) {
                                 _logger.LogError(ex, "Ошибка при обработке рекомендаций для записи {LineNumber}", entry.LineNumber);
@@ -827,17 +825,15 @@ namespace Log_Parser_App.ViewModels
                     if (!string.IsNullOrEmpty(errorEntry.Message)) {
                         // Check if recommendation is already set from LoadFileAsync processing
                         if (string.IsNullOrEmpty(errorEntry.Recommendation)) {
-                            var recommendationResult = _errorRecommendationService.AnalyzeError(errorEntry.Message);
-                            if (recommendationResult != null && recommendationResult.Recommendations.Any()) {
-                                // Combine all recommendations into a single string
-                                var combinedRecommendation = string.Join(" • ", recommendationResult.Recommendations);
-                                errorEntry.Recommendation = combinedRecommendation;
-                                _logger.LogDebug("Applied recommendation to error: {Message} -> {Recommendation}", 
+                            var simpleResult = _simpleErrorRecommendationService.AnalyzeError(errorEntry.Message);
+                            if (simpleResult != null) {
+                                errorEntry.Recommendation = simpleResult.Fix;
+                                _logger.LogDebug("Applied simple recommendation to error: {Message} -> {Recommendation}", 
                                     errorEntry.Message.Substring(0, Math.Min(50, errorEntry.Message.Length)), 
-                                    combinedRecommendation.Substring(0, Math.Min(100, combinedRecommendation.Length)));
+                                    simpleResult.Fix.Substring(0, Math.Min(100, simpleResult.Fix.Length)));
                             } else {
                                 // Fallback recommendation when no specific pattern matched
-                                errorEntry.Recommendation = "Please contact with Developer to improve error_recommendations";
+                                errorEntry.Recommendation = "Please contact developer to add this error pattern";
                                 _logger.LogDebug("Applied fallback recommendation to error: {Message}", 
                                     errorEntry.Message.Substring(0, Math.Min(50, errorEntry.Message.Length)));
                             }

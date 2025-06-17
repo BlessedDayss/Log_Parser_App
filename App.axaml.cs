@@ -222,7 +222,7 @@ namespace Log_Parser_App
         private void RegisterServices(ServiceCollection services) {
             services.AddSingleton<ILogParserService, LogParserService>();
             services.AddSingleton<IFileService, FileService>();
-            services.AddSingleton<IErrorRecommendationService, ErrorRecommendationService>();
+            services.AddSingleton<ISimpleErrorRecommendationService, SimpleErrorRecommendationService>();
             services.AddSingleton<IIISLogParserService, IISLogParserService>();
             services.AddSingleton<IRabbitMqLogParserService, RabbitMqLogParserService>();
 

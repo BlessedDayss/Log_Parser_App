@@ -50,7 +50,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         // Design-time constructor
         _logger = null!; 
-        _mainView = new Log_Parser_App.ViewModels.MainViewModel(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!); // Updated for all required services including IErrorDetectionService
+        _mainView = new Log_Parser_App.ViewModels.MainViewModel(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!); // Updated for simplified error recommendation service
         _updateService = null!;
         AppVersion = "v0.0.1-design";
         // Design-time filter criterion for the previewer - this will cause issues if FilterCriteria is removed
