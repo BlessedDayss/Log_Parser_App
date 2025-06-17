@@ -228,13 +228,27 @@ namespace Log_Parser_App
 
             services.AddSingleton<ILogFileLoader, LogFileLoader>();
             services.AddSingleton<ILogFilesLoader, LogFilesLoader>();
-            services.AddSingleton<StandardLogLineParser>();
-            services.AddSingleton<SimpleLogLineParser>();
-            services.AddSingleton<LogLineParser>();
+            // Register Level Detection Strategies (SOLID Strategy Pattern)
+            services.AddSingleton<Log_Parser_App.Services.LevelDetection.FalsePositiveExclusionStrategy>();
+            services.AddSingleton<Log_Parser_App.Services.LevelDetection.RegexBasedLevelDetectionStrategy>();
+            services.AddSingleton<Log_Parser_App.Services.LevelDetection.KeywordBasedLevelDetectionStrategy>();
+            
+            // Register Level Detection Service with all strategies
+            services.AddSingleton<Log_Parser_App.Services.LevelDetection.LevelDetectionService>(provider =>
+                new Log_Parser_App.Services.LevelDetection.LevelDetectionService([
+                    provider.GetRequiredService<Log_Parser_App.Services.LevelDetection.FalsePositiveExclusionStrategy>(),
+                    provider.GetRequiredService<Log_Parser_App.Services.LevelDetection.RegexBasedLevelDetectionStrategy>(),
+                    provider.GetRequiredService<Log_Parser_App.Services.LevelDetection.KeywordBasedLevelDetectionStrategy>()
+                ]));
+            
+            // Register NEW SOLID parsers (replacing old ones)
+            services.AddSingleton<Log_Parser_App.Services.Parsing.RefactoredStandardLogLineParser>();
+            services.AddSingleton<Log_Parser_App.Services.Parsing.RefactoredSimpleLogLineParser>();
+            
+            // Use NEW LogLineParserChain with SOLID parsers
             services.AddSingleton<Log_Parser_App.Interfaces.ILogLineParser>(provider => new LogLineParserChain([
-                provider.GetRequiredService<StandardLogLineParser>(),
-                provider.GetRequiredService<LogLineParser>(),
-                provider.GetRequiredService<SimpleLogLineParser>()
+                provider.GetRequiredService<Log_Parser_App.Services.Parsing.RefactoredStandardLogLineParser>(),
+                provider.GetRequiredService<Log_Parser_App.Services.Parsing.RefactoredSimpleLogLineParser>()
             ]));
             // FilePickerService registration updated
             services.AddSingleton<Log_Parser_App.Interfaces.IFilePickerService, Log_Parser_App.Services.FilePickerService>();
