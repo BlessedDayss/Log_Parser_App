@@ -75,24 +75,5 @@ public interface IFilterService
     /// <returns>True if import was successful</returns>
     bool ImportFilterConfiguration(string configuration);
     
-    /// <summary>
-    /// Event fired when filters are applied
-    /// </summary>
-    event EventHandler<FiltersAppliedEventArgs>? FiltersApplied;
-
-    /// <summary>
-    /// Event fired when filters are reset
-    /// </summary>
-    event EventHandler? FiltersReset;
-}
-
-/// <summary>
-/// Event arguments for filters applied
-/// </summary>
-public class FiltersAppliedEventArgs : EventArgs
-{
-    public IEnumerable<FilterCriterion> AppliedFilters { get; set; } = Enumerable.Empty<FilterCriterion>();
-    public int ResultCount { get; set; }
-    public IEnumerable<LogEntry> OriginalEntries { get; set; } = Enumerable.Empty<LogEntry>();
-    public IEnumerable<LogEntry> FilteredEntries { get; set; } = Enumerable.Empty<LogEntry>();
+    // Events removed as they were not being used
 } 

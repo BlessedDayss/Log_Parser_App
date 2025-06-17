@@ -1,0 +1,105 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Log_Parser_App.ViewModels"
+        x:Class="Log_Parser_App.Views.UpdateProgressWindow"
+        x:DataType="vm:UpdateProgressViewModel"
+        Title="Application Update"
+        Width="450"
+        Height="300"
+        WindowStartupLocation="CenterScreen"
+        CanResize="False"
+        ShowInTaskbar="True"
+        Topmost="True"
+        Background="#1E1E1E">
+
+    <Border Background="#2D2D30" CornerRadius="8" Margin="20">
+        <StackPanel Spacing="20" Margin="30">
+            
+            <!-- Header -->
+            <StackPanel Orientation="Horizontal" Spacing="15">
+                <Border Width="48" Height="48" CornerRadius="24" Background="#0078D4">
+                    <TextBlock Text="🔄" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel>
+                    <TextBlock Text="Application Update" 
+                               FontSize="20" 
+                               FontWeight="Bold" 
+                               Foreground="White"/>
+                    <TextBlock Text="{Binding UpdateMessage}" 
+                               FontSize="14" 
+                               Foreground="#CCCCCC"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Update Info -->
+            <Border Background="#3C3C3C" CornerRadius="6" Padding="15">
+                <StackPanel Spacing="8">
+                    <TextBlock FontSize="14" Foreground="#CCCCCC">
+                        <TextBlock.Text>
+                                                    <MultiBinding StringFormat="{}Current version: {0}">
+                            <Binding Path="CurrentVersion"/>
+                        </MultiBinding>
+                    </TextBlock.Text>
+                </TextBlock>
+                <TextBlock FontSize="14" Foreground="#4EC9B0">
+                    <TextBlock.Text>
+                        <MultiBinding StringFormat="{}New version: {0}">
+                            <Binding Path="NewVersion"/>
+                        </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <!-- Progress -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding ProgressText}" 
+                           FontSize="14" 
+                           Foreground="White" 
+                           HorizontalAlignment="Center"/>
+                
+                <ProgressBar Value="{Binding ProgressValue}" 
+                             Maximum="100" 
+                             Height="8" 
+                             Background="#404040"
+                             Foreground="#0078D4"/>
+                
+                <TextBlock FontSize="12" 
+                           Foreground="#CCCCCC" 
+                           HorizontalAlignment="Center">
+                    <TextBlock.Text>
+                        <MultiBinding StringFormat="{}{0}%">
+                            <Binding Path="ProgressPercentage"/>
+                        </MultiBinding>
+                    </TextBlock.Text>
+                </TextBlock>
+            </StackPanel>
+
+            <!-- Status -->
+            <Border Background="#404040" CornerRadius="6" Padding="15">
+                <StackPanel Spacing="5">
+                    <TextBlock Text="Status:" 
+                               FontSize="12" 
+                               Foreground="#CCCCCC"/>
+                    <TextBlock Text="{Binding StatusMessage}" 
+                               FontSize="14" 
+                               Foreground="White" 
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Warning -->
+            <Border Background="#664D00" CornerRadius="6" Padding="12">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="⚠️" FontSize="16" VerticalAlignment="Center"/>
+                    <TextBlock Text="Please do not close the application during update" 
+                               FontSize="12" 
+                               Foreground="#FFD700" 
+                               TextWrapping="Wrap" 
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </Border>
+</Window> 

@@ -22,15 +22,7 @@ public class FilterService : IFilterService
 
     #region Events
 
-    /// <summary>
-    /// Event fired when filters are applied
-    /// </summary>
-    public event EventHandler<FiltersAppliedEventArgs>? FiltersApplied;
-
-    /// <summary>
-    /// Event fired when filters are reset
-    /// </summary>
-    public event EventHandler? FiltersReset;
+    // Events removed as they were not being used
 
     #endregion
 

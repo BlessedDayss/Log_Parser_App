@@ -26,6 +26,7 @@ namespace Log_Parser_App
     {
         public static Window? MainWindow { get; private set; }
         public static IServiceProvider? Services { get; private set; }
+        public static IServiceProvider? ServiceProvider => Services;
 
         public override void Initialize() {
             AvaloniaXamlLoader.Load(this);
@@ -56,6 +57,7 @@ namespace Log_Parser_App
 
                 if (updateViewModel != null) {
                     Console.WriteLine("[App] Starting UpdateViewModel.CheckForUpdatesOnStartupAsync().");
+                    
                     Task.Run(async () => {
                         try {
                             await updateViewModel.CheckForUpdatesOnStartupAsync();
@@ -64,14 +66,22 @@ namespace Log_Parser_App
                             Console.WriteLine($"[App] Error in CheckForUpdatesOnStartupAsync task: {ex_task.Message}");
                         }
                     });
+                } else {
+                    Console.WriteLine("[App] UpdateViewModel is NULL - update functionality not available.");
                 }
 
                 MainWindowViewModel? mainWindowViewModel = null;
                 try {
-                    mainWindowViewModel = services.GetRequiredService<MainWindowViewModel>();
-                    Console.WriteLine("[App] MainWindowViewModel resolved.");
+                    // First get the required dependencies
+                    var mainViewModel = services.GetRequiredService<MainViewModel>();
+                    var updateService = services.GetRequiredService<Log_Parser_App.Interfaces.IUpdateService>();
+                    var logger = services.GetRequiredService<ILogger<MainWindowViewModel>>();
+                    
+                    // Create MainWindowViewModel manually with all dependencies including UpdateViewModel
+                    mainWindowViewModel = new MainWindowViewModel(logger, mainViewModel, updateService, updateViewModel!);
+                    Console.WriteLine("[App] MainWindowViewModel created manually with UpdateViewModel.");
                 } catch (Exception ex) {
-                    Console.WriteLine($"[App] Error resolving MainWindowViewModel: {ex.Message}");
+                    Console.WriteLine($"[App] Error creating MainWindowViewModel: {ex.Message}");
                 }
 
                 var splashScreen = new Views.SplashScreen();
@@ -270,6 +280,7 @@ namespace Log_Parser_App
 
             services.AddSingleton<Log_Parser_App.Interfaces.IUpdateService>(provider =>
                 new GitHubUpdateService(provider.GetRequiredService<ILogger<GitHubUpdateService>>(), "BlessedDayss", "Log_Parser_App"));
+            services.AddSingleton<IAutoUpdateConfigService, AutoUpdateConfigService>();
             services.AddSingleton<UpdateViewModel>();
         }
 
@@ -282,7 +293,7 @@ namespace Log_Parser_App
             
             // Use original MainViewModel with enhanced error detection
             services.AddSingleton<MainViewModel>();
-            services.AddSingleton<MainWindowViewModel>();
+            // MainWindowViewModel is created manually in OnFrameworkInitializationCompleted
         }
 
         private void DisableAvaloniaDataAnnotationValidation() {

@@ -342,4 +342,4 @@ namespace Log_Parser_App.ViewModels
     }
 
     #endregion
-} 
+}

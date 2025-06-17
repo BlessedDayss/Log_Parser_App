@@ -3,7 +3,7 @@ namespace Log_Parser_App.Models
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.ComponentModel;
-using Log_Parser_App.ViewModels;
+    using Log_Parser_App.ViewModels;
     using System.Linq;
     using System.Runtime.CompilerServices;
 
