@@ -55,7 +55,14 @@ namespace Log_Parser_App.Services
 
             var levelMatch = LevelRegex.Match(message);
             if (levelMatch.Success) {
-                level = levelMatch.Value.ToUpper();
+                // Check for "0 Error" false positive BEFORE setting level
+                string detectedLevel = levelMatch.Value.ToUpper();
+                if ((detectedLevel == "ERROR" || detectedLevel == "WARNING") && IsZeroErrorOrWarningFalsePositive(message)) {
+                    level = "INFO"; // Override false positive to INFO
+                } else {
+                    level = detectedLevel;
+                }
+                
                 if (message.StartsWith(levelMatch.Value + " ") || message.StartsWith("[" + levelMatch.Value + "]") || message.StartsWith("(" + levelMatch.Value + ")")) {
                     message = message.Substring(levelMatch.Index + levelMatch.Length).Trim();
                     if (message.StartsWith(":"))
@@ -67,9 +74,10 @@ namespace Log_Parser_App.Services
                 var debugRegex = new Regex(@"\bdebug\b", RegexOptions.IgnoreCase);
                 var traceRegex = new Regex(@"\btrace\b", RegexOptions.IgnoreCase);
 
-                if (errorRegex.IsMatch(message))
+                // Check for error/warning keywords but exclude "0 Error" and "0 Warning" false positives
+                if (errorRegex.IsMatch(message) && !IsZeroErrorOrWarningFalsePositive(message))
                     level = "ERROR";
-                else if (warnRegex.IsMatch(message))
+                else if (warnRegex.IsMatch(message) && !IsZeroErrorOrWarningFalsePositive(message))
                     level = "WARNING";
                 else if (debugRegex.IsMatch(message))
                     level = "DEBUG";
@@ -103,6 +111,20 @@ namespace Log_Parser_App.Services
                 FilePath = filePath,
                 LineNumber = lineNumber
             };
+        }
+
+        /// <summary>
+        /// Checks if a line contains "0 Error" or "0 Warning" pattern which should not be treated as error/warning
+        /// </summary>
+        /// <param name="line">Log line to check</param>
+        /// <returns>True if line contains "0 error", "0 errors", "0 warning", or "0 warnings" pattern</returns>
+        private static bool IsZeroErrorOrWarningFalsePositive(string line) {
+            if (string.IsNullOrEmpty(line))
+                return false;
+                
+            var lowerLine = line.ToLowerInvariant();
+            return lowerLine.Contains("0 error") || lowerLine.Contains("0 errors") ||
+                   lowerLine.Contains("0 warning") || lowerLine.Contains("0 warnings");
         }
     }
 }

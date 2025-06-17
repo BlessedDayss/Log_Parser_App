@@ -28,9 +28,10 @@ using Log_Parser_App.Interfaces;
                 timestamp = DateTime.Now;
             var rest = match.Groups[2].Value;
             var level = "INFO";
-            if (rest.Contains("error", StringComparison.OrdinalIgnoreCase))
+            // Check for error/warning keywords but exclude "0 Error" and "0 Warning" false positives
+            if (rest.Contains("error", StringComparison.OrdinalIgnoreCase) && !IsZeroErrorOrWarningFalsePositive(rest))
                 level = "ERROR";
-            else if (rest.Contains("warning", StringComparison.OrdinalIgnoreCase))
+            else if (rest.Contains("warning", StringComparison.OrdinalIgnoreCase) && !IsZeroErrorOrWarningFalsePositive(rest))
                 level = "WARNING";
             var entry = new LogEntry
             {
@@ -41,6 +42,20 @@ using Log_Parser_App.Interfaces;
                 LineNumber = lineNumber
             };
             return entry;
+        }
+
+        /// <summary>
+        /// Checks if a line contains "0 Error" or "0 Warning" pattern which should not be treated as error/warning
+        /// </summary>
+        /// <param name="line">Log line to check</param>
+        /// <returns>True if line contains "0 error", "0 errors", "0 warning", or "0 warnings" pattern</returns>
+        private static bool IsZeroErrorOrWarningFalsePositive(string line) {
+            if (string.IsNullOrEmpty(line))
+                return false;
+                
+            var lowerLine = line.ToLowerInvariant();
+            return lowerLine.Contains("0 error") || lowerLine.Contains("0 errors") ||
+                   lowerLine.Contains("0 warning") || lowerLine.Contains("0 warnings");
         }
     }
 } 

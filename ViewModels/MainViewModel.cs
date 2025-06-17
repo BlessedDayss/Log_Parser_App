@@ -489,10 +489,9 @@ namespace Log_Parser_App.ViewModels
                                     entry.ErrorType = "UnknownError";
                                     entry.ErrorDescription = "Unknown error. Recommendations not found.";
                                     entry.ErrorRecommendations.Clear();
-                                    entry.ErrorRecommendations.Add("Check error log for additional information.");
-                                    entry.ErrorRecommendations.Add("Contact documentation or support.");
-                                    // Set default recommendation for UI display
-                                    entry.Recommendation = "Check logs for additional context. Verify system configuration and dependencies. Review error patterns for troubleshooting.";
+                                    entry.ErrorRecommendations.Add("Please contact with Developer to improve error_recommendations");
+                                    // Set fallback recommendation for UI display
+                                    entry.Recommendation = "Please contact with Developer to improve error_recommendations";
                                 }
                             } catch (Exception ex) {
                                 _logger.LogError(ex, "Ошибка при обработке рекомендаций для записи {LineNumber}", entry.LineNumber);
@@ -586,7 +585,7 @@ namespace Log_Parser_App.ViewModels
 
             UpdateMultiFileModeStatus();
             _logger.LogInformation("[LoadFilesAsync] After UpdateMultiFileModeStatus. IsMultiFileModeActive: {IsActive}", IsMultiFileModeActive);
-            UpdateAllErrorLogEntries();
+            _ = Task.Run(UpdateAllErrorLogEntries);
             IsLoading = false;
             StatusMessage = $"Finished processing {files.Count()} files. {FileTabs.Count(t => files.Contains(t.FilePath))} new tab(s) added.";
             if (FileTabs.Any() && SelectedTab == null) {
@@ -728,7 +727,7 @@ namespace Log_Parser_App.ViewModels
                     UpdateMultiFileModeStatus();
                     _logger.LogInformation("[LoadDirectoryAsync - No files found or error block] After UpdateMultiFileModeStatus. IsMultiFileModeActive: {IsActive}",
                         IsMultiFileModeActive);
-                    UpdateAllErrorLogEntries();
+                    _ = Task.Run(UpdateAllErrorLogEntries);
                 });
             } catch (UnauthorizedAccessException ex) {
                 _logger.LogError(ex, "Access denied to directory: {DirectoryPath}", dir);
@@ -737,7 +736,7 @@ namespace Log_Parser_App.ViewModels
                     IsLoading = false;
                     UpdateMultiFileModeStatus();
                     _logger.LogInformation("[LoadDirectoryAsync - UnauthorizedAccessException] After UpdateMultiFileModeStatus. IsMultiFileModeActive: {IsActive}", IsMultiFileModeActive);
-                    UpdateAllErrorLogEntries();
+                    _ = Task.Run(UpdateAllErrorLogEntries);
                 });
             } catch (DirectoryNotFoundException ex) {
                 _logger.LogError(ex, "Directory not found: {DirectoryPath}", dir);
@@ -746,7 +745,7 @@ namespace Log_Parser_App.ViewModels
                     IsLoading = false;
                     UpdateMultiFileModeStatus();
                     _logger.LogInformation("[LoadDirectoryAsync - DirectoryNotFoundException] After UpdateMultiFileModeStatus. IsMultiFileModeActive: {IsActive}", IsMultiFileModeActive);
-                    UpdateAllErrorLogEntries();
+                    _ = Task.Run(UpdateAllErrorLogEntries);
                 });
             } catch (Exception ex) {
                 _logger.LogError(ex, "Error processing directory {DirectoryPath}", dir);
@@ -755,7 +754,7 @@ namespace Log_Parser_App.ViewModels
                     IsLoading = false;
                     UpdateMultiFileModeStatus();
                     _logger.LogInformation("[LoadDirectoryAsync - Exception] After UpdateMultiFileModeStatus. IsMultiFileModeActive: {IsActive}", IsMultiFileModeActive);
-                    UpdateAllErrorLogEntries();
+                    _ = Task.Run(UpdateAllErrorLogEntries);
                 });
             }
         }
@@ -837,9 +836,9 @@ namespace Log_Parser_App.ViewModels
                                     errorEntry.Message.Substring(0, Math.Min(50, errorEntry.Message.Length)), 
                                     combinedRecommendation.Substring(0, Math.Min(100, combinedRecommendation.Length)));
                             } else {
-                                // Default recommendation when no specific pattern matched
-                                errorEntry.Recommendation = "Check logs for additional context. Verify system configuration and dependencies. Review error patterns for troubleshooting.";
-                                _logger.LogDebug("Applied default recommendation to error: {Message}", 
+                                // Fallback recommendation when no specific pattern matched
+                                errorEntry.Recommendation = "Please contact with Developer to improve error_recommendations";
+                                _logger.LogDebug("Applied fallback recommendation to error: {Message}", 
                                     errorEntry.Message.Substring(0, Math.Min(50, errorEntry.Message.Length)));
                             }
                         } else {
@@ -1682,28 +1681,51 @@ namespace Log_Parser_App.ViewModels
                 IsMultiFileModeActive);
         }
 
-        private void UpdateAllErrorLogEntries() {
-            AllErrorLogEntries.Clear();
-            if (IsMultiFileModeActive) {
-                _logger.LogDebug("[UpdateAllErrorLogEntries] Starting to collect errors. FileTabs.Count: {FileTabsCount}", FileTabs.Count);
-                var allErrors = new List<LogEntry>();
-                foreach (var tab in FileTabs) {
-                    _logger.LogDebug("[UpdateAllErrorLogEntries] Processing tab: '{TabTitle}'. Total entries in this tab: {LogEntriesCount}", tab.Title, tab.LogEntries.Count);
-                    var tabErrors = tab.LogEntries.Where(e => e.Level.Equals("Error", StringComparison.OrdinalIgnoreCase)).ToList();
-                    _logger.LogDebug("[UpdateAllErrorLogEntries] Found {ErrorCount} errors in tab: '{TabTitle}'", tabErrors.Count, tab.Title);
-                    foreach (var error in tabErrors) {
-                        error.SourceTabTitle = tab.Title; // Set the source tab title
-                        allErrors.Add(error);
+        private async void UpdateAllErrorLogEntries() {
+            try {
+                if (IsMultiFileModeActive) {
+                    _logger.LogDebug("[UpdateAllErrorLogEntries] Starting to collect errors. FileTabs.Count: {FileTabsCount}", FileTabs.Count);
+                    var allErrors = new List<LogEntry>();
+                    foreach (var tab in FileTabs) {
+                        _logger.LogDebug("[UpdateAllErrorLogEntries] Processing tab: '{TabTitle}'. Total entries in this tab: {LogEntriesCount}", tab.Title, tab.LogEntries.Count);
+                        
+                        // Use error detection service instead of simple Level filtering
+                        var tabErrors = await _errorDetectionService.DetectErrorsAsync(tab.LogEntries, tab.LogType);
+                        var tabErrorsList = tabErrors.ToList();
+                        
+                        _logger.LogDebug("[UpdateAllErrorLogEntries] Found {ErrorCount} errors in tab: '{TabTitle}' using {LogType} strategy", tabErrorsList.Count, tab.Title, tab.LogType);
+                        foreach (var error in tabErrorsList) {
+                            error.SourceTabTitle = tab.Title; // Set the source tab title
+                            allErrors.Add(error);
+                        }
                     }
+                    _logger.LogDebug("[UpdateAllErrorLogEntries] Total errors collected from all tabs: {TotalErrorCount}", allErrors.Count);
+                    allErrors.Sort((x, y) => x.Timestamp.CompareTo(y.Timestamp));
+                    
+                    // Update UI collections on UI thread
+                    await Dispatcher.UIThread.InvokeAsync(() => {
+                        AllErrorLogEntries.Clear();
+                        foreach (var error in allErrors) {
+                            AllErrorLogEntries.Add(error);
+                        }
+                        OnPropertyChanged(nameof(AllErrorLogEntries));
+                    });
+                } else {
+                    // Clear collections on UI thread when not in multi-file mode
+                    await Dispatcher.UIThread.InvokeAsync(() => {
+                        AllErrorLogEntries.Clear();
+                        OnPropertyChanged(nameof(AllErrorLogEntries));
+                    });
                 }
-                _logger.LogDebug("[UpdateAllErrorLogEntries] Total errors collected from all tabs: {TotalErrorCount}", allErrors.Count);
-                allErrors.Sort((x, y) => x.Timestamp.CompareTo(y.Timestamp));
-                foreach (var error in allErrors) {
-                    AllErrorLogEntries.Add(error);
-                }
+                _logger.LogInformation("AllErrorLogEntries updated. Count: {Count}. Active: {IsMultiFileModeActive}", AllErrorLogEntries.Count, IsMultiFileModeActive);
+            } catch (Exception ex) {
+                _logger.LogError(ex, "Error in UpdateAllErrorLogEntries");
+                // Safely clear on UI thread in case of error
+                await Dispatcher.UIThread.InvokeAsync(() => {
+                    AllErrorLogEntries.Clear();
+                    OnPropertyChanged(nameof(AllErrorLogEntries));
+                });
             }
-            _logger.LogInformation("AllErrorLogEntries updated. Count: {Count}. Active: {IsMultiFileModeActive}", AllErrorLogEntries.Count, IsMultiFileModeActive);
-            OnPropertyChanged(nameof(AllErrorLogEntries)); // Notify UI about changes to this collection
         }
 
         [RelayCommand]
@@ -2027,8 +2049,8 @@ namespace Log_Parser_App.ViewModels
         {
             try
             {
-                UpdateMultiFileModeStatus();
-                UpdateAllErrorLogEntries();
+                            UpdateMultiFileModeStatus();
+            _ = Task.Run(UpdateAllErrorLogEntries);
                 
                 if (_tabManagerService.FileTabs.Count == 0)
                 {

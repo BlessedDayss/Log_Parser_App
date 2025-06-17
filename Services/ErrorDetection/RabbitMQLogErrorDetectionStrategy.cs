@@ -40,6 +40,18 @@ namespace Log_Parser_App.Services.ErrorDetection
 
             try
             {
+                // CRITICAL: Exclude "0 Error" false positives first
+                if (!string.IsNullOrEmpty(logEntry.Message))
+                {
+                    var lowerMessage = logEntry.Message.ToLowerInvariant();
+                    if (lowerMessage.Contains("0 error") || lowerMessage.Contains("0 errors"))
+                    {
+                        _logger.LogTrace("RabbitMQ log entry excluded due to '0 Error' pattern: {MessagePreview}", 
+                            logEntry.Message.Substring(0, Math.Min(logEntry.Message.Length, 100)));
+                        return false;
+                    }
+                }
+
                 // Check Level field first
                 if (SafeStringEqualsAny(logEntry.Level, ErrorLevels))
                     return true;
@@ -75,6 +87,18 @@ namespace Log_Parser_App.Services.ErrorDetection
                         rabbitMqLogEntry.EffectiveLevel, 
                         rabbitMqLogEntry.Message?.Substring(0, Math.Min(rabbitMqLogEntry.Message.Length, 100)));
                     return true;
+                }
+
+                // CRITICAL: Exclude "0 Error" false positives before message analysis
+                if (!string.IsNullOrEmpty(rabbitMqLogEntry.Message))
+                {
+                    var lowerMessage = rabbitMqLogEntry.Message.ToLowerInvariant();
+                    if (lowerMessage.Contains("0 error") || lowerMessage.Contains("0 errors"))
+                    {
+                        _logger.LogTrace("RabbitMQ log entry excluded due to '0 Error' pattern: {MessagePreview}", 
+                            rabbitMqLogEntry.Message.Substring(0, Math.Min(rabbitMqLogEntry.Message.Length, 100)));
+                        return false;
+                    }
                 }
 
                 // Check for RabbitMQ-specific error patterns in message

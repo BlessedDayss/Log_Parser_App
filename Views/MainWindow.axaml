@@ -840,6 +840,7 @@
                                       AutoGenerateColumns="False"
                                       CanUserSortColumns="True"
                                       CanUserReorderColumns="True"
+                                      CanUserResizeColumns="True"
                                       GridLinesVisibility="All"
                                       BorderThickness="1"
                                       BorderBrush="Gray">
@@ -855,7 +856,7 @@
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
-                                    <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="4*"/>
+                                    <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="6*" MinWidth="200"/>
                                     <DataGridTextColumn Header="Recommendation" Binding="{Binding Recommendation}" Width="3*"/>
                                 </DataGrid.Columns>
                             </DataGrid>
@@ -869,6 +870,7 @@
                                       AutoGenerateColumns="False"
                                       CanUserSortColumns="True"
                                       CanUserReorderColumns="True"
+                                      CanUserResizeColumns="True"
                                       GridLinesVisibility="All"
                                       BorderThickness="1"
                                       BorderBrush="Gray">
@@ -884,7 +886,7 @@
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
-                                    <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="4*"/>
+                                    <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="6*" MinWidth="200"/>
                                     <DataGridTextColumn Header="Source File" Binding="{Binding SourceTabTitle}" Width="2*"/> 
                                     <DataGridTextColumn Header="Recommendation" Binding="{Binding Recommendation}" Width="3*"/>
                                 </DataGrid.Columns>

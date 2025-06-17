@@ -360,8 +360,7 @@ namespace Log_Parser_App.ViewModels
                             entry.ErrorType = "UnknownError";
                             entry.ErrorDescription = "Unknown error. Recommendations not found.";
                             entry.ErrorRecommendations.Clear();
-                            entry.ErrorRecommendations.Add("Check error log for additional information.");
-                            entry.ErrorRecommendations.Add("Contact documentation or support.");
+                            entry.ErrorRecommendations.Add("Please contact with Developer to improve error_recommendations");
                         }
                     }
                     catch (Exception ex)

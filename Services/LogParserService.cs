@@ -121,7 +121,8 @@ namespace Log_Parser_App.Services
 						};
 					}
 
-					if (containsErrorKeyword) {
+					// Check for "0 Error" false positive before setting ERROR level
+					if (containsErrorKeyword && !IsZeroErrorOrWarningFalsePositive(line)) {
 						entry.Level = "ERROR";
 					}
 
@@ -145,7 +146,8 @@ namespace Log_Parser_App.Services
 					}
 
 					if (!handledAsStackTrace) {
-						string levelForUnparsedLine = containsErrorKeyword ? "ERROR" : "INFO";
+						// Check for "0 Error" false positive before setting ERROR level
+						string levelForUnparsedLine = (containsErrorKeyword && !IsZeroErrorOrWarningFalsePositive(line)) ? "ERROR" : "INFO";
 						var unparsedEntry = new LogEntry {
 							Timestamp = System.DateTime.Now,
 							Level = levelForUnparsedLine,
@@ -166,6 +168,20 @@ namespace Log_Parser_App.Services
 			}
 
 			_logger.LogInformation("ParseLines completed. Total processed lines: {ProcessedCount}", processedLinesCount);
+		}
+
+		/// <summary>
+		/// Checks if a line contains "0 Error" or "0 Warning" pattern which should not be treated as error/warning
+		/// </summary>
+		/// <param name="line">Log line to check</param>
+		/// <returns>True if line contains "0 error", "0 errors", "0 warning", or "0 warnings" pattern</returns>
+		private static bool IsZeroErrorOrWarningFalsePositive(string line) {
+			if (string.IsNullOrEmpty(line))
+				return false;
+				
+			var lowerLine = line.ToLowerInvariant();
+			return lowerLine.Contains("0 error") || lowerLine.Contains("0 errors") ||
+			       lowerLine.Contains("0 warning") || lowerLine.Contains("0 warnings");
 		}
 
 		private static void AppendStackTrace(LogEntry entry, string line) {

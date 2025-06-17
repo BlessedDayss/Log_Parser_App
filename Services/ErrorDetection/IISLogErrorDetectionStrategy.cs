@@ -47,6 +47,18 @@ namespace Log_Parser_App.Services.ErrorDetection
                     return statusFromMessage.Value >= ErrorStatusThreshold;
                 }
 
+                // CRITICAL: Exclude "0 Error" false positives before level-based detection
+                if (!string.IsNullOrEmpty(logEntry.Message))
+                {
+                    var lowerMessage = logEntry.Message.ToLowerInvariant();
+                    if (lowerMessage.Contains("0 error") || lowerMessage.Contains("0 errors"))
+                    {
+                        _logger.LogTrace("IIS log entry excluded due to '0 Error' pattern: {MessagePreview}", 
+                            logEntry.Message.Substring(0, Math.Min(logEntry.Message.Length, 100)));
+                        return false;
+                    }
+                }
+
                 // Fallback to level-based detection
                 return SafeStringEqualsAny(logEntry.Level, new[] { "error", "critical", "fatal" });
             }

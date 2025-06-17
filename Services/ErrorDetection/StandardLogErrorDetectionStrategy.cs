@@ -38,6 +38,18 @@ namespace Log_Parser_App.Services.ErrorDetection
                 if (!IsValidLogEntry(logEntry))
                     return false;
 
+                // CRITICAL: Always check for "0 Error" false positives FIRST, regardless of Level
+                if (!string.IsNullOrEmpty(logEntry.Message))
+                {
+                    var lowerMessage = logEntry.Message.ToLowerInvariant();
+                    if (lowerMessage.Contains("0 error") || lowerMessage.Contains("0 errors"))
+                    {
+                        _logger.LogTrace("Standard log entry excluded due to '0 Error' pattern: Level={Level}, Message={Message}", 
+                            logEntry.Level, logEntry.Message.Substring(0, Math.Min(logEntry.Message.Length, 100)));
+                        return false;
+                    }
+                }
+
                 // Check if Level field indicates an error
                 if (SafeStringEqualsAny(logEntry.Level, ErrorLevels))
                 {
@@ -46,9 +58,9 @@ namespace Log_Parser_App.Services.ErrorDetection
                     return true;
                 }
 
-                // Additional check: look for error indicators in the message if Level is missing or generic
-                if (string.IsNullOrEmpty(logEntry.Level) || 
-                    SafeStringEqualsAny(logEntry.Level, new[] { "info", "information", "debug", "trace" }))
+                // Additional check: look for error indicators in the message ONLY if Level is missing or NULL
+                // Do NOT check INFO/DEBUG levels - they should stay as INFO/DEBUG
+                if (string.IsNullOrEmpty(logEntry.Level))
                 {
                     return ContainsErrorIndicators(logEntry.Message);
                 }
@@ -101,6 +113,16 @@ namespace Log_Parser_App.Services.ErrorDetection
             if (string.IsNullOrEmpty(message))
                 return false;
 
+            var lowerMessage = message.ToLowerInvariant();
+
+            // CRITICAL: Exclude "0 Error" false positives
+            if (lowerMessage.Contains("0 error") || lowerMessage.Contains("0 errors"))
+            {
+                _logger.LogTrace("Standard log entry excluded due to '0 Error' pattern: {MessagePreview}", 
+                    message.Substring(0, Math.Min(message.Length, 100)));
+                return false;
+            }
+
             var errorIndicators = new[]
             {
                 "error", "exception", "failed", "failure", "fault", "critical", 
@@ -108,7 +130,6 @@ namespace Log_Parser_App.Services.ErrorDetection
                 "invalid", "corrupt", "broken", "unavailable", "unreachable"
             };
 
-            var lowerMessage = message.ToLowerInvariant();
             var hasErrorIndicator = errorIndicators.Any(indicator => lowerMessage.Contains(indicator));
 
             if (hasErrorIndicator)

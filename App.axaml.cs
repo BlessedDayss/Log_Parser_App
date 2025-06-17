@@ -230,8 +230,10 @@ namespace Log_Parser_App
             services.AddSingleton<ILogFilesLoader, LogFilesLoader>();
             services.AddSingleton<StandardLogLineParser>();
             services.AddSingleton<SimpleLogLineParser>();
+            services.AddSingleton<LogLineParser>();
             services.AddSingleton<Log_Parser_App.Interfaces.ILogLineParser>(provider => new LogLineParserChain([
                 provider.GetRequiredService<StandardLogLineParser>(),
+                provider.GetRequiredService<LogLineParser>(),
                 provider.GetRequiredService<SimpleLogLineParser>()
             ]));
             // FilePickerService registration updated
