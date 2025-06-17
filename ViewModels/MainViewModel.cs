@@ -2256,6 +2256,24 @@ namespace Log_Parser_App.ViewModels
             await ChangeDashboardTypeAsync(DashboardType.ErrorAnalysis);
         }
 
+        [RelayCommand]
+        private async Task ShowUpdateSettings()
+        {
+            try
+            {
+                var updateWindow = new Log_Parser_App.Views.UpdateSettingsWindow();
+                
+                if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+                {
+                    await updateWindow.ShowDialog(desktop.MainWindow);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to show update settings window");
+            }
+        }
+
         /// <summary>
         /// Gets the display name for a dashboard type
         /// </summary>

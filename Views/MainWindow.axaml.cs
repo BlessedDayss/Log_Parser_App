@@ -40,20 +40,7 @@ namespace Log_Parser_App.Views
             }
         }
 
-        private void UpdateVersion() {
-            string versionFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "version.txt");
-            if (File.Exists(versionFilePath)) {
-                string version = File.ReadAllText(versionFilePath).Trim();
-                var versionLabel = this.FindControl<Avalonia.Controls.TextBlock>("VersionLabel");
-                if (versionLabel != null) {
-                    versionLabel.Text = "v" + version;
-                } else {
-                    logger.Warn("Элемент VersionLabel не найден в UI.");
-                }
-            } else {
-                logger.Warn($"Файл версии не найден: {versionFilePath}");
-            }
-        }
+
 
         private void LogEntryRow_Tapped(object? sender, Avalonia.Input.TappedEventArgs e) {
             if (sender is DataGrid dataGrid && dataGrid.SelectedItem is Log_Parser_App.Models.LogEntry entry) {

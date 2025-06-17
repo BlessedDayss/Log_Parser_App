@@ -43,6 +43,7 @@ namespace Log_Parser_App
 					Console.WriteLine("Test parsing functionality not implemented yet.");
 					return 1;
 				}
+
 				return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
 			} catch (Exception ex) {
 				Console.WriteLine($"[Program.Main] Unhandled exception: {ex}");

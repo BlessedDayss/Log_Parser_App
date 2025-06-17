@@ -24,6 +24,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly ILogger<MainWindowViewModel> _logger;
     private readonly Log_Parser_App.ViewModels.MainViewModel _mainView;
     private readonly Log_Parser_App.Interfaces.IUpdateService? _updateService;
+    private readonly UpdateViewModel? _updateViewModel;
 
     [ObservableProperty]
     private string _appVersion = string.Empty;
@@ -36,6 +37,12 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool _isDashboardVisible;
+
+    [ObservableProperty]
+    private bool _isDownloadingUpdate;
+
+    [ObservableProperty]
+    private int _downloadProgress;
 
     public Log_Parser_App.ViewModels.MainViewModel MainView => _mainView;
 
@@ -51,28 +58,50 @@ public partial class MainWindowViewModel : ViewModelBase
         // For now, let's assume MainView can handle its own design-time data if needed.
         // FilterCriteria.Add(new FilterCriterion { SelectedField = "Level", SelectedOperator = "Equals", Value = "ERROR" }); 
         CheckForUpdatesAsyncCommand = new RelayCommand(async () => await Task.CompletedTask);
-        // AddFilterCriterionCommand = new RelayCommand(() => {}); // Removed
+        DownloadAndUpdateCommand = new RelayCommand(async () => await Task.CompletedTask);
+        ShowUpdateSettingsCommand = new RelayCommand(async () => await Task.CompletedTask);
     }
     
-    public MainWindowViewModel(ILogger<MainWindowViewModel> logger, Log_Parser_App.ViewModels.MainViewModel mainView, Log_Parser_App.Interfaces.IUpdateService updateService)
+    public MainWindowViewModel(ILogger<MainWindowViewModel> logger, Log_Parser_App.ViewModels.MainViewModel mainView, Log_Parser_App.Interfaces.IUpdateService updateService, UpdateViewModel updateViewModel)
     {
         _logger = logger;
         _mainView = mainView;
         _updateService = updateService;
+        _updateViewModel = updateViewModel;
         
         LoadApplicationVersion();
         
         CheckForUpdatesAsyncCommand = new RelayCommand(async () => await ExecuteCheckForUpdatesAsync());
-        // AddFilterCriterionCommand = new RelayCommand(ExecuteAddFilterCriterion); // Removed
+        DownloadAndUpdateCommand = new RelayCommand(async () => await ExecuteDownloadAndUpdateAsync());
+        ShowUpdateSettingsCommand = new RelayCommand(async () => await ShowUpdateSettingsAsync());
         
         IsDashboardVisible = false;
         
-        // FilterCriteria = new ObservableCollection<FilterCriterion>(); // Removed
-        // AvailableValuesByField = new Dictionary<string, HashSet<string>>(); // Removed
+        // Subscribe to UpdateViewModel events
+        if (_updateViewModel != null)
+        {
+            _updateViewModel.PropertyChanged += (s, e) =>
+            {
+                switch (e.PropertyName)
+                {
+                    case nameof(UpdateViewModel.AvailableUpdate):
+                        AvailableUpdate = _updateViewModel.AvailableUpdate;
+                        IsUpdateAvailable = _updateViewModel.AvailableUpdate != null;
+                        break;
+                    case nameof(UpdateViewModel.IsDownloadingUpdate):
+                        IsDownloadingUpdate = _updateViewModel.IsDownloadingUpdate;
+                        break;
+                    case nameof(UpdateViewModel.DownloadProgress):
+                        DownloadProgress = _updateViewModel.DownloadProgress;
+                        break;
+                }
+            };
+        }
         
-        CheckForUpdatesAsyncCommand.Execute(null);
+        // Auto-update check is already handled by App.axaml.cs in CheckForUpdatesOnStartupAsync()
+        // CheckForUpdatesAsyncCommand.Execute(null);  // REMOVED to avoid race condition
         
-        _logger.LogInformation("MainWindowViewModel initialized");
+        _logger.LogInformation("MainWindowViewModel initialized with auto-update support");
     }
     
     private void LoadApplicationVersion()
@@ -83,10 +112,18 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     public ICommand CheckForUpdatesAsyncCommand { get; }
+    public ICommand DownloadAndUpdateCommand { get; private set; } = null!;
+    public ICommand ShowUpdateSettingsCommand { get; private set; } = null!;
 
     private async Task ExecuteCheckForUpdatesAsync()
     {
         try
+        {
+            if (_updateViewModel != null)
+            {
+                await _updateViewModel.CheckForUpdatesAsync();
+            }
+            else
         {
             var updateInfo = _updateService == null ? null : await _updateService.CheckForUpdatesAsync();
             if (updateInfo != null)
@@ -99,6 +136,7 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 IsUpdateAvailable = false;
                 _logger.LogInformation("Application is up to date");
+                }
             }
         }
         catch (Exception ex)
@@ -108,28 +146,39 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private async Task InstallUpdateCommand() // This was not in the removal list but seems update-related, not filter related.
+    private async Task ExecuteDownloadAndUpdateAsync()
     {
         try
         {
-            var updateInfo = _updateService == null ? null : await _updateService.CheckForUpdatesAsync(); // Should this be InstallUpdateAsync?
-            if (updateInfo != null) // This logic looks like CheckForUpdates again.
+            if (_updateViewModel != null)
             {
-                AvailableUpdate = updateInfo;
-                IsUpdateAvailable = true;
-                _logger.LogInformation($"Update available: {updateInfo.Version}");
-                // Actual install logic is missing here, e.g. _updateService.InstallUpdateAsync(updateInfo);
+                await _updateViewModel.DownloadAndUpdateCommand.ExecuteAsync(null);
             }
             else
             {
-                IsUpdateAvailable = false;
-                _logger.LogInformation("Application is up to date");
+                _logger.LogWarning("UpdateViewModel is not available for manual update");
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking for updates"); // Should be "Error installing update"
-            IsUpdateAvailable = false;
+            _logger.LogError(ex, "Error executing manual update");
+        }
+    }
+
+    private async Task ShowUpdateSettingsAsync()
+    {
+        try
+        {
+            var updateWindow = new Log_Parser_App.Views.UpdateSettingsWindow();
+            
+            if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                await updateWindow.ShowDialog(desktop.MainWindow);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to show update settings window");
         }
     }
 

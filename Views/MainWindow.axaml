@@ -370,23 +370,41 @@
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
                     
-                    <!-- Update Block -->
-                    <Border Grid.Column="3" Background="#382626" CornerRadius="8" Padding="8,4" Margin="2" 
+                    <!-- Auto-Update Block -->
+                    <Border Grid.Column="0" Background="#1a3d1a" CornerRadius="8" Padding="8,4" Margin="2" 
                             IsVisible="{Binding IsUpdateAvailable}">
-                        <StackPanel Spacing="10">
-                            <TextBlock Text="Update available" 
+                        <StackPanel Spacing="6">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="4">
+                                <TextBlock Text="🔄" FontSize="14" VerticalAlignment="Center" />
+                                <TextBlock Text="Auto-Update" 
                                        FontWeight="Bold" 
+                                           FontSize="12"
                                        Foreground="White" 
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding AvailableUpdate.Version, StringFormat='v{0} available'}" 
+                                       Foreground="#90EE90" 
+                                       FontSize="11"
                                        HorizontalAlignment="Center" />
-                            <TextBlock Text="{Binding AvailableUpdate.Version, StringFormat='Version: {0}'}" 
+                            <TextBlock Text="Installing automatically..." 
                                        Foreground="#AAAAAA" 
-                                       HorizontalAlignment="Center" />
-                            <Button Content="Install" 
-                                    Command="{Binding InstallUpdateCommand}"
+                                       FontSize="10"
+                                       HorizontalAlignment="Center"
+                                       IsVisible="{Binding IsDownloadingUpdate}" />          
+                            <ProgressBar Value="{Binding DownloadProgress}" 
+                                         Maximum="100"
+                                         Height="4"
+                                         Background="#333333"
+                                         Foreground="#4CAF50"
+                                         IsVisible="{Binding IsDownloadingUpdate}" />
+                            <Button Content="Manual Install" 
+                                    Command="{Binding DownloadAndUpdateCommand}"
                                     Background="#4CAF50"
                                     Foreground="White"
-                                    Padding="10,5"
-                                    HorizontalAlignment="Stretch" />
+                                    Padding="8,3"
+                                    FontSize="10"
+                                    HorizontalAlignment="Stretch"
+                                    IsVisible="{Binding !IsDownloadingUpdate}" />
                         </StackPanel>
                     </Border>
                     <Border Grid.Column="0" Margin="2" Padding="8,4" Background="#382626" CornerRadius="6">
@@ -1107,41 +1125,76 @@
                               Foreground="#CCCCCC"
                               FontSize="14" />
                     
-                    <TextBlock Grid.Column="1" 
-                               Text="{Binding MainView.LogEntries.Count, StringFormat=Total entries: {0}}" 
-                               VerticalAlignment="Center" 
-                               HorizontalAlignment="Right"
-                               Foreground="#AAAAAA"
-                               Margin="16,0,16,0"
-                               FontSize="13" />
+                    <!-- Кнопка настроек и обновлений -->
+                    <Button Grid.Column="1" 
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="8,4"
+                            Margin="16,0,16,0"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                                                         Command="{Binding ShowUpdateSettingsCommand}"
+                             ToolTip.Tip="Settings and Updates">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="⚙️" 
+                                       FontSize="14" 
+                                       VerticalAlignment="Center"/>
+                            <TextBlock Text="Settings" 
+                                       FontSize="13" 
+                                       Foreground="#AAAAAA"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Button.Styles>
+                            <Style Selector="Button:pointerover">
+                                <Setter Property="Background" Value="#333333"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
                     
-                    <!-- Логотип приложения и версия в едином блоке -->
+                    <!-- Логотип приложения, версия и счетчик записей -->
                     <StackPanel Grid.Column="2" 
                               Orientation="Horizontal"
                               VerticalAlignment="Center" 
                               HorizontalAlignment="Right"
-                              Margin="0,0,16,0">
-                        <!-- Логотип приложения -->
-                        <Border Width="20" Height="20" 
-                                Background="#0078D7" 
-                                CornerRadius="3" 
-                                Margin="0,0,6,0">
-                            <TextBlock Text="S" 
-                                       FontSize="14" 
-                                       FontWeight="Bold" 
-                                       Foreground="White"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center" />
-                        </Border>
-                        <TextBlock Text="🏷️" 
-                                   FontSize="16" 
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,2,0"/>
-                        <TextBlock Text="{Binding AppVersion}" 
+                              Margin="0,0,16,0"
+                              Spacing="12">
+                        
+                        <!-- Entry Counter -->
+                        <TextBlock Text="{Binding MainView.LogEntries.Count, StringFormat=Entries: {0}}" 
                                    VerticalAlignment="Center" 
-                                   Foreground="#777777"
-                                   FontSize="14" 
-                                   FontWeight="Medium"/>
+                                   Foreground="#AAAAAA"
+                                   FontSize="13" />
+                        
+                        <!-- Separator -->
+                        <TextBlock Text="|" 
+                                   VerticalAlignment="Center" 
+                                   Foreground="#555555"
+                                   FontSize="13" />
+                        
+                        <!-- Logo and Version -->
+                        <StackPanel Orientation="Horizontal" 
+                                   VerticalAlignment="Center"
+                                   Spacing="6">
+                            <!-- Application Logo -->
+                            <Border Width="20" Height="20" 
+                                    Background="#0078D7" 
+                                    CornerRadius="3">
+                                <TextBlock Text="OG" 
+                                           FontSize="12" 
+                                           FontWeight="Bold" 
+                                           Foreground="White"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock Text="🏷️" 
+                                       FontSize="16" 
+                                       VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding AppVersion}" 
+                                       VerticalAlignment="Center" 
+                                       Foreground="#777777"
+                                       FontSize="14" 
+                                       FontWeight="Medium"/>
+                        </StackPanel>
                     </StackPanel>
                 </Grid>
             </Border>
