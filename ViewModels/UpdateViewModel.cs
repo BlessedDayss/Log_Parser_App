@@ -2,6 +2,7 @@ namespace Log_Parser_App.ViewModels
 {
 using System;
 using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -35,10 +36,26 @@ using Microsoft.Extensions.Logging;
 		[ObservableProperty]
 		private UpdateInfo? _availableUpdate;
 		
-		[ObservableProperty]
-		private bool _autoUpdateEnabled = true;
+			[ObservableProperty]
+	private bool _autoUpdateEnabled = true;
 
-		public UpdateViewModel(IUpdateService updateService, IAutoUpdateConfigService configService, ILogger<UpdateViewModel> logger)
+	/// <summary>
+	/// Current application version from Assembly
+	/// </summary>
+	public string CurrentVersion
+	{
+		get
+		{
+			var version = Assembly.GetExecutingAssembly().GetName().Version;
+			if (version != null)
+			{
+				return $"v{version.Major}.{version.Minor}.{version.Build}";
+			}
+			return "v1.0.0";
+		}
+	}
+
+	public UpdateViewModel(IUpdateService updateService, IAutoUpdateConfigService configService, ILogger<UpdateViewModel> logger)
 		{
 			_updateService = updateService;
 			_configService = configService;
