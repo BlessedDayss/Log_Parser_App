@@ -19,6 +19,7 @@ namespace Log_Parser_App.Services
         private readonly ILogger<SimpleErrorRecommendationService> _logger;
         private readonly List<SimpleErrorPattern> _patterns = new();
         private const string RecommendationsFile = "simple_error_recommendations.json";
+        private bool _isLoaded = false;
 
         public SimpleErrorRecommendationService(ILogger<SimpleErrorRecommendationService> logger)
         {
@@ -45,6 +46,7 @@ namespace Log_Parser_App.Services
                 {
                     _patterns.Clear();
                     _patterns.AddRange(patterns);
+                    _isLoaded = true;
                     _logger.LogInformation("Loaded {Count} error patterns", _patterns.Count);
                 }
             }
@@ -59,12 +61,17 @@ namespace Log_Parser_App.Services
             if (string.IsNullOrWhiteSpace(errorText))
                 return null;
 
+            // Force load if not already loaded
+            if (!_isLoaded)
+            {
+                LoadAsync().GetAwaiter().GetResult();
+            }
+
             foreach (var pattern in _patterns)
             {
                 var result = pattern.GetResult(errorText);
                 if (result != null)
                 {
-                    _logger.LogDebug("Found match for pattern: {Contains}", pattern.Contains);
                     return result;
                 }
             }

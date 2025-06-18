@@ -446,56 +446,46 @@ namespace Log_Parser_App.ViewModels
                 _logger.LogDebug("PERF: Начало предварительной обработки {Count} записей", loadedLogEntries.Count);
 
                 var processedEntries = await Task.Run(() => {
-                    List<LogEntry> processed = new List<LogEntry>(loadedLogEntries.Count);
+                    var processed = new List<LogEntry>(loadedLogEntries.Count);
                     foreach (var entry in loadedLogEntries) // Use loadedLogEntries here
                     {
-                        try {
-                            if (!string.IsNullOrEmpty(entry.Message)) {
-                                var lines = entry.Message.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                                var regex = new System.Text.RegularExpressions.Regex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}");
-                                string mainLine = lines.FirstOrDefault(l => !l.TrimStart().StartsWith("at ")) ?? (lines.Length > 0 ? lines[0] : string.Empty);
-                                var stackLines = lines.SkipWhile(l => !l.TrimStart().StartsWith("at ")).Where(l => l.TrimStart().StartsWith("at ")).ToList();
-                                entry.Message = mainLine.Trim();
-                                entry.StackTrace = stackLines.Count > 0 ? string.Join("\n", stackLines) : null;
+                        // Analyze error BEFORE any message cleanup
+                        if (entry.Level.Equals("Error", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(entry.Message)) {
+                            // Use RawData for analysis if available (contains full original text), otherwise Message
+                            string textForAnalysis = !string.IsNullOrEmpty(entry.RawData) ? entry.RawData : entry.Message;
+                            var simpleResult = _simpleErrorRecommendationService.AnalyzeError(textForAnalysis);
+                            if (simpleResult != null) {
+                                entry.ErrorType = "PatternMatch";
+                                entry.ErrorDescription = simpleResult.Message;
+                                entry.ErrorRecommendations.Clear();
+                                entry.ErrorRecommendations.Add(simpleResult.Fix);
+                                entry.Recommendation = simpleResult.Fix;
+                            } else {
+                                entry.ErrorType = "UnknownError";
+                                entry.ErrorDescription = "Unknown error pattern";
+                                entry.ErrorRecommendations.Clear();
+                                entry.ErrorRecommendations.Add("Please contact developer to add this error pattern");
+                                entry.Recommendation = "Please contact developer to add this error pattern";
                             }
-                            entry.OpenFileCommand = ExternalOpenFileCommand;
-                            processed.Add(entry);
-                        } catch (Exception ex) {
-                            _logger.LogError(ex, "Ошибка при обработке записи {LineNumber}", entry.LineNumber);
                         }
+
+                        // Now clean up message for display
+                        if (!string.IsNullOrEmpty(entry.Message)) {
+                            var lines = entry.Message.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                            var regex = new System.Text.RegularExpressions.Regex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}");
+                            string mainLine = lines.FirstOrDefault(l => !l.TrimStart().StartsWith("at ")) ?? (lines.Length > 0 ? lines[0] : string.Empty);
+                            var stackLines = lines.SkipWhile(l => !l.TrimStart().StartsWith("at ")).Where(l => l.TrimStart().StartsWith("at ")).ToList();
+                            entry.Message = mainLine.Trim();
+                            entry.StackTrace = stackLines.Count > 0 ? string.Join("\n", stackLines) : null;
+                        }
+
+                        entry.OpenFileCommand = ExternalOpenFileCommand;
+                        processed.Add(entry);
                     }
                     return processed;
                 });
 
-                _logger.LogDebug("PERF: Начало обработки рекомендаций для ошибок");
-
-                await Task.Run(() => {
-                    var errorEntries = processedEntries.Where(e => e.Level.Equals("Error", StringComparison.OrdinalIgnoreCase)).ToList();
-                    Parallel.ForEach(errorEntries,
-                        entry => {
-                            try {
-                                _logger.LogTrace("Processing recommendations for error: '{Message}'", entry.Message);
-                                
-                                var simpleResult = _simpleErrorRecommendationService.AnalyzeError(entry.Message);
-                                if (simpleResult != null) {
-                                    entry.ErrorType = "PatternMatch";
-                                    entry.ErrorDescription = simpleResult.Message;
-                                    entry.ErrorRecommendations.Clear();
-                                    entry.ErrorRecommendations.Add(simpleResult.Fix);
-                                    entry.Recommendation = simpleResult.Fix;
-                                    _logger.LogDebug("Applied recommendation for error: {Type}", entry.ErrorType);
-                                } else {
-                                    entry.ErrorType = "UnknownError";
-                                    entry.ErrorDescription = "Unknown error pattern";
-                                    entry.ErrorRecommendations.Clear();
-                                    entry.ErrorRecommendations.Add("Please contact developer to add this error pattern");
-                                    entry.Recommendation = "Please contact developer to add this error pattern";
-                                }
-                            } catch (Exception ex) {
-                                _logger.LogError(ex, "Ошибка при обработке рекомендаций для записи {LineNumber}", entry.LineNumber);
-                            }
-                        });
-                });
+                _logger.LogDebug("PERF: Обработка рекомендаций завершена");
 
                 // Обновляем UI и статистику после полной загрузки
                 await Dispatcher.UIThread.InvokeAsync(() => {
@@ -627,6 +617,36 @@ namespace Log_Parser_App.ViewModels
                     var processed = new List<LogEntry>(logEntriesArr.Length);
                     foreach (var entry in logEntriesArr) // Iterate over the array collected from streaming
                     {
+                        // Analyze error BEFORE any message cleanup
+                        if (entry.Level.Equals("Error", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(entry.Message)) {
+                            // Use RawData for analysis if available (contains full original text), otherwise Message
+                            string textForAnalysis = !string.IsNullOrEmpty(entry.RawData) ? entry.RawData : entry.Message;
+                            var simpleResult = _simpleErrorRecommendationService.AnalyzeError(textForAnalysis);
+                            if (simpleResult != null) {
+                                entry.ErrorType = "PatternMatch";
+                                entry.ErrorDescription = simpleResult.Message;
+                                entry.ErrorRecommendations.Clear();
+                                entry.ErrorRecommendations.Add(simpleResult.Fix);
+                                entry.Recommendation = simpleResult.Fix;
+                            } else {
+                                entry.ErrorType = "UnknownError";
+                                entry.ErrorDescription = "Unknown error pattern";
+                                entry.ErrorRecommendations.Clear();
+                                entry.ErrorRecommendations.Add("Please contact developer to add this error pattern");
+                                entry.Recommendation = "Please contact developer to add this error pattern";
+                            }
+                        }
+
+                        // Now clean up message for display
+                        if (!string.IsNullOrEmpty(entry.Message)) {
+                            var lines = entry.Message.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                            var regex = new System.Text.RegularExpressions.Regex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}");
+                            string mainLine = lines.FirstOrDefault(l => !l.TrimStart().StartsWith("at ")) ?? (lines.Length > 0 ? lines[0] : string.Empty);
+                            var stackLines = lines.SkipWhile(l => !l.TrimStart().StartsWith("at ")).Where(l => l.TrimStart().StartsWith("at ")).ToList();
+                            entry.Message = mainLine.Trim();
+                            entry.StackTrace = stackLines.Count > 0 ? string.Join("\n", stackLines) : null;
+                        }
+
                         entry.OpenFileCommand = ExternalOpenFileCommand;
                         processed.Add(entry);
                     }
