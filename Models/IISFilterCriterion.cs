@@ -30,6 +30,8 @@ namespace Log_Parser_App.Models
         private IISLogField _selectedField;
         private string _selectedOperator = string.Empty;
         private string _value = string.Empty;
+        private string _manualValue = string.Empty;
+        private bool _useManualInput = false;
 
         [System.Text.Json.Serialization.JsonIgnore]
         public TabViewModel? ParentViewModel { get; set; } // Changed from dynamic?
@@ -60,8 +62,36 @@ namespace Log_Parser_App.Models
         }
 
         public string Value {
-            get => _value;
-            set => SetProperty(ref _value, value);
+            get => _useManualInput ? _manualValue : _value;
+            set {
+                if (_useManualInput) {
+                    SetProperty(ref _manualValue, value);
+                } else {
+                    SetProperty(ref _value, value);
+                }
+            }
+        }
+
+        public string ManualValue {
+            get => _manualValue;
+            set {
+                if (SetProperty(ref _manualValue, value)) {
+                    if (_useManualInput) {
+                        OnPropertyChanged(nameof(Value));
+                    }
+                }
+            }
+        }
+
+        public bool UseManualInput {
+            get => _useManualInput;
+            set {
+                if (SetProperty(ref _useManualInput, value)) {
+                    OnPropertyChanged(nameof(Value));
+                    OnPropertyChanged(nameof(ShowValueComboBox));
+                    OnPropertyChanged(nameof(ShowTextBox));
+                }
+            }
         }
 
         // Compatibility properties for services
@@ -71,8 +101,15 @@ namespace Log_Parser_App.Models
 
         public bool ShowValueComboBox {
             get {
-                // Show ComboBox if ParentViewModel is set and it provides any distinct values for the current field.
-                return ParentViewModel != null && ParentViewModel.GetDistinctValuesForIISField(SelectedField).Any();
+                // Show ComboBox if not using manual input and ParentViewModel provides distinct values
+                return !_useManualInput && ParentViewModel != null && ParentViewModel.GetDistinctValuesForIISField(SelectedField).Any();
+            }
+        }
+
+        public bool ShowTextBox {
+            get {
+                // Show TextBox if using manual input OR if no predefined values available
+                return _useManualInput || (ParentViewModel != null && !ParentViewModel.GetDistinctValuesForIISField(SelectedField).Any());
             }
         }
 
@@ -94,9 +131,9 @@ namespace Log_Parser_App.Models
 
         private void UpdateAvailableValues() {
             AvailableValues.Clear();
-            bool shouldShowComboBox = ShowValueComboBox; // Cache this value
+            bool hasPredefindValues = ParentViewModel != null && ParentViewModel.GetDistinctValuesForIISField(SelectedField).Any();
 
-            if (shouldShowComboBox && ParentViewModel != null) // Use cached value
+            if (hasPredefindValues && ParentViewModel != null) 
             {
                 var values = ParentViewModel.GetDistinctValuesForIISField(SelectedField);
                 foreach (var val in values) {
@@ -104,13 +141,20 @@ namespace Log_Parser_App.Models
                 }
             }
 
-            if (!shouldShowComboBox || !AvailableValues.Contains(Value)) // Use cached value
+            if (!hasPredefindValues || !AvailableValues.Contains(_value)) 
             {
-                Value = string.Empty;
+                _value = string.Empty;
             }
+            
+            // Reset manual input if switching to a field with predefined values
+            if (hasPredefindValues && !_useManualInput) {
+                _manualValue = string.Empty;
+            }
+            
             // Ensure PropertyChanged is raised for Value if it's changed programmatically
             OnPropertyChanged(nameof(Value));
-            OnPropertyChanged(nameof(ShowValueComboBox)); // This needs to be explicitly notified if its conditions change
+            OnPropertyChanged(nameof(ShowValueComboBox));
+            OnPropertyChanged(nameof(ShowTextBox));
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -133,6 +177,7 @@ namespace Log_Parser_App.Models
                 UpdateAvailableOperators(); // Added to ensure operators update if ParentViewModel changes after field selection
                 UpdateAvailableValues(); // Added to ensure values update if ParentViewModel changes after field selection
                 OnPropertyChanged(nameof(ShowValueComboBox));
+                OnPropertyChanged(nameof(ShowTextBox));
             }
         }
     }

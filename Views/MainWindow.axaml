@@ -292,11 +292,7 @@
                                 Command="{Binding MainView.ShowFilePickerContextMenuCommand}">
                             <TextBlock Text="📁" FontSize="18" />
                         </Button>
-                        <Button Classes="icon-button" 
-                                ToolTip.Tip="Dashboard"
-                                Command="{Binding MainView.ToggleDashboardVisibilityCommand}">
-                            <TextBlock Text="📊" FontSize="18" />
-                        </Button>
+
                         <Button Classes="icon-button" 
                                 ToolTip.Tip="IIS Logs Analysis"
                                 Command="{Binding MainView.LoadIISLogsCommand}">
@@ -361,7 +357,7 @@
                 </Grid>
             </Border>
             
-            <Border Grid.Row="1" Margin="16,8,16,16" Padding="16" Background="#262729" CornerRadius="8" IsVisible="{Binding !MainView.IsDashboardVisible}">
+            <Border Grid.Row="1" Margin="16,8,16,16" Padding="16" Background="#262729" CornerRadius="8">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -547,7 +543,7 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="models1:IISFilterCriterion">
                                                 <Border Background="#2D2E32" CornerRadius="6" Padding="12 8">
-                                                    <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" VerticalAlignment="Center">
+                                                    <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto" VerticalAlignment="Center">
                                                         <ComboBox Grid.Column="0"
                                                                   ItemsSource="{Binding AvailableFields}" 
                                                                   SelectedItem="{Binding SelectedField}"
@@ -564,12 +560,17 @@
                                                                       SelectedItem="{Binding Value}"
                                                                       PlaceholderText="Select a value"
                                                                       MinWidth="150"/>
-                                                            <TextBox IsVisible="{Binding !ShowValueComboBox}"
-                                                                     Text="{Binding Value}"
-                                                                     Watermark="Value"
+                                                            <TextBox IsVisible="{Binding ShowTextBox}"
+                                                                     Text="{Binding ManualValue}"
+                                                                     Watermark="Enter value manually"
                                                                      MinWidth="150"/>
                                                         </Panel>
-                                                        <Button Grid.Column="3" 
+                                                        <CheckBox Grid.Column="3"
+                                                                  IsChecked="{Binding UseManualInput}"
+                                                                  Content="Manual"
+                                                                  Margin="5,0,5,0"
+                                                                  ToolTip.Tip="Enable manual input"/>
+                                                        <Button Grid.Column="4" 
                                                                 Classes="remove-button" 
                                                                 Command="{Binding ParentViewModel.RemoveIISFilterCriterionCommand}" 
                                                                 CommandParameter="{Binding}"
@@ -669,19 +670,32 @@
                                                     <ColumnDefinition Width="Auto" MinWidth="90"/> <!-- sc-status -->
                                                 </Grid.ColumnDefinitions>
                                                 
-                                                <TextBlock Grid.Column="0" Text="date" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="1" Text="time" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="2" Text="s-ip" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="3" Text="cs-method" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="4" Text="cs-uri-stem" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="5" Text="cs-uri-query" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="6" Text="s-port" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="7" Text="cs-username" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="8" Text="c-ip" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="9" Text="time-taken" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="10" Text="cs(User-Agent)" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="11" Text="sc-win32-status" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="12" Text="sc-status" Padding="8,8" FontWeight="SemiBold"/>
+                                                <Button Grid.Column="0" Content="date ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="date" HorizontalContentAlignment="Left"/>
+                                                <Button Grid.Column="1" Content="time ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="time" HorizontalContentAlignment="Left"/>
+                                                <Button Grid.Column="2" Content="s-ip ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="s-ip" HorizontalContentAlignment="Left"/>
+                                                <Button Grid.Column="3" Content="cs-method ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="cs-method" HorizontalContentAlignment="Left"/>
+                                                <Button Grid.Column="4" Content="cs-uri-stem ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="cs-uri-stem" HorizontalContentAlignment="Left"/>
+                                                <Button Grid.Column="5" Content="cs-uri-query ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="cs-uri-query" HorizontalContentAlignment="Left"/>
+                                                <Button Grid.Column="6" Content="s-port ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="s-port" HorizontalContentAlignment="Left"/>
+                                                <Button Grid.Column="7" Content="cs-username ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="cs-username" HorizontalContentAlignment="Left"/>
+                                                <Button Grid.Column="8" Content="c-ip ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="c-ip" HorizontalContentAlignment="Left"/>
+                                                <Button Grid.Column="9" Content="time-taken ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="time-taken" HorizontalContentAlignment="Left"/>
+                                                <Button Grid.Column="10" Content="cs(User-Agent) ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="cs(User-Agent)" HorizontalContentAlignment="Left"/>
+                                                <Button Grid.Column="11" Content="sc-win32-status ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="sc-win32-status" HorizontalContentAlignment="Left"/>
+                                                <Button Grid.Column="12" Content="sc-status ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="sc-status" HorizontalContentAlignment="Left"/>
                                             </Grid>
                                             
                                             <!-- Содержимое таблицы -->
@@ -895,204 +909,6 @@
                     </TabControl>
                 </Grid>
             </Border>
-            
-            <!-- Dashboard Panel -->
-            <Grid 
-                IsVisible="{Binding MainView.IsDashboardVisible}"
-                Grid.Row="2" Grid.Column="0" 
-                Grid.ColumnSpan="2"
-                Background="#222326"
-                ZIndex="100">
-                <Grid RowDefinitions="Auto,*">
-                    <!-- Dashboard Header -->
-                    <Border Grid.Row="0" Background="#262729" Padding="16">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" 
-                                      Text="{Binding MainView.IsIISDashboardVisible, Converter={StaticResource StringShortenerConverter}, ConverterParameter='IIS Logs Dashboard|Log Analysis Dashboard'}" 
-                                      FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" />
-                            
-                            <!-- Dashboard Type is now determined automatically by file type -->
-                            
-                            <!-- Existing Action Buttons -->
-                            <Button Grid.Column="4" Classes="icon-button" Command="{Binding MainView.ToggleDashboardVisibilityCommand}" ToolTip.Tip="Close Dashboard">
-                                <TextBlock Text="✖" FontSize="16" />
-                            </Button>
-                            <Button Grid.Column="5" Classes="icon-button" Command="{Binding MainView.LoadFileCommand}" ToolTip.Tip="Load New File">
-                                <TextBlock Text="📂" FontSize="16" />
-                            </Button>
-                        </Grid>
-                    </Border>
-                    
-                    <!-- Dashboard Content -->
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                        <StackPanel Margin="16">
-                             <!-- Dashboard content is based on file type automatically -->
-                             
-                            <!-- Стандартный дашборд для обычных логов -->
-                            <Grid ColumnDefinitions="*,*" Margin="0,0,0,20" IsVisible="{Binding MainView.IsStandardDashboardVisible}">
-                                <!-- Левая колонка -->
-                                <StackPanel Grid.Column="0" Margin="5,0,10,0" Spacing="20">
-                                    <!-- Log Levels Over Time -->
-                                    <Border Background="#2D2F33" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="10" Padding="15">
-                                        <StackPanel>
-                                            <TextBlock Text="Log Levels Over Time" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
-                                            <Viewbox MaxHeight="350">
-                                                <lvc:CartesianChart
-                                                    Series="{Binding MainView.LevelsOverTimeSeries}"
-                                                    XAxes="{Binding MainView.TimeAxis}"
-                                                    YAxes="{Binding MainView.CountAxis}"
-                                                    Width="450"
-                                                    Height="300"
-                                                    LegendPosition="Bottom">
-                                                    <lvc:CartesianChart.LegendTextPaint>
-                                                        <lvcskia:SolidColorPaint Color="#FFFFFFFF" />
-                                                    </lvc:CartesianChart.LegendTextPaint>
-                                                    <lvc:CartesianChart.LegendBackgroundPaint>
-                                                        <lvcskia:SolidColorPaint Color="#FF333333" />
-                                                    </lvc:CartesianChart.LegendBackgroundPaint>
-                                                </lvc:CartesianChart>
-                                            </Viewbox>
-                                        </StackPanel>
-                                    </Border>
-                                
-                                    <!-- Sources Distribution -->
-                                    <Border Background="#2D2F33" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="10" Padding="15">
-                                        <StackPanel>
-                                            <TextBlock Text="Log Sources Distribution" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
-                                            <Viewbox MaxHeight="350">
-                                                <lvc:CartesianChart
-                                                    Series="{Binding MainView.SourcesDistributionSeries}"
-                                                    XAxes="{Binding MainView.SourceAxis}"
-                                                    YAxes="{Binding MainView.CountAxis}"
-                                                    Width="450"
-                                                    Height="300"
-                                                    LegendPosition="Hidden"/>
-                                            </Viewbox>
-                                        </StackPanel>
-                                    </Border>
-                                </StackPanel>
-                                
-                                <!-- Правая колонка -->
-                                <StackPanel Grid.Column="1" Margin="10,0,5,0" Spacing="20">
-                                    <!-- Error Trend -->
-                                    <Border Background="#2D2F33" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="10" Padding="15">
-                                        <StackPanel>
-                                            <TextBlock Text="Activity Trends" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
-                                            <Viewbox MaxHeight="300">
-                                                <lvc:CartesianChart
-                                                    Series="{Binding MainView.ErrorTrendSeries}"
-                                                    XAxes="{Binding MainView.HoursAxis}"
-                                                    YAxes="{Binding MainView.CountAxis}"
-                                                    Width="450" 
-                                                    Height="300"
-                                                    LegendPosition="Right">
-                                                    <lvc:CartesianChart.LegendTextPaint>
-                                                        <lvcskia:SolidColorPaint Color="#FFFFFFFF" />
-                                                    </lvc:CartesianChart.LegendTextPaint>
-                                                    <lvc:CartesianChart.LegendBackgroundPaint>
-                                                        <lvcskia:SolidColorPaint Color="#FF333333" />
-                                                    </lvc:CartesianChart.LegendBackgroundPaint>
-                                                </lvc:CartesianChart>
-                                            </Viewbox>
-                                        </StackPanel>
-                                    </Border>
-                                </StackPanel>
-                            </Grid>
-                            
-                            <!-- IIS дашборд -->
-                            <Grid ColumnDefinitions="*,*" Margin="0,0,0,20" IsVisible="{Binding MainView.IsIISDashboardVisible}">
-                                <!-- Левая колонка -->
-                                <StackPanel Grid.Column="0" Margin="5,0,10,0" Spacing="20">
-                                    <!-- HTTP Status Codes -->
-                                    <Border Background="#2D2F33" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="10" Padding="15">
-                                        <StackPanel>
-                                            <TextBlock Text="HTTP Status Code Distribution" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
-                                            <Viewbox MaxHeight="350">
-                                                <lvc:CartesianChart
-                                                    Series="{Binding MainView.TopErrorsSeries}"
-                                                    XAxes="{Binding MainView.ErrorMessageAxis}"
-                                                    YAxes="{Binding MainView.CountAxis}"
-                                                    Width="450"
-                                                    Height="300"
-                                                    LegendPosition="Hidden"/>
-                                            </Viewbox>
-                                        </StackPanel>
-                                    </Border>
-                                
-                                    <!-- Status Code Distribution -->
-                                    <Border Background="#2D2F33" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="10" Padding="15">
-                                        <StackPanel>
-                                            <TextBlock Text="Status Code Distribution" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
-                                            <Viewbox MaxHeight="350">
-                                                <lvc:PieChart
-                                                    Series="{Binding MainView.LogDistributionSeries}"
-                                                    Width="450"
-                                                    Height="400"
-                                                    LegendPosition="Bottom"
-                                                    TooltipPosition="Top"
-                                                    InitialRotation="0"
-                                                    MaxAngle="360">
-                                                    <lvc:PieChart.LegendTextPaint>
-                                                        <lvcskia:SolidColorPaint Color="#FFFFFFFF" />
-                                                    </lvc:PieChart.LegendTextPaint>
-                                                    <lvc:PieChart.LegendBackgroundPaint>
-                                                        <lvcskia:SolidColorPaint Color="#FF333333" />
-                                                    </lvc:PieChart.LegendBackgroundPaint>
-                                                </lvc:PieChart>
-                                            </Viewbox>
-                                        </StackPanel>
-                                    </Border>
-                                        </StackPanel>
-                                
-                                <!-- Правая колонка -->
-                                <StackPanel Grid.Column="1" Margin="10,0,5,0" Spacing="20">
-                                    <!-- Activity By Hour -->
-                                    <Border Background="#2D2F33" BorderBrush="#3E3F45" BorderThickness="1" CornerRadius="10" Padding="15">
-                                        <StackPanel>
-                                            <TextBlock Text="Activity By Hour" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
-                                            <Viewbox MaxHeight="300">
-                                                <lvc:CartesianChart
-                                                    Series="{Binding MainView.TimeHeatmapSeries}"
-                                                    XAxes="{Binding MainView.HoursAxis}"
-                                                    YAxes="{Binding MainView.CountAxis}"
-                                                    Width="450" 
-                                                    Height="300"
-                                                    LegendPosition="Right">
-                                                    <lvc:CartesianChart.LegendTextPaint>
-                                                        <lvcskia:SolidColorPaint Color="#FFFFFFFF" />
-                                                    </lvc:CartesianChart.LegendTextPaint>
-                                                    <lvc:CartesianChart.LegendBackgroundPaint>
-                                                        <lvcskia:SolidColorPaint Color="#FF333333" />
-                                                    </lvc:CartesianChart.LegendBackgroundPaint>
-                                                </lvc:CartesianChart>
-                                            </Viewbox>
-                                        </StackPanel>
-                                    </Border>
-                                </StackPanel>
-                            </Grid>
-                            
-                            <!-- New Adaptive Dashboard Section (DISABLED FOR NOW) -->
-                            <Grid Margin="0,20,0,20" IsVisible="False">
-                                <!-- Will be enabled in next iteration -->
-                                <TextBlock Text="Adaptive Dashboard - Coming Soon" 
-                                           HorizontalAlignment="Center" 
-                                           VerticalAlignment="Center" 
-                                           FontSize="16" 
-                                           Opacity="0.5"/>
-                            </Grid>
-                         </StackPanel>
-                     </ScrollViewer>
-                 </Grid>
-            </Grid>
             
             <Panel Grid.Row="2" IsVisible="{Binding MainView.IsLoading}">
                 <Border Background="#55262729" 

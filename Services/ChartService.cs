@@ -113,15 +113,7 @@ public class ChartService : IChartService
         };
     }
 
-    /// <summary>
-    /// Update chart configuration for different dashboard types
-    /// </summary>
-    public void UpdateChartConfiguration(bool isDashboardVisible, LogFormatType logType)
-    {
-        _logger.LogDebug("Updating chart configuration for dashboard visibility: {Visible}, log type: {LogType}", 
-            isDashboardVisible, logType);
-        // Configuration logic can be expanded based on requirements
-    }
+
 
     /// <summary>
     /// Generate comprehensive chart data for statistics view

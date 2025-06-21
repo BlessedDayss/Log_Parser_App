@@ -18,7 +18,7 @@ namespace Log_Parser_App
     using Log_Parser_App.Interfaces;
     using Log_Parser_App.Strategies;
     using Log_Parser_App.Factories;
-    using Log_Parser_App.Services.Dashboard;
+
 
 
 
@@ -272,13 +272,10 @@ namespace Log_Parser_App
             services.AddSingleton(typeof(IBatchProcessor<>), typeof(BatchProcessor<>));
             services.AddSingleton(typeof(ICacheService<,>), typeof(CacheService<,>));
 
-            // Dashboard Strategy Services (Phase 3.4 - Adaptive Dashboard Enhancement)
-            services.AddSingleton<Log_Parser_App.Services.Dashboard.IDashboardStrategyFactory, Log_Parser_App.Services.Dashboard.DashboardStrategyFactory>();
-            services.AddSingleton<Log_Parser_App.Services.Dashboard.IDashboardTypeService, Log_Parser_App.Services.Dashboard.DashboardTypeService>();
+
+
             
-            // Dashboard Strategy Implementations
-            services.AddTransient<Log_Parser_App.Services.Dashboard.OverviewDashboardStrategy>();
-            services.AddTransient<Log_Parser_App.Services.Dashboard.FileOptionsDashboardStrategy>();
+
 
             // Error Detection Services (EFS-001 - Error Filtering System Refactoring)
             services.AddSingleton<Log_Parser_App.Services.ErrorDetection.IErrorDetectionServiceFactory, Log_Parser_App.Services.ErrorDetection.ErrorDetectionServiceFactory>();
@@ -288,6 +285,9 @@ namespace Log_Parser_App
             services.AddTransient<Log_Parser_App.Services.ErrorDetection.StandardLogErrorDetectionStrategy>();
             services.AddTransient<Log_Parser_App.Services.ErrorDetection.IISLogErrorDetectionStrategy>();
             services.AddTransient<Log_Parser_App.Services.ErrorDetection.RabbitMQLogErrorDetectionStrategy>();
+
+
+            services.AddSingleton<Log_Parser_App.Services.ErrorDetection.IAdvancedErrorDetectionService, Log_Parser_App.Services.ErrorDetection.AdvancedErrorDetectionService>();
 
             // Регистрируем сервис ассоциаций файлов
             if (OperatingSystem.IsWindows()) {

@@ -2,31 +2,72 @@
 
 [View Latest Releases](https://github.com/BlessedDayss/Log_Parser_App/releases)
 
-A user-friendly and powerful desktop application designed to help you effortlessly parse, analyze, and visualize log files. Turn complex log data into actionable insights!
+A powerful, enterprise-grade desktop application designed to parse, analyze, and visualize complex log files from multiple sources. Transform raw log data into actionable insights with advanced error detection, multi-format support, and intelligent recommendations!
 
-## ✨ Features
+## ✨ Key Features
 
-Log Parser App comes packed with features to streamline your log analysis workflow:
+### 📂 **Multi-Format Log Support**
+- **Standard Logs:** Traditional application logs with timestamps, levels, and messages
+- **IIS Web Server Logs:** Full support for IIS log format parsing and analysis
+- **RabbitMQ Message Logs:** Specialized parsing for RabbitMQ message queue logs
+- **Automatic Format Detection:** Intelligent detection of log formats for seamless processing
 
-- **📂 Multi-Tab Interface:** Open and manage multiple log files simultaneously, each in its own tab.
-- **📄 Clear Log Display:** View log entries in a clean, structured grid, showing timestamps, log levels (Error, Warning, Info, etc.), and full messages.
-- **🎨 Customizable Themes:** Switch between light and dark themes for your viewing comfort.
-- **📋 Copyable Messages:** Easily copy log messages for sharing or further investigation.
-- **🖱️ Quick File Access:** Double-click on a file tab to open the original log file in your default system editor.
-- **🔍 Powerful Filtering:**
-  - Dynamically add multiple filter criteria based on log fields (Timestamp, Level, Message content).
-  - Use various operators (Equals, Contains, StartsWith, EndsWith, etc.).
-  - Instantly apply or reset filters to narrow down your search.
-- **📊 Interactive Dashboard:** Get a comprehensive overview of your log data:
-  - **Log Statistics:** Total entries, counts and percentages for Errors, Warnings, and Info levels.
-  - **Log Type Distribution:** Pie chart visualizing the proportion of different log levels.
-  - **Logs Over Time:** Line chart showing trends of log entries (e.g., errors per hour).
-  - **Activity Heat Map:** Visualize log activity concentration over time periods.
-  - **Top Error Messages:** Bar chart highlighting the most frequent error messages.
-  - **Log Source Distribution:** (If applicable, based on your log format) Chart showing distribution of logs from different sources.
-- **💡 Error Recommendations:** Provides potential solutions or next steps for recognized error messages, based on a configurable `error_recommendations.json` file.
-- **🔄 Update Checker:** Automatically checks for new application updates from GitHub Releases to ensure you have the latest features and fixes.
-- **Modern UI:** Built with Avalonia UI for a responsive, modern, and cross-platform user experience.
+### 🧠 **Advanced Error Detection & Analysis**
+- **Intelligent Error Detection:** Multi-strategy error detection system with format-specific analyzers
+- **Error Pattern Recognition:** Advanced pattern matching for common error scenarios
+- **Stack Trace Analysis:** Comprehensive stack trace parsing and visualization
+- **Error Categorization:** Automatic classification of errors by severity and type
+- **Performance Impact Analysis:** Correlation between errors and system performance metrics
+
+### 📊 **Comprehensive Analytics Dashboard**
+- **Real-time Statistics:** Live metrics for total entries, error rates, and performance indicators
+- **Interactive Visualizations:**
+  - Log Type Distribution (Pie Charts)
+  - Error Trends Over Time (Line Charts)
+  - Activity Heat Maps for temporal analysis
+  - Top Error Messages frequency analysis
+  - Performance bottleneck identification
+- **Custom Chart Configurations:** Configurable time ranges and data aggregation
+
+### 🔍 **Advanced Filtering & Search**
+- **Multi-criteria Filtering:** Dynamic filter combinations with AND/OR logic
+- **Pattern-based Search:** Regular expression and wildcard support
+- **Real-time Filter Application:** Instant results as you type
+- **Saved Filter Presets:** Save and reuse complex filter configurations
+- **Cross-tab Filtering:** Apply filters across multiple open log files
+
+### 🎨 **Modern UI & User Experience**
+- **Multi-Tab Interface:** Concurrent analysis of multiple log files
+- **Responsive Design:** Optimized for different screen sizes and resolutions
+- **Theme Customization:** Light/Dark themes with custom color schemes
+- **Accessibility Features:** Keyboard shortcuts and screen reader support
+- **Drag & Drop Support:** Easy file loading via drag and drop
+
+### ⚡ **Performance & Scalability**
+- **Asynchronous Processing:** Non-blocking UI with background log processing
+- **Memory Optimization:** Efficient memory usage for large log files (GB+ support)
+- **Caching System:** Intelligent caching for faster repeated operations
+- **Batch Processing:** Optimized processing of multiple files simultaneously
+- **Performance Benchmarking:** Built-in performance testing and monitoring
+
+### 🔄 **Auto-Update System**
+- **Automatic Updates:** Seamless background updates from GitHub releases
+- **Configurable Update Policy:** Control update frequency and notification preferences
+- **Version Management:** Track version history and rollback capabilities
+- **Update Notifications:** Non-intrusive update notifications
+
+### 💡 **Intelligent Recommendations**
+- **Error Resolution Suggestions:** Context-aware recommendations for common errors
+- **Best Practices Guidance:** Suggestions for log analysis workflows
+- **Performance Optimization Tips:** Recommendations for improving system performance
+- **Configurable Recommendation Engine:** Customizable via `error_recommendations.json`
+
+### 🔧 **Enterprise Features**
+- **File Association Management:** Register as default handler for log file types
+- **Command Line Interface:** Batch processing and automation support
+- **Configuration Management:** Centralized settings via `appsettings.json`
+- **Extensible Architecture:** Plugin-ready design for custom log formats
+- **Data Export:** Export filtered results and analytics to various formats
 
 ---
 
@@ -36,111 +77,199 @@ Log Parser App comes packed with features to streamline your log analysis workfl
 
 ## 🛠️ Tech Stack
 
-- **C#**: Core application logic.
-- **.NET 9**: Underlying framework (update if changed).
-- **Avalonia UI**: For the cross-platform graphical user interface.
-- **LiveChartsCore**: For beautiful and interactive charts in the dashboard.
-- **CommunityToolkit.Mvvm**: For implementing the MVVM design pattern.
-- **NLog**: For internal application logging (configured via `nlog.config`).
+- **C# (.NET 9)**: Core application logic with modern language features
+- **Avalonia UI 11.2+**: Cross-platform, modern UI framework
+- **LiveChartsCore 2.0**: Advanced charting and data visualization
+- **CommunityToolkit.Mvvm**: MVVM pattern implementation
+- **Microsoft.Extensions.DependencyInjection**: Dependency injection container
+- **NLog 5.0**: Comprehensive logging framework
+- **BenchmarkDotNet**: Performance testing and optimization
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) (or the target SDK version specified in `Log_Parser_App.csproj`).
-- (Windows Users) PowerShell for running build/run commands.
+- [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) or later
+- Windows 10/11, macOS 10.15+, or Linux (Ubuntu 18.04+)
+- Minimum 4GB RAM (8GB recommended for large log files)
+- 500MB available disk space
 
-### Building the Project
+### Quick Start
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/BlessedDayss/Log_Parser_App.git
-    cd Log_Parser_App
-    ```
-2.  **Build the application:**
-    ```powershell
-    dotnet build
-    ```
-    (For release build: `dotnet build -c Release`)
+1. **Clone and Build:**
+   ```bash
+   git clone https://github.com/BlessedDayss/Log_Parser_App.git
+   cd Log_Parser_App
+   dotnet build -c Release
+   ```
 
-### Running the Application
+2. **Run the Application:**
+   ```bash
+   # Standard launch
+   .\bin\Release\net9.0\Log_Parser_App.exe
+   
+   # Open specific log file
+   .\bin\Release\net9.0\Log_Parser_App.exe "C:\logs\application.log"
+   
+   # Performance testing mode
+   .\bin\Release\net9.0\Log_Parser_App.exe --perf-test
+   ```
 
-After a successful build, you can run the application from the output directory:
+### Command Line Options
 
-```powershell
-.\bin\Debug\net9.0\Log_Parser_App.exe  # Adjust path if building in Release or for a different .NET version
+```bash
+# Open specific file on startup
+Log_Parser_App.exe "path/to/logfile.txt"
+
+# Run performance benchmarks
+Log_Parser_App.exe --perf-test
+
+# Test parsing functionality
+Log_Parser_App.exe --test-parsing
 ```
 
-You can also pass a log file path as a command-line argument to open it automatically:
+## 📖 Usage Guide
 
-```powershell
-.\bin\Debug\net9.0\Log_Parser_App.exe "C:\path\to\your\logfile.txt"
-```
+### 1. **Loading Log Files**
+- **Single Files:** Use "Open File(s)" button or drag & drop
+- **Directories:** "Open Directory" loads all compatible log files
+- **Multiple Formats:** Automatic detection of Standard, IIS, and RabbitMQ logs
+- **Recent Files:** Quick access to recently opened files
 
-## 📖 How to Use
+### 2. **Log Analysis**
+- **Error Detection:** Automatic highlighting of errors, warnings, and critical issues
+- **Stack Trace Expansion:** Click 🪲 icon to expand/collapse stack traces
+- **Message Copying:** Select and copy log messages (Ctrl+C)
+- **Cross-referencing:** Link related log entries across different sources
 
-1.  **Open Log Files:**
-    - Click the "File Options" (📁) button in the top bar.
-    - Choose to "Open File(s)" or "Open Directory" (to load all `.txt` files from a folder).
-    - Selected files will open in new tabs.
-2.  **Navigate Tabs:**
-    - Click on a tab to view its content.
-    - Double-click a tab to open the source file externally.
-    - Close tabs using the '✕' button on each tab.
-3.  **View Log Entries:**
-    - The main grid displays log entries. Click on a row to select an entry.
-    - For entries with stack traces, a "🪲" icon appears; click it to expand/collapse the stack trace.
-    - Messages can be selected and copied (Ctrl+C).
-4.  **Filter Logs:**
-    - In the "All entries" tab, use the "+ Add Filter", "✔️ Apply Filters", and "🔄 Reset Filters" buttons.
-    - Define criteria based on fields like `Timestamp`, `Level`, `Message`.
-5.  **Explore the Dashboard:**
-    - Click the "Dashboard" (📊) button in the top bar to toggle its visibility.
-    - Interact with charts to get insights into your log data.
-6.  **Recommendations:**
-    - If an error log has associated recommendations, they will be displayed in the "Recommendations" column.
+### 3. **Advanced Filtering**
+- **Dynamic Filters:** Add multiple criteria with various operators
+- **Time Range Selection:** Filter by specific date/time ranges
+- **Log Level Filtering:** Focus on specific severity levels
+- **Pattern Matching:** Use regex patterns for complex searches
+- **Filter Persistence:** Save filter configurations for reuse
+
+### 4. **Dashboard Analytics**
+- **Overview Statistics:** Quick summary of log health and error rates
+- **Trend Analysis:** Identify patterns in error occurrences over time
+- **Performance Metrics:** Monitor system performance indicators
+- **Export Reports:** Generate reports for stakeholders
+
+### 5. **Error Resolution**
+- **Smart Recommendations:** Context-aware suggestions for error resolution
+- **Knowledge Base:** Access to documented solutions for common issues
+- **Documentation Links:** Direct links to relevant documentation
+- **Custom Recommendations:** Configure organization-specific recommendations
 
 ## ⚙️ Configuration
 
-- **`nlog.config`**: Configures the internal logging behavior of the Log Parser App itself.
-- **`error_recommendations.json`**: A JSON file where you can define custom recommendations for specific error message patterns. The application loads these to provide helpful tips.
-  Example structure:
-  ```json
-  [
-    {
-      "errorPattern": "NullReferenceException at SomeModule.SomeMethod",
-      "recommendationSteps": [
-        "Check if 'SomeObject' was properly initialized.",
-        "Verify inputs to 'SomeMethod'."
-      ],
-      "documentationLink": "https://yourdocs.com/errors/nullreference-somemethod"
+### Application Settings (`appsettings.json`)
+```json
+{
+  "AutoUpdate": {
+    "Enabled": true,
+    "CheckIntervalHours": 1,
+    "ShowNotifications": true,
+    "AutoInstall": true,
+    "Repository": {
+      "Owner": "BlessedDayss",
+      "Name": "Log_Parser_App"
     }
-  ]
-  ```
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning"
+    }
+  }
+}
+```
 
----
+### Error Recommendations (`error_recommendations.json`)
+```json
+[
+  {
+    "errorPattern": "OutOfMemoryException",
+    "recommendationSteps": [
+      "Check available system memory",
+      "Optimize application memory usage",
+      "Consider increasing heap size"
+    ],
+    "documentationLink": "https://docs.microsoft.com/en-us/dotnet/api/system.outofmemoryexception"
+  }
+]
+```
+
+### Logging Configuration (`nlog.config`)
+Configure internal application logging behavior with NLog settings.
+
+## 🔧 Advanced Features
+
+### Custom Log Format Support
+Extend the application to support additional log formats by implementing:
+- `ILogParserService` interface
+- `IErrorDetectionStrategy` for format-specific error detection
+- Custom converters for data visualization
+
+### Performance Optimization
+- **Large File Handling:** Optimized for multi-GB log files
+- **Memory Management:** Efficient memory allocation and garbage collection
+- **Background Processing:** Non-blocking operations for better user experience
+- **Caching Strategies:** Intelligent caching for frequently accessed data
+
+### Integration Capabilities
+- **API Endpoints:** REST API for programmatic access (future release)
+- **Export Formats:** CSV, JSON, XML export capabilities
+- **Third-party Integration:** Plugin architecture for custom integrations
+
+## 🧪 Testing & Quality Assurance
+
+### Performance Benchmarking
+Run built-in performance tests to validate optimization:
+```bash
+Log_Parser_App.exe --perf-test
+```
+
+### Supported Test Scenarios
+- Large file processing (1GB+ logs)
+- Concurrent multi-file analysis
+- Memory usage optimization
+- Real-time filtering performance
 
 ## 🤝 Contributing
 
-Contributions are welcome! If you'd like to contribute, please:
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
 
-1.  Fork the repository.
-2.  Create a new branch (`git checkout -b feature/your-feature-name`).
-3.  Make your changes.
-4.  Commit your changes (`git commit -m 'Add some feature'`).
-5.  Push to the branch (`git push origin feature/your-feature-name`).
-6.  Open a Pull Request.
+### Development Setup
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Implement changes with tests
+4. Ensure all benchmarks pass
+5. Submit pull request with detailed description
 
-Please ensure your code follows the existing style and all tests pass.
-
----
+### Code Standards
+- Follow C# coding conventions
+- Include comprehensive unit tests
+- Document public APIs
+- Maintain backward compatibility
 
 ## 📄 License
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+Licensed under the **MIT License** - see [LICENSE](LICENSE) for details.
 
-Copyright (c) 2025 Orkhan Gojayev
+**Copyright (c) 2025 Orkhan Gojayev**
 
 ---
 
-Happy Log Parsing! 🎉
+## 🚀 What's New in v1.0.6
+
+- ✅ **Multi-format Log Support:** IIS and RabbitMQ log parsing
+- ✅ **Advanced Error Detection:** Strategy-based error analysis
+- ✅ **Performance Optimizations:** Enhanced memory management and caching
+- ✅ **Auto-update System:** Seamless background updates
+- ✅ **Enhanced UI/UX:** Modern themes and improved accessibility
+- ✅ **Comprehensive Analytics:** Advanced dashboard with multiple chart types
+
+---
+
+**Transform your log analysis workflow today!** 🎉

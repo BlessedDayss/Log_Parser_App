@@ -35,8 +35,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private UpdateInfo? _availableUpdate;
 
-    [ObservableProperty]
-    private bool _isDashboardVisible;
+
 
     [ObservableProperty]
     private bool _isDownloadingUpdate;
@@ -50,7 +49,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         // Design-time constructor
         _logger = null!; 
-        _mainView = new Log_Parser_App.ViewModels.MainViewModel(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!); // Updated for simplified error recommendation service
+        _mainView = new Log_Parser_App.ViewModels.MainViewModel(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!);
         _updateService = null!;
         AppVersion = "v0.0.1-design";
         // Design-time filter criterion for the previewer - this will cause issues if FilterCriteria is removed
@@ -75,7 +74,7 @@ public partial class MainWindowViewModel : ViewModelBase
         DownloadAndUpdateCommand = new RelayCommand(async () => await ExecuteDownloadAndUpdateAsync());
         ShowUpdateSettingsCommand = new RelayCommand(async () => await ShowUpdateSettingsAsync());
         
-        IsDashboardVisible = false;
+
         
         // Subscribe to UpdateViewModel events
         if (_updateViewModel != null)
@@ -189,11 +188,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public IRelayCommand OpenLogFileCommand { get; } = null!;
 
-    public ICommand ToggleDashboardVisibilityCommand => new RelayCommand(() =>
-    {
-        _logger.LogInformation($"Toggling dashboard visibility. Current state: {IsDashboardVisible}");
-        IsDashboardVisible = !IsDashboardVisible;
-    });
+
 
     public ICommand SelectTabCommand => new RelayCommand<TabViewModel>(tab =>
     {

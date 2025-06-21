@@ -42,12 +42,7 @@ public interface IChartService
     /// <returns>Configured axes for the chart</returns>
     IEnumerable<Axis> GenerateChartAxes(LogFormatType logType);
     
-    /// <summary>
-    /// Update chart configuration for different dashboard types
-    /// </summary>
-    /// <param name="isDashboardVisible">Whether dashboard mode is active</param>
-    /// <param name="logType">Current log format type</param>
-    void UpdateChartConfiguration(bool isDashboardVisible, LogFormatType logType);
+
     
     /// <summary>
     /// Generate comprehensive chart data for statistics view

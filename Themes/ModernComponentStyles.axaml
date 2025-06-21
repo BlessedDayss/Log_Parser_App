@@ -184,11 +184,7 @@
         </Style>
     </Style>
 
-    <!-- Dashboard Container Style -->
-    <Style Selector="Grid.DashboardContainer" x:Key="DashboardContainerStyle">
-        <Setter Property="Background" Value="{DynamicResource BackgroundBrush}" />
-        <Setter Property="Margin" Value="{DynamicResource SpacingMD}" />
-    </Style>
+
 
     <!-- Chart Container Style -->
     <Style Selector="Border.ChartContainer" x:Key="ChartContainerStyle">

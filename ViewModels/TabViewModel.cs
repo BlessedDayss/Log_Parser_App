@@ -133,6 +133,23 @@ namespace Log_Parser_App.ViewModels
 
 		public IRelayCommand ResetIISFiltersCommand { get; }
 
+		// --- IIS Sorting ---
+		
+		public IRelayCommand<string> SortIISCommand { get; }
+		
+		private string? _currentIISSortField;
+		private bool _isIISAscending = true;
+		
+		public string? CurrentIISSortField {
+			get => _currentIISSortField;
+			set => SetProperty(ref _currentIISSortField, value);
+		}
+		
+		public bool IsIISAscending {
+			get => _isIISAscending;
+			set => SetProperty(ref _isIISAscending, value);
+		}
+
 		// --- End IIS Filtering ---
 		// --- Standard Filtering Properties and Commands ---
 
@@ -178,6 +195,7 @@ namespace Log_Parser_App.ViewModels
 			RemoveIISFilterCriterionCommand = new RelayCommand<IISFilterCriterion>(ExecuteRemoveIISFilterCriterion);
 			ApplyIISFiltersCommand = new RelayCommand(ExecuteApplyIISFilters);
 			ResetIISFiltersCommand = new RelayCommand(ExecuteResetIISFilters);
+			SortIISCommand = new RelayCommand<string>(ExecuteSortIIS);
 			// Initialize Standard Filtering related collections and commands
 			FilterCriteria = new ObservableCollection<FilterCriterion>();
 			FilteredLogEntries = new ObservableCollection<LogEntry>(logEntries); // Initially populate with all entries
@@ -203,6 +221,7 @@ namespace Log_Parser_App.ViewModels
 			RemoveIISFilterCriterionCommand = new RelayCommand<IISFilterCriterion>(ExecuteRemoveIISFilterCriterion);
 			ApplyIISFiltersCommand = new RelayCommand(ExecuteApplyIISFilters);
 			ResetIISFiltersCommand = new RelayCommand(ExecuteResetIISFilters);
+			SortIISCommand = new RelayCommand<string>(ExecuteSortIIS);
 			// Initialize Standard Filtering related collections and commands
 			// even though they won't be used for IIS tabs
 			FilterCriteria = new ObservableCollection<FilterCriterion>();
@@ -233,6 +252,7 @@ namespace Log_Parser_App.ViewModels
 			RemoveIISFilterCriterionCommand = new RelayCommand<IISFilterCriterion>(ExecuteRemoveIISFilterCriterion);
 			ApplyIISFiltersCommand = new RelayCommand(ExecuteApplyIISFilters);
 			ResetIISFiltersCommand = new RelayCommand(ExecuteResetIISFilters);
+			SortIISCommand = new RelayCommand<string>(ExecuteSortIIS);
 			// Initialize Standard Filtering related collections and commands
 			FilterCriteria = new ObservableCollection<FilterCriterion>();
 			FilteredLogEntries = new ObservableCollection<LogEntry>(logEntries); // Initially populate with all entries
@@ -261,6 +281,7 @@ namespace Log_Parser_App.ViewModels
 			RemoveIISFilterCriterionCommand = new RelayCommand<IISFilterCriterion>(ExecuteRemoveIISFilterCriterion);
 			ApplyIISFiltersCommand = new RelayCommand(ExecuteApplyIISFilters);
 			ResetIISFiltersCommand = new RelayCommand(ExecuteResetIISFilters);
+			SortIISCommand = new RelayCommand<string>(ExecuteSortIIS);
 			// Initialize Standard Filtering related collections and commands
 			FilterCriteria = new ObservableCollection<FilterCriterion>();
 			FilteredLogEntries = new ObservableCollection<LogEntry>(); // Empty for RabbitMQ-specific tabs
@@ -315,6 +336,12 @@ namespace Log_Parser_App.ViewModels
 			foreach (var entry in tempList) {
 				FilteredIISLogEntries.Add(entry);
 			}
+			
+			// Apply current sorting if any
+			if (!string.IsNullOrEmpty(CurrentIISSortField)) {
+				ApplySortToIISEntries();
+			}
+			
 			OnPropertyChanged(nameof(IIS_TotalCount));
 			OnPropertyChanged(nameof(IIS_ErrorCount));
 			OnPropertyChanged(nameof(IIS_InfoCount));
@@ -400,6 +427,74 @@ namespace Log_Parser_App.ViewModels
 				return;
 			IISFilterCriteria.Clear();
 			ExecuteApplyIISFilters(); // Re-apply to show all entries and update counts
+		}
+
+		private void ExecuteSortIIS(string? columnName) {
+			if (LogType != LogFormatType.IIS || string.IsNullOrEmpty(columnName))
+				return;
+
+			// Toggle sort direction if same column, otherwise set to ascending
+			if (CurrentIISSortField == columnName) {
+				IsIISAscending = !IsIISAscending;
+			} else {
+				CurrentIISSortField = columnName;
+				IsIISAscending = true;
+			}
+
+			ApplySortToIISEntries();
+		}
+
+		private void ApplySortToIISEntries() {
+			if (string.IsNullOrEmpty(CurrentIISSortField))
+				return;
+
+			var sortedEntries = CurrentIISSortField switch {
+				"date" => IsIISAscending 
+					? FilteredIISLogEntries.OrderBy(e => e.DateTime).ToList()
+					: FilteredIISLogEntries.OrderByDescending(e => e.DateTime).ToList(),
+				"time" => IsIISAscending 
+					? FilteredIISLogEntries.OrderBy(e => e.DateTime?.TimeOfDay).ToList()
+					: FilteredIISLogEntries.OrderByDescending(e => e.DateTime?.TimeOfDay).ToList(),
+				"s-ip" => IsIISAscending 
+					? FilteredIISLogEntries.OrderBy(e => e.ServerIPAddress).ToList()
+					: FilteredIISLogEntries.OrderByDescending(e => e.ServerIPAddress).ToList(),
+				"cs-method" => IsIISAscending 
+					? FilteredIISLogEntries.OrderBy(e => e.Method).ToList()
+					: FilteredIISLogEntries.OrderByDescending(e => e.Method).ToList(),
+				"cs-uri-stem" => IsIISAscending 
+					? FilteredIISLogEntries.OrderBy(e => e.UriStem).ToList()
+					: FilteredIISLogEntries.OrderByDescending(e => e.UriStem).ToList(),
+				"cs-uri-query" => IsIISAscending 
+					? FilteredIISLogEntries.OrderBy(e => e.UriQuery).ToList()
+					: FilteredIISLogEntries.OrderByDescending(e => e.UriQuery).ToList(),
+				"s-port" => IsIISAscending 
+					? FilteredIISLogEntries.OrderBy(e => e.ServerPort).ToList()
+					: FilteredIISLogEntries.OrderByDescending(e => e.ServerPort).ToList(),
+				"cs-username" => IsIISAscending 
+					? FilteredIISLogEntries.OrderBy(e => e.UserName).ToList()
+					: FilteredIISLogEntries.OrderByDescending(e => e.UserName).ToList(),
+				"c-ip" => IsIISAscending 
+					? FilteredIISLogEntries.OrderBy(e => e.ClientIPAddress).ToList()
+					: FilteredIISLogEntries.OrderByDescending(e => e.ClientIPAddress).ToList(),
+				"time-taken" => IsIISAscending 
+					? FilteredIISLogEntries.OrderBy(e => e.TimeTaken).ToList()
+					: FilteredIISLogEntries.OrderByDescending(e => e.TimeTaken).ToList(),
+				"cs(User-Agent)" => IsIISAscending 
+					? FilteredIISLogEntries.OrderBy(e => e.UserAgent).ToList()
+					: FilteredIISLogEntries.OrderByDescending(e => e.UserAgent).ToList(),
+				"sc-win32-status" => IsIISAscending 
+					? FilteredIISLogEntries.OrderBy(e => e.Win32Status).ToList()
+					: FilteredIISLogEntries.OrderByDescending(e => e.Win32Status).ToList(),
+				"sc-status" => IsIISAscending 
+					? FilteredIISLogEntries.OrderBy(e => e.HttpStatus).ToList()
+					: FilteredIISLogEntries.OrderByDescending(e => e.HttpStatus).ToList(),
+				_ => FilteredIISLogEntries.ToList()
+			};
+
+			FilteredIISLogEntries.Clear();
+			foreach (var entry in sortedEntries) {
+				FilteredIISLogEntries.Add(entry);
+			}
 		}
 
 		// Standard Filter Methods
