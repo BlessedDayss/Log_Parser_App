@@ -279,7 +279,10 @@ namespace Log_Parser_App
 
             // Error Detection Services (EFS-001 - Error Filtering System Refactoring)
             services.AddSingleton<Log_Parser_App.Services.ErrorDetection.IErrorDetectionServiceFactory, Log_Parser_App.Services.ErrorDetection.ErrorDetectionServiceFactory>();
-            services.AddSingleton<Log_Parser_App.Services.ErrorDetection.IErrorDetectionService, Log_Parser_App.Services.ErrorDetection.ErrorDetectionService>();
+            				services.AddSingleton<Log_Parser_App.Services.ErrorDetection.IErrorDetectionService, Log_Parser_App.Services.ErrorDetection.ErrorDetectionService>();
+				
+				// File Type Detection Service
+				services.AddSingleton<IFileTypeDetectionService, FileTypeDetectionService>();
             
             // Error Detection Strategy Implementations
             services.AddTransient<Log_Parser_App.Services.ErrorDetection.StandardLogErrorDetectionStrategy>();

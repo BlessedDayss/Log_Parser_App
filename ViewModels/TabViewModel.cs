@@ -22,9 +22,9 @@ namespace Log_Parser_App.ViewModels
 		// RabbitMQ entries collection
 		private List<RabbitMqLogEntry> _rabbitMqLogEntries;
 		private bool _isSelected;
-		private bool _isErrorsOnly;
+			private bool _isErrorsOnly;
 
-		#endregion
+	#endregion
 
 		#region Properties: Public
 
@@ -59,19 +59,19 @@ namespace Log_Parser_App.ViewModels
 			}
 		}
 
-		public LogFormatType LogType { get; }
+			public LogFormatType LogType { get; }
 
-		// New direct properties for tab type checking
+	// New direct properties for tab type checking
 
 		public bool IsThisTabIIS => LogType == LogFormatType.IIS;
 
 		public bool IsThisTabStandard => LogType == LogFormatType.Standard;
 
-		public bool IsThisTabRabbitMQ => LogType == LogFormatType.RabbitMQ;
+			public bool IsThisTabRabbitMQ => LogType == LogFormatType.RabbitMQ;
 
-		// Combined property for UI binding - both Standard and RabbitMQ use the same LogEntry structure
+	// Combined property for UI binding - both Standard and RabbitMQ use the same LogEntry structure
 
-		public bool IsThisTabStandardOrRabbitMQ => LogType == LogFormatType.Standard || LogType == LogFormatType.RabbitMQ;
+	public bool IsThisTabStandardOrRabbitMQ => LogType == LogFormatType.Standard || LogType == LogFormatType.RabbitMQ;
 
 		public bool IsSelected {
 			get => _isSelected;
@@ -291,6 +291,8 @@ namespace Log_Parser_App.ViewModels
 			ResetFiltersCommand = new RelayCommand(ExecuteResetFilters);
 			InitializeFilterFields();
 		}
+
+
 
 		#endregion
 

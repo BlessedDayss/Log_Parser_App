@@ -41,7 +41,8 @@ namespace Log_Parser_App.ViewModels
 
         
         // Error Detection Service
-        private readonly Log_Parser_App.Services.ErrorDetection.IErrorDetectionService _errorDetectionService;
+        	private readonly Log_Parser_App.Services.ErrorDetection.IErrorDetectionService _errorDetectionService;
+	private readonly IFileTypeDetectionService _fileTypeDetectionService;
 
         [ObservableProperty]
         private string _statusMessage = "Ready to work";
@@ -253,18 +254,19 @@ namespace Log_Parser_App.ViewModels
             set => SetProperty(ref _lastOpenedFilePath, value);
         }
 
-        public MainViewModel(
-            ILogParserService logParserService,
-            ILogger<MainViewModel> logger,
-            IFileService fileService,
-            ISimpleErrorRecommendationService simpleErrorRecommendationService,
-            IFilePickerService filePickerService,
-            IIISLogParserService iisLogParserService,
-            IRabbitMqLogParserService rabbitMqLogParserService,
-            IChartService chartService,
-            ITabManagerService tabManagerService,
-            IFilterService filterService,
-            Log_Parser_App.Services.ErrorDetection.IErrorDetectionService errorDetectionService) {
+        		public MainViewModel(
+			ILogParserService logParserService,
+			ILogger<MainViewModel> logger,
+			IFileService fileService,
+			ISimpleErrorRecommendationService simpleErrorRecommendationService,
+			IFilePickerService filePickerService,
+			IIISLogParserService iisLogParserService,
+			IRabbitMqLogParserService rabbitMqLogParserService,
+			IChartService chartService,
+			ITabManagerService tabManagerService,
+			IFilterService filterService,
+			Log_Parser_App.Services.ErrorDetection.IErrorDetectionService errorDetectionService,
+			IFileTypeDetectionService fileTypeDetectionService) {
             _logParserService = logParserService;
             _logger = logger;
             _fileService = fileService;
@@ -277,6 +279,7 @@ namespace Log_Parser_App.ViewModels
             _filterService = filterService;
 
             _errorDetectionService = errorDetectionService;
+            _fileTypeDetectionService = fileTypeDetectionService;
 
             InitializeErrorRecommendationService();
 
@@ -667,48 +670,46 @@ namespace Log_Parser_App.ViewModels
             FileStatus = $"Dir: {Path.GetFileName(dir)}";
 
             try {
-                var txtFiles = Directory.EnumerateFiles(dir, "*.txt", SearchOption.TopDirectoryOnly).ToList();
-                var jsonFiles = Directory.EnumerateFiles(dir, "*.json", SearchOption.TopDirectoryOnly).ToList();
+                				var allFiles = Directory.EnumerateFiles(dir, "*.*", SearchOption.TopDirectoryOnly)
+					.Where(f => new[] { ".txt", ".log", ".config", ".xml", ".csv" }
+						.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase))
+					.ToList();
 
-                if (!txtFiles.Any() && !jsonFiles.Any()) {
-                    _logger.LogWarning("No '*.txt' or '*.json' files found in directory: {Directory}", dir);
-                    return;
-                }
+				if (!allFiles.Any()) {
+					_logger.LogWarning("No supported files found in directory: {Directory}", dir);
+					return;
+				}
 
-                _logger.LogInformation("Found {FileCount} '*.txt' files in {DirectoryPath}. Loading up to 10.", txtFiles.Count, dir);
+				_logger.LogInformation("Found {FileCount} files in {DirectoryPath}. Analyzing file types...", allFiles.Count, dir);
 
-                foreach (var file in txtFiles) {
-                    if (FileTabs.Any(tab => tab.FilePath == file)) {
-                        _logger.LogInformation("File {FilePath} is already open. Selecting existing tab.", file);
-                        var existingTab = FileTabs.First(tab => tab.FilePath == file);
-                        await Dispatcher.UIThread.InvokeAsync(() => SelectedTab = existingTab);
-                        continue;
-                    }
+				foreach (var file in allFiles) {
+					if (FileTabs.Any(tab => tab.FilePath == file)) {
+						_logger.LogInformation("File {FilePath} is already open. Selecting existing tab.", file);
+						var existingTab = FileTabs.First(tab => tab.FilePath == file);
+						await Dispatcher.UIThread.InvokeAsync(() => SelectedTab = existingTab);
+						continue;
+					}
 
-                    _logger.LogInformation("Loading file {FilePath} from directory {DirectoryPath}", file, dir);
-                    await LoadFileToTab(file);
-                }
+					_logger.LogInformation("Loading file {FilePath} from directory {DirectoryPath}", file, dir);
+					await LoadFileWithTypeDetection(file);
+				}
 
-                if (jsonFiles.Any()) {
-                    await LoadRabbitMqFilesAsync(jsonFiles);
-                }
+                				await Dispatcher.UIThread.InvokeAsync(() => {
+					var successfullyLoadedTabsCount = allFiles.Count(f => FileTabs.Any(t => t.FilePath == f));
+					StatusMessage = $"Finished loading files from directory {Path.GetFileName(dir)}. Loaded {successfullyLoadedTabsCount} new tab(s).";
+					IsLoading = false;
 
-                await Dispatcher.UIThread.InvokeAsync(() => {
-                    var successfullyLoadedTabsCount = txtFiles.Count(f => FileTabs.Any(t => t.FilePath == f)) + jsonFiles.Count(f => FileTabs.Any(t => t.FilePath == f));
-                    StatusMessage = $"Finished loading files from directory {Path.GetFileName(dir)}. Loaded {successfullyLoadedTabsCount} new tab(s).";
-                    IsLoading = false;
-
-                    var lastAddedTabFromDir = FileTabs.LastOrDefault(t => txtFiles.Contains(t.FilePath) || jsonFiles.Contains(t.FilePath));
-                    if (lastAddedTabFromDir != null) {
-                        SelectedTab = lastAddedTabFromDir;
-                    } else if (!FileTabs.Any() && SelectedTab == null) {
-                                            FileStatus = "No file selected";
-                    }
-                    UpdateMultiFileModeStatus();
-                    _logger.LogInformation("[LoadDirectoryAsync - No files found or error block] After UpdateMultiFileModeStatus. IsMultiFileModeActive: {IsActive}",
-                        IsMultiFileModeActive);
-                    _ = Task.Run(UpdateAllErrorLogEntries);
-                });
+					var lastAddedTabFromDir = FileTabs.LastOrDefault(t => allFiles.Contains(t.FilePath));
+					if (lastAddedTabFromDir != null) {
+						SelectedTab = lastAddedTabFromDir;
+					} else if (!FileTabs.Any() && SelectedTab == null) {
+                                        FileStatus = "No file selected";
+					}
+					UpdateMultiFileModeStatus();
+					_logger.LogInformation("[LoadDirectoryAsync - Success] After UpdateMultiFileModeStatus. IsMultiFileModeActive: {IsActive}",
+						IsMultiFileModeActive);
+					_ = Task.Run(UpdateAllErrorLogEntries);
+				});
             } catch (UnauthorizedAccessException ex) {
                 _logger.LogError(ex, "Access denied to directory: {DirectoryPath}", dir);
                 await Dispatcher.UIThread.InvokeAsync(() => {
@@ -876,7 +877,8 @@ namespace Log_Parser_App.ViewModels
                 return;
             }
 
-            if (SelectedTab.IsThisTabStandard) {
+            // Handle Standard and RabbitMQ logs (they all use standard LogEntry format)
+            if (SelectedTab.IsThisTabStandardOrRabbitMQ) {
                 var entriesToAnalyze = SelectedTab.LogEntries; // Or FilteredLogEntries if standard filters are applied at TabViewModel level
                 if (entriesToAnalyze == null || !entriesToAnalyze.Any()) {
                     // Same clearing logic as if SelectedTab was null
@@ -893,7 +895,7 @@ namespace Log_Parser_App.ViewModels
                     return;
                 }
 
-                // Existing logic for standard logs
+                // Existing logic for standard logs (now also applies to RabbitMQ)
                 var stats = CalculateStatisticsAndCharts(entriesToAnalyze);
                 ErrorCount = stats.ErrorCount;
                 WarningCount = stats.WarningCount;
@@ -916,7 +918,6 @@ namespace Log_Parser_App.ViewModels
                 HoursAxis = stats.HoursAxis;
                 SourceAxis = stats.SourceAxis;
                 ErrorMessageAxis = stats.ErrorMessageAxis;
-
 
             } else if (SelectedTab.IsThisTabIIS) {
                 ErrorCount = SelectedTab.IIS_ErrorCount;
@@ -953,7 +954,6 @@ namespace Log_Parser_App.ViewModels
                     LogStatistics = new LogStatistics();
                     ClearAllCharts();
                 }
-
 
             } else {
                 // Should not happen if SelectedTab is not null, but as a fallback:
@@ -1904,7 +1904,44 @@ namespace Log_Parser_App.ViewModels
             }
         }
 
-        private async Task LoadRabbitMqFilesAsync(IEnumerable<string> filePaths) {
+        		/// <summary>
+		/// Loads file with intelligent type detection
+		/// Uses FileTypeDetectionService to determine appropriate handler
+		/// </summary>
+		private async Task LoadFileWithTypeDetection(string filePath) {
+			try {
+				_logger.LogInformation("Detecting file type for: {FilePath}", filePath);
+				
+				// Use intelligent file type detection
+				var detectedType = await _fileTypeDetectionService.DetectFileTypeAsync(filePath);
+				
+				_logger.LogInformation("File {FilePath} detected as type: {LogType}", filePath, detectedType);
+				
+				switch (detectedType) {
+					case LogFormatType.IIS:
+						await LoadIISFileAsync(filePath);
+						break;
+					case LogFormatType.RabbitMQ:
+						await LoadRabbitMqFileAsync(filePath);
+						break;
+					case LogFormatType.Standard:
+						await LoadFileToTab(filePath);
+						break;
+					default:
+						_logger.LogWarning("Unknown file type {LogType} for {FilePath}, treating as Standard", detectedType, filePath);
+						await LoadFileToTab(filePath);
+						break;
+				}
+			} catch (Exception ex) {
+				_logger.LogError(ex, "Error loading file with type detection: {FilePath}", filePath);
+				// Fallback to Standard
+				await LoadFileToTab(filePath);
+			}
+		}
+
+		
+
+		private async Task LoadRabbitMqFilesAsync(IEnumerable<string> filePaths) {
             var allEntries = new List<RabbitMqLogEntry>();
             int failedEntriesCount = 0;
 
