@@ -170,10 +170,11 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             var updateWindow = new Log_Parser_App.Views.UpdateSettingsWindow();
             
-            if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
-            {
-                await updateWindow.ShowDialog(desktop.MainWindow);
-            }
+                            if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop &&
+                    desktop.MainWindow != null)
+                {
+                    await updateWindow.ShowDialog(desktop.MainWindow);
+                }
         }
         catch (Exception ex)
         {

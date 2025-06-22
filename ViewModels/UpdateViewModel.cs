@@ -179,13 +179,13 @@ using Microsoft.Extensions.Logging;
 
 			try
 			{
-				_logger.LogInformation("Starting auto-update process for version {Version}", AvailableUpdate!.Version);
+				_logger.LogInformation("Starting auto-update process for version {Version}", AvailableUpdate?.Version);
 				
 				// Create and show progress window on UI thread
 				await Dispatcher.UIThread.InvokeAsync(() =>
 				{
 					progressViewModel = new UpdateProgressViewModel();
-					progressViewModel.SetVersions(_updateService.GetCurrentVersion().ToString(), AvailableUpdate.Version.ToString());
+					progressViewModel.SetVersions(_updateService.GetCurrentVersion().ToString(), AvailableUpdate?.Version?.ToString() ?? "Unknown");
 					
 					progressWindow = new UpdateProgressWindow
 					{
@@ -195,7 +195,7 @@ using Microsoft.Extensions.Logging;
 				});
 
 				// Download update
-				_logger.LogInformation("Starting download for version {Version}", AvailableUpdate.Version);
+				_logger.LogInformation("Starting download for version {Version}", AvailableUpdate?.Version);
 				
 				await Dispatcher.UIThread.InvokeAsync(() =>
 				{
@@ -210,7 +210,7 @@ using Microsoft.Extensions.Logging;
 					});
 				});
 
-				string? filePath = await _updateService.DownloadUpdateAsync(AvailableUpdate, progressIndicator);
+				string? filePath = AvailableUpdate != null ? await _updateService.DownloadUpdateAsync(AvailableUpdate, progressIndicator) : null;
 
 				if (string.IsNullOrEmpty(filePath))
 				{
@@ -295,8 +295,8 @@ using Microsoft.Extensions.Logging;
 
 				if (IsUpdateAvailable())
 				{
-					StatusMessage = $"Update available: {AvailableUpdate!.Version}";
-					_logger.LogInformation("Update found: {CurrentVersion} -> {NewVersion}", currentVersion, AvailableUpdate.Version);
+					StatusMessage = $"Update available: {AvailableUpdate?.Version}";
+					_logger.LogInformation("Update found: {CurrentVersion} -> {NewVersion}", currentVersion, AvailableUpdate?.Version);
 				}
 				else
 				{
@@ -338,7 +338,7 @@ using Microsoft.Extensions.Logging;
 				return;
 			}
 
-			if (string.IsNullOrEmpty(AvailableUpdate!.DownloadUrl))
+			if (string.IsNullOrEmpty(AvailableUpdate?.DownloadUrl))
 			{
 				_logger.LogWarning("Download URL is missing");
 				StatusMessage = "Update download URL is missing";
@@ -350,13 +350,13 @@ using Microsoft.Extensions.Logging;
 
 			try
 			{
-				_logger.LogInformation("Starting manual update download for version {Version}", AvailableUpdate.Version);
+				_logger.LogInformation("Starting manual update download for version {Version}", AvailableUpdate?.Version);
 				
 				// Create and show progress window on UI thread
 				await Dispatcher.UIThread.InvokeAsync(() =>
 				{
 					progressViewModel = new UpdateProgressViewModel();
-					progressViewModel.SetVersions(_updateService.GetCurrentVersion().ToString(), AvailableUpdate.Version.ToString());
+					progressViewModel.SetVersions(_updateService.GetCurrentVersion().ToString(), AvailableUpdate?.Version?.ToString() ?? "Unknown");
 					
 					progressWindow = new UpdateProgressWindow
 					{
@@ -378,7 +378,7 @@ using Microsoft.Extensions.Logging;
 					});
 				});
 
-				string? downloadedFilePath = await _updateService.DownloadUpdateAsync(AvailableUpdate, progressIndicator);
+				string? downloadedFilePath = AvailableUpdate != null ? await _updateService.DownloadUpdateAsync(AvailableUpdate, progressIndicator) : null;
 
 				if (string.IsNullOrEmpty(downloadedFilePath))
 				{

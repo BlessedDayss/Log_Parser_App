@@ -30,6 +30,14 @@ public interface IFilterService
     Task<IEnumerable<LogEntry>> ApplyIISFiltersAsync(IEnumerable<LogEntry> logEntries, IEnumerable<IISFilterCriterion> iisFilterCriteria);
     
     /// <summary>
+    /// Apply RabbitMQ-specific filters to RabbitMQ log entries
+    /// </summary>
+    /// <param name="rabbitMqEntries">Source RabbitMQ log entries to filter</param>
+    /// <param name="filterCriteria">Collection of filter criteria to apply</param>
+    /// <returns>Filtered RabbitMQ log entries matching the criteria</returns>
+    Task<IEnumerable<RabbitMqLogEntry>> ApplyRabbitMQFiltersAsync(IEnumerable<RabbitMqLogEntry> rabbitMqEntries, IEnumerable<FilterCriterion> filterCriteria);
+    
+    /// <summary>
     /// Validate filter criteria for correctness
     /// </summary>
     /// <param name="criterion">Filter criterion to validate</param>

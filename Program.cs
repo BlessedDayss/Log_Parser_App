@@ -2,7 +2,7 @@ namespace Log_Parser_App
 {
 	using System;
 	using Avalonia;
-	using System.Threading.Tasks;
+using System.Threading.Tasks;
 
 	#region Class: Program
 
@@ -38,10 +38,10 @@ namespace Log_Parser_App
 				}
 				// Test parsing logic if --test-parsing argument is provided
 				if (args.Length > 0 && args[0] == "--test-parsing") {
-
-					// TODO: Implement test parsing functionality
-					Console.WriteLine("Test parsing functionality not implemented yet.");
-					return 1;
+					Console.WriteLine("Testing RabbitMQ header parsing...");
+					await TestRabbitMqHeaderParsing();
+					Console.WriteLine("Test completed.");
+					return 0;
 				}
 
 				return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
@@ -62,6 +62,44 @@ namespace Log_Parser_App
 		#endregion
 
 		#region Methods: Private
+
+		private static async Task TestRabbitMqHeaderParsing() {
+			try {
+				// Simple test without complex logging setup
+				Console.WriteLine("🧪 Testing header parsing with test file...");
+				
+				// Just run a simple JSON parsing test
+				if (System.IO.File.Exists("test-headers.json")) {
+					var content = await System.IO.File.ReadAllTextAsync("test-headers.json");
+					using var doc = System.Text.Json.JsonDocument.Parse(content);
+					
+					Console.WriteLine("📁 Test file found and parsed");
+					
+					// Check for required fields
+					bool hasFaultMessage = doc.RootElement.TryGetProperty("MT-Fault-Message", out var msgElement);
+					bool hasStackTrace = doc.RootElement.TryGetProperty("MT-Fault-StackTrace", out var stackElement);
+					bool hasTimestamp = doc.RootElement.TryGetProperty("MT-Fault-Timestamp", out var timeElement);
+					
+					Console.WriteLine($"   MT-Fault-Message found: {hasFaultMessage}");
+					Console.WriteLine($"   MT-Fault-StackTrace found: {hasStackTrace}");
+					Console.WriteLine($"   MT-Fault-Timestamp found: {hasTimestamp}");
+					
+					if (hasFaultMessage) {
+						var message = msgElement.GetString();
+						Console.WriteLine($"   Message preview: {message?.Substring(0, Math.Min(100, message?.Length ?? 0))}...");
+					}
+					
+					if (hasStackTrace) {
+						var stack = stackElement.GetString();
+						Console.WriteLine($"   StackTrace length: {stack?.Length ?? 0} characters");
+					}
+				} else {
+					Console.WriteLine("❌ Test file 'test-headers.json' not found");
+				}
+			} catch (Exception ex) {
+				Console.WriteLine($"❌ Test failed with exception: {ex.Message}");
+			}
+		}
 
 		private static void ProcessCommandLineArguments(string[] args) {
 			if (args.Length == 0)

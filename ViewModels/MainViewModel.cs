@@ -178,6 +178,12 @@ namespace Log_Parser_App.ViewModels
         private int _otherCount;
 
         [ObservableProperty]
+        private int _uniqueProcessUIDCount;
+
+        [ObservableProperty]
+        private int _totalCount;
+
+        [ObservableProperty]
         private double _errorPercent;
 
         [ObservableProperty]
@@ -887,45 +893,117 @@ namespace Log_Parser_App.ViewModels
 
             // Handle Standard and RabbitMQ logs (they all use standard LogEntry format)
             if (SelectedTab.IsThisTabStandardOrRabbitMQ) {
-                var entriesToAnalyze = SelectedTab.LogEntries; // Or FilteredLogEntries if standard filters are applied at TabViewModel level
-                if (entriesToAnalyze == null || !entriesToAnalyze.Any()) {
-                    // Same clearing logic as if SelectedTab was null
-                    ErrorCount = 0;
-                    WarningCount = 0;
-                    InfoCount = 0;
-                    OtherCount = 0;
-                    ErrorPercent = 0;
-                    WarningPercent = 0;
-                    InfoPercent = 0;
-                    OtherPercent = 0;
-                    LogStatistics = new LogStatistics();
-                    ClearAllCharts();
-                    return;
-                }
+                // Special handling for RabbitMQ logs
+                if (SelectedTab.IsThisTabRabbitMQ) {
+                    var rabbitMqEntries = SelectedTab.FilteredRabbitMQLogEntries;
+                    if (rabbitMqEntries == null || !rabbitMqEntries.Any()) {
+                        // Clear stats for empty RabbitMQ
+                        ErrorCount = 0;
+                        WarningCount = 0;
+                        InfoCount = 0;
+                        OtherCount = 0;
+                        UniqueProcessUIDCount = 0;
+                        TotalCount = 0;
+                        ErrorPercent = 0;
+                        WarningPercent = 0;
+                        InfoPercent = 0;
+                        OtherPercent = 0;
+                        LogStatistics = new LogStatistics();
+                        ClearAllCharts();
+                        return;
+                    }
 
-                // Existing logic for standard logs (now also applies to RabbitMQ)
-                var stats = CalculateStatisticsAndCharts(entriesToAnalyze);
-                ErrorCount = stats.ErrorCount;
-                WarningCount = stats.WarningCount;
-                InfoCount = stats.InfoCount;
-                OtherCount = stats.OtherCount;
-                ErrorPercent = stats.ErrorPercent;
-                WarningPercent = stats.WarningPercent;
-                InfoPercent = stats.InfoPercent;
-                OtherPercent = stats.OtherPercent;
-                LogStatistics = stats.LogStatistics;
-                LevelsOverTimeSeries = stats.LevelsOverTimeSeries;
-                TopErrorsSeries = stats.TopErrorsSeries;
-                LogDistributionSeries = stats.LogDistributionSeries;
-                TimeHeatmapSeries = stats.TimeHeatmapSeries;
-                ErrorTrendSeries = stats.ErrorTrendSeries;
-                SourcesDistributionSeries = stats.SourcesDistributionSeries;
-                TimeAxis = stats.TimeAxis;
-                CountAxis = stats.CountAxis;
-                DaysAxis = stats.DaysAxis;
-                HoursAxis = stats.HoursAxis;
-                SourceAxis = stats.SourceAxis;
-                ErrorMessageAxis = stats.ErrorMessageAxis;
+                    // Calculate RabbitMQ-specific statistics
+                    ErrorCount = SelectedTab.RabbitMQ_ErrorCount;
+                    WarningCount = SelectedTab.RabbitMQ_WarningCount;
+                    InfoCount = SelectedTab.RabbitMQ_InfoCount;
+                    OtherCount = 0; // RabbitMQ doesn't have "Other" category
+                    TotalCount = SelectedTab.RabbitMQ_TotalCount;
+                    
+                    // Calculate unique ProcessUID count
+                    UniqueProcessUIDCount = rabbitMqEntries
+                        .Where(e => !string.IsNullOrEmpty(e.EffectiveProcessUID))
+                        .Select(e => e.EffectiveProcessUID)
+                        .Distinct()
+                        .Count();
+
+                    // Calculate percentages
+                    if (TotalCount > 0) {
+                        ErrorPercent = Math.Round((double)ErrorCount / TotalCount * 100, 1);
+                        WarningPercent = Math.Round((double)WarningCount / TotalCount * 100, 1);
+                        InfoPercent = Math.Round((double)InfoCount / TotalCount * 100, 1);
+                        OtherPercent = 0;
+                    } else {
+                        ErrorPercent = WarningPercent = InfoPercent = OtherPercent = 0;
+                    }
+
+                    // Use standard LogEntry format for charts
+                    var entriesToAnalyze = SelectedTab.LogEntries;
+                    if (entriesToAnalyze != null && entriesToAnalyze.Any()) {
+                        var stats = CalculateStatisticsAndCharts(entriesToAnalyze);
+                        LogStatistics = stats.LogStatistics;
+                        LevelsOverTimeSeries = stats.LevelsOverTimeSeries;
+                        TopErrorsSeries = stats.TopErrorsSeries;
+                        LogDistributionSeries = stats.LogDistributionSeries;
+                        TimeHeatmapSeries = stats.TimeHeatmapSeries;
+                        ErrorTrendSeries = stats.ErrorTrendSeries;
+                        SourcesDistributionSeries = stats.SourcesDistributionSeries;
+                        TimeAxis = stats.TimeAxis;
+                        CountAxis = stats.CountAxis;
+                        DaysAxis = stats.DaysAxis;
+                        HoursAxis = stats.HoursAxis;
+                        SourceAxis = stats.SourceAxis;
+                        ErrorMessageAxis = stats.ErrorMessageAxis;
+                    } else {
+                        LogStatistics = new LogStatistics();
+                        ClearAllCharts();
+                    }
+                } else {
+                    // Standard logs processing
+                    var entriesToAnalyze = SelectedTab.LogEntries; // Or FilteredLogEntries if standard filters are applied at TabViewModel level
+                    if (entriesToAnalyze == null || !entriesToAnalyze.Any()) {
+                        // Same clearing logic as if SelectedTab was null
+                        ErrorCount = 0;
+                        WarningCount = 0;
+                        InfoCount = 0;
+                        OtherCount = 0;
+                        UniqueProcessUIDCount = 0;
+                        TotalCount = 0;
+                        ErrorPercent = 0;
+                        WarningPercent = 0;
+                        InfoPercent = 0;
+                        OtherPercent = 0;
+                        LogStatistics = new LogStatistics();
+                        ClearAllCharts();
+                        return;
+                    }
+
+                    // Existing logic for standard logs
+                    var stats = CalculateStatisticsAndCharts(entriesToAnalyze);
+                    ErrorCount = stats.ErrorCount;
+                    WarningCount = stats.WarningCount;
+                    InfoCount = stats.InfoCount;
+                    OtherCount = stats.OtherCount;
+                    TotalCount = entriesToAnalyze.Count;
+                    UniqueProcessUIDCount = 0; // Standard logs don't have ProcessUID
+                    ErrorPercent = stats.ErrorPercent;
+                    WarningPercent = stats.WarningPercent;
+                    InfoPercent = stats.InfoPercent;
+                    OtherPercent = stats.OtherPercent;
+                    LogStatistics = stats.LogStatistics;
+                    LevelsOverTimeSeries = stats.LevelsOverTimeSeries;
+                    TopErrorsSeries = stats.TopErrorsSeries;
+                    LogDistributionSeries = stats.LogDistributionSeries;
+                    TimeHeatmapSeries = stats.TimeHeatmapSeries;
+                    ErrorTrendSeries = stats.ErrorTrendSeries;
+                    SourcesDistributionSeries = stats.SourcesDistributionSeries;
+                    TimeAxis = stats.TimeAxis;
+                    CountAxis = stats.CountAxis;
+                    DaysAxis = stats.DaysAxis;
+                    HoursAxis = stats.HoursAxis;
+                    SourceAxis = stats.SourceAxis;
+                    ErrorMessageAxis = stats.ErrorMessageAxis;
+                }
 
             } else if (SelectedTab.IsThisTabIIS) {
                 // Start IIS Analytics processing
@@ -946,6 +1024,8 @@ namespace Log_Parser_App.ViewModels
                 InfoCount = SelectedTab.IIS_InfoCount;
                 WarningCount = 0; // No warnings for IIS logs
                 OtherCount = SelectedTab.IIS_RedirectCount; // Redirects as "Other"
+                UniqueProcessUIDCount = 0; // IIS logs don't have ProcessUID
+                TotalCount = SelectedTab.IIS_TotalCount;
 
                 int totalIISEntries = SelectedTab.IIS_TotalCount;
                 if (totalIISEntries > 0) {
@@ -973,6 +1053,8 @@ namespace Log_Parser_App.ViewModels
                     InfoPercent = 0;
                     WarningPercent = 0;
                     OtherPercent = 0;
+                    UniqueProcessUIDCount = 0;
+                    TotalCount = 0;
                     LogStatistics = new LogStatistics();
                     ClearAllCharts();
                 }
@@ -983,6 +1065,8 @@ namespace Log_Parser_App.ViewModels
                 WarningCount = 0;
                 InfoCount = 0;
                 OtherCount = 0;
+                UniqueProcessUIDCount = 0;
+                TotalCount = 0;
                 ErrorPercent = 0;
                 WarningPercent = 0;
                 InfoPercent = 0;
@@ -1911,8 +1995,8 @@ namespace Log_Parser_App.ViewModels
                     var jsonSelected = files.Where(f => System.IO.Path.GetExtension(f).Equals(".json", StringComparison.OrdinalIgnoreCase));
                     await LoadRabbitMqFilesAsync(jsonSelected);
                 } else if (!string.IsNullOrEmpty(directory)) {
-                    var jsonFiles = System.IO.Directory.EnumerateFiles(directory, "*.json", System.IO.SearchOption.TopDirectoryOnly);
-                    await LoadRabbitMqFilesAsync(jsonFiles);
+                    // Use new paired file parsing for directories
+                    await LoadRabbitMqDirectoryAsync(directory);
                 }
 
                 if (FileTabs.Any()) {
@@ -1975,44 +2059,63 @@ namespace Log_Parser_App.ViewModels
             }
         }
 
-        		/// <summary>
-		/// Loads file with intelligent type detection
-		/// Uses FileTypeDetectionService to determine appropriate handler
-		/// </summary>
-		private async Task LoadFileWithTypeDetection(string filePath) {
-			try {
-				_logger.LogInformation("Detecting file type for: {FilePath}", filePath);
-				
-				// Use intelligent file type detection
-				var detectedType = await _fileTypeDetectionService.DetectFileTypeAsync(filePath);
-				
-				_logger.LogInformation("File {FilePath} detected as type: {LogType}", filePath, detectedType);
-				
-				switch (detectedType) {
-					case LogFormatType.IIS:
-						await LoadIISFileAsync(filePath);
-						break;
-					case LogFormatType.RabbitMQ:
-						await LoadRabbitMqFileAsync(filePath);
-						break;
-					case LogFormatType.Standard:
-						await LoadFileToTab(filePath);
-						break;
-					default:
-						_logger.LogWarning("Unknown file type {LogType} for {FilePath}, treating as Standard", detectedType, filePath);
-						await LoadFileToTab(filePath);
-						break;
-				}
-			} catch (Exception ex) {
-				_logger.LogError(ex, "Error loading file with type detection: {FilePath}", filePath);
-				// Fallback to Standard
-				await LoadFileToTab(filePath);
-			}
-		}
+        private async Task LoadRabbitMqDirectoryAsync(string directoryPath) {
+            try {
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                int failedEntriesCount = 0;
+                int processedEntriesCount = 0;
 
-		
+                _logger.LogInformation("Starting RabbitMQ directory parsing with paired file detection: {DirectoryPath}", directoryPath);
+                Console.WriteLine($"[MAINVIEWMODEL] Starting RabbitMQ directory parsing: {directoryPath}");
 
-		private async Task LoadRabbitMqFilesAsync(IEnumerable<string> filePaths) {
+                var rabbitEntries = await Task.Run(async () => {
+                    var entriesList = new List<RabbitMqLogEntry>();
+                    Console.WriteLine($"[MAINVIEWMODEL] About to call ParseLogDirectoryAsync");
+                    await foreach (var rabbitEntry in _rabbitMqLogParserService.ParseLogDirectoryAsync(directoryPath, CancellationToken.None)) {
+                        try {
+                            entriesList.Add(rabbitEntry);
+                            processedEntriesCount++;
+                            Console.WriteLine($"[MAINVIEWMODEL] Added entry #{processedEntriesCount}");
+                        } catch (Exception entryEx) {
+                            failedEntriesCount++;
+                            _logger.LogWarning(entryEx, "Failed to process RabbitMQ log entry, continuing. Failed entries so far: {FailedCount}", failedEntriesCount);
+                        }
+                    }
+                    Console.WriteLine($"[MAINVIEWMODEL] ParseLogDirectoryAsync completed. Total entries: {entriesList.Count}");
+                    return entriesList;
+                });
+
+                await Dispatcher.UIThread.InvokeAsync(() => {
+                    string title = $"RabbitMQ ({System.IO.Path.GetFileName(directoryPath)})";
+                    var newTab = new TabViewModel(directoryPath, title, rabbitEntries);
+
+                    FileTabs.Clear();
+                    FileTabs.Add(newTab);
+                    SelectedTab = newTab;
+
+                    UpdateLogStatistics();
+
+                    int totalAttemptedEntries = processedEntriesCount + failedEntriesCount;
+                    double successRate = totalAttemptedEntries > 0 ? Math.Round((double)processedEntriesCount / totalAttemptedEntries * 100, 1) : 100.0;
+
+                    StatusMessage = failedEntriesCount > 0
+                        ? $"Loaded {rabbitEntries.Count} RabbitMQ paired file entries ({successRate}% success rate, {failedEntriesCount} parsing errors)"
+                        : $"Loaded {rabbitEntries.Count} RabbitMQ paired file entries (100% success rate)";
+
+                    IsLoading = false;
+                });
+
+                _logger.LogInformation("Completed RabbitMQ directory parsing in {ElapsedMs}ms", sw.ElapsedMilliseconds);
+            } catch (Exception ex) {
+                _logger.LogError(ex, "Error loading RabbitMQ directory");
+                await Dispatcher.UIThread.InvokeAsync(() => {
+                    StatusMessage = $"Error loading RabbitMQ directory: {ex.Message}";
+                    IsLoading = false;
+                });
+            }
+        }
+
+        private async Task LoadRabbitMqFilesAsync(IEnumerable<string> filePaths) {
             var allEntries = new List<RabbitMqLogEntry>();
             int failedEntriesCount = 0;
 
@@ -2051,6 +2154,41 @@ namespace Log_Parser_App.ViewModels
 
                 StatusMessage = $"Loaded {allEntries.Count} RabbitMQ log entries from {filePaths.Count()} files";
             });
+        }
+
+        /// <summary>
+        /// Loads file with intelligent type detection
+        /// Uses FileTypeDetectionService to determine appropriate handler
+        /// </summary>
+        private async Task LoadFileWithTypeDetection(string filePath) {
+            try {
+                _logger.LogInformation("Detecting file type for: {FilePath}", filePath);
+                
+                // Use intelligent file type detection
+                var detectedType = await _fileTypeDetectionService.DetectFileTypeAsync(filePath);
+                
+                _logger.LogInformation("File {FilePath} detected as type: {LogType}", filePath, detectedType);
+                
+                switch (detectedType) {
+                    case LogFormatType.IIS:
+                        await LoadIISFileAsync(filePath);
+                        break;
+                    case LogFormatType.RabbitMQ:
+                        await LoadRabbitMqFileAsync(filePath);
+                        break;
+                    case LogFormatType.Standard:
+                        await LoadFileToTab(filePath);
+                        break;
+                    default:
+                        _logger.LogWarning("Unknown file type {LogType} for {FilePath}, treating as Standard", detectedType, filePath);
+                        await LoadFileToTab(filePath);
+                        break;
+                }
+            } catch (Exception ex) {
+                _logger.LogError(ex, "Error loading file with type detection: {FilePath}", filePath);
+                // Fallback to Standard
+                await LoadFileToTab(filePath);
+            }
         }
 
         #region Service Event Handlers
@@ -2161,7 +2299,8 @@ namespace Log_Parser_App.ViewModels
             {
                 var updateWindow = new Log_Parser_App.Views.UpdateSettingsWindow();
                 
-                if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+                if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
+                    desktop.MainWindow != null)
                 {
                     await updateWindow.ShowDialog(desktop.MainWindow);
                 }

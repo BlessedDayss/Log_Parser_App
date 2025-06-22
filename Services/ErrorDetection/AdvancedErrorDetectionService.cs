@@ -176,72 +176,75 @@ namespace Log_Parser_App.Services.ErrorDetection
             };
         }
 
-        public async Task<ActivityHeatmapData> GenerateActivityHeatmapAsync(
+        public Task<ActivityHeatmapData> GenerateActivityHeatmapAsync(
             IEnumerable<LogEntry> entries,
             int intervalMinutes = 60,
             CancellationToken cancellationToken = default)
         {
-            var entriesList = entries.ToList();
-            
-            if (!entriesList.Any())
-                return new ActivityHeatmapData();
-
-            var startTime = entriesList.Min(e => e.Timestamp);
-            var endTime = entriesList.Max(e => e.Timestamp);
-
-            var dataPoints = new List<HeatmapDataPoint>();
-            var colorScheme = new HeatmapColorScheme();
-
-            // Group entries by time slots
-            var timeSlots = entriesList
-                .GroupBy(e => new
-                {
-                    DayOfWeek = (int)e.Timestamp.DayOfWeek,
-                    Hour = e.Timestamp.Hour
-                })
-                .ToDictionary(g => g.Key, g => g.ToList());
-
-            var maxActivity = timeSlots.Values.Max(list => list.Count);
-
-            foreach (var slot in timeSlots)
+            return Task.Run(() =>
             {
-                var errorCount = slot.Value.Count(e => HasErrorKeywords(e));
-                var normalizedValue = maxActivity > 0 ? slot.Value.Count / (double)maxActivity : 0;
+                var entriesList = entries.ToList();
+                
+                if (!entriesList.Any())
+                    return new ActivityHeatmapData();
 
-                var dataPoint = new HeatmapDataPoint
+                var startTime = entriesList.Min(e => e.Timestamp);
+                var endTime = entriesList.Max(e => e.Timestamp);
+
+                var dataPoints = new List<HeatmapDataPoint>();
+                var colorScheme = new HeatmapColorScheme();
+
+                // Group entries by time slots
+                var timeSlots = entriesList
+                    .GroupBy(e => new
+                    {
+                        DayOfWeek = (int)e.Timestamp.DayOfWeek,
+                        Hour = e.Timestamp.Hour
+                    })
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
+                var maxActivity = timeSlots.Values.Max(list => list.Count);
+
+                foreach (var slot in timeSlots)
                 {
-                    DayOfWeek = slot.Key.DayOfWeek,
-                    Hour = slot.Key.Hour,
-                    ActivityCount = slot.Value.Count,
-                    ErrorCount = errorCount,
-                    Timestamp = slot.Value.First().Timestamp,
-                    NormalizedValue = normalizedValue,
-                    Color = colorScheme.GetColor(normalizedValue, errorCount > 0)
+                    var errorCount = slot.Value.Count(e => HasErrorKeywords(e));
+                    var normalizedValue = maxActivity > 0 ? slot.Value.Count / (double)maxActivity : 0;
+
+                    var dataPoint = new HeatmapDataPoint
+                    {
+                        DayOfWeek = slot.Key.DayOfWeek,
+                        Hour = slot.Key.Hour,
+                        ActivityCount = slot.Value.Count,
+                        ErrorCount = errorCount,
+                        Timestamp = slot.Value.First().Timestamp,
+                        NormalizedValue = normalizedValue,
+                        Color = colorScheme.GetColor(normalizedValue, errorCount > 0)
+                    };
+
+                    dataPoints.Add(dataPoint);
+                }
+
+                return new ActivityHeatmapData
+                {
+                    DataPoints = dataPoints.OrderBy(dp => dp.DayOfWeek).ThenBy(dp => dp.Hour),
+                    MaxActivityValue = maxActivity,
+                    MinActivityValue = timeSlots.Values.Min(list => list.Count),
+                    StartTime = startTime,
+                    EndTime = endTime,
+                    IntervalMinutes = intervalMinutes,
+                    ErrorCount = entriesList.Count(HasErrorKeywords),
+                    ColorScheme = colorScheme
                 };
-
-                dataPoints.Add(dataPoint);
-            }
-
-            return new ActivityHeatmapData
-            {
-                DataPoints = dataPoints.OrderBy(dp => dp.DayOfWeek).ThenBy(dp => dp.Hour),
-                MaxActivityValue = maxActivity,
-                MinActivityValue = timeSlots.Values.Min(list => list.Count),
-                StartTime = startTime,
-                EndTime = endTime,
-                IntervalMinutes = intervalMinutes,
-                ErrorCount = entriesList.Count(HasErrorKeywords),
-                ColorScheme = colorScheme
-            };
+            }, cancellationToken);
         }
 
-        public async Task<IEnumerable<StackTraceInfo>> ParseStackTracesAsync(
+        public Task<IEnumerable<StackTraceInfo>> ParseStackTracesAsync(
             IEnumerable<LogEntry> entries,
             CancellationToken cancellationToken = default)
         {
             var stackTraces = new List<StackTraceInfo>();
 
-            await Task.Run(() =>
+            return Task.Run(() =>
             {
                 foreach (var entry in entries)
                 {
@@ -254,9 +257,9 @@ namespace Log_Parser_App.Services.ErrorDetection
                     if (stackTraceInfo.Frames.Any())
                         stackTraces.Add(stackTraceInfo);
                 }
-            }, cancellationToken);
 
-            return stackTraces;
+                return (IEnumerable<StackTraceInfo>)stackTraces;
+            }, cancellationToken);
         }
 
         public IEnumerable<LogEntry> FilterByHeatmapSelection(

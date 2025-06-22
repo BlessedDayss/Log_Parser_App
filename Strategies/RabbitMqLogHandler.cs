@@ -98,9 +98,9 @@ namespace Log_Parser_App.Strategies
                 LogType = LogFormatType.RabbitMQ,
                 SupportedFields = new List<string>
                 {
-                    "Timestamp", "Level", "Message", "Node", "Queue", "Exchange", 
-                    "RoutingKey", "ConsumerType", "PID", "Connection", "Channel",
-                    "VirtualHost", "User", "MessageId", "DeliveryTag"
+                    "Timestamp", "Level", "Message", "Node", "Username", "ProcessUID", 
+                    "Exchange", "RoutingKey", "Connection", "Channel",
+                    "VirtualHost", "MessageId", "DeliveryTag", "SentTime"
                 },
                 DefaultFilters = new List<string> { "error", "warning", "connection", "queue" },
                 RequiresSpecialParsing = true,

@@ -1,13 +1,16 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Linq;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Log_Parser_App.Models;
+using Log_Parser_App.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
+
 namespace Log_Parser_App.ViewModels
 {
-	using System.Collections.Generic;
-	using CommunityToolkit.Mvvm.ComponentModel;
-	using Log_Parser_App.Models;
-	using System.Collections.ObjectModel;
-	using CommunityToolkit.Mvvm.Input;
-	using System.Linq;
-	using System;
-
 	#region Class: TabViewModel
 
 	public partial class TabViewModel : ObservableObject
@@ -174,6 +177,13 @@ namespace Log_Parser_App.ViewModels
 
 		public List<string> MasterAvailableFields { get; } = new();
 
+		// RabbitMQ Filter Commands
+		public ObservableCollection<FilterCriterion> RabbitMQFilterCriteria { get; }
+		public IRelayCommand AddRabbitMQFilterCriterionCommand { get; }
+		public IRelayCommand<FilterCriterion> RemoveRabbitMQFilterCriterionCommand { get; }
+		public IRelayCommand ApplyRabbitMQFiltersCommand { get; }
+		public IRelayCommand ResetRabbitMQFiltersCommand { get; }
+
 		#endregion
 
 		#region Constructors: Public
@@ -186,8 +196,7 @@ namespace Log_Parser_App.ViewModels
 			_rabbitMqLogEntries = new List<RabbitMqLogEntry>();
 			LogType = LogFormatType.Standard;
 			_isSelected = false;
-			// Initialize IIS Filtering related collections and commands even for standard logs,
-			// they just won't be used or visible.
+			// Initialize all collections - even if not used by this log type
 			IISFilterCriteria = new ObservableCollection<IISFilterCriterion>();
 			FilteredIISLogEntries = new ObservableCollection<IisLogEntry>();
 			FilteredRabbitMQLogEntries = new ObservableCollection<RabbitMqLogEntry>();
@@ -198,22 +207,29 @@ namespace Log_Parser_App.ViewModels
 			SortIISCommand = new RelayCommand<string>(ExecuteSortIIS);
 			// Initialize Standard Filtering related collections and commands
 			FilterCriteria = new ObservableCollection<FilterCriterion>();
-			FilteredLogEntries = new ObservableCollection<LogEntry>(logEntries); // Initially populate with all entries
+			FilteredLogEntries = new ObservableCollection<LogEntry>(logEntries); // Initially populate with all log entries
 			AddFilterCriteriaCommand = new RelayCommand(ExecuteAddFilterCriterion);
 			RemoveFilterCriterionCommand = new RelayCommand<FilterCriterion>(ExecuteRemoveFilterCriterion);
 			ApplyFiltersCommand = new RelayCommand(ExecuteApplyFilters);
 			ResetFiltersCommand = new RelayCommand(ExecuteResetFilters);
+			// Initialize RabbitMQ Filtering related collections and commands
+			RabbitMQFilterCriteria = new ObservableCollection<FilterCriterion>();
+			AddRabbitMQFilterCriterionCommand = new RelayCommand(ExecuteAddRabbitMQFilterCriterion);
+			RemoveRabbitMQFilterCriterionCommand = new RelayCommand<FilterCriterion>(ExecuteRemoveRabbitMQFilterCriterion);
+			ApplyRabbitMQFiltersCommand = new RelayCommand(ExecuteApplyRabbitMQFilters);
+			ResetRabbitMQFiltersCommand = new RelayCommand(ExecuteResetRabbitMQFilters);
 			InitializeFilterFields();
 		}
 
 		public TabViewModel(string filePath, string title, List<IisLogEntry> iisLogEntries) {
 			_filePath = filePath;
 			_title = title;
-			_iisLogEntries = iisLogEntries;
 			_logEntries = new List<LogEntry>();
+			_iisLogEntries = iisLogEntries;
 			_rabbitMqLogEntries = new List<RabbitMqLogEntry>();
 			LogType = LogFormatType.IIS;
 			_isSelected = false;
+			// Initialize all collections
 			IISFilterCriteria = new ObservableCollection<IISFilterCriterion>();
 			FilteredIISLogEntries = new ObservableCollection<IisLogEntry>(iisLogEntries); // Initially populate with all IIS entries
 			FilteredRabbitMQLogEntries = new ObservableCollection<RabbitMqLogEntry>();
@@ -223,13 +239,18 @@ namespace Log_Parser_App.ViewModels
 			ResetIISFiltersCommand = new RelayCommand(ExecuteResetIISFilters);
 			SortIISCommand = new RelayCommand<string>(ExecuteSortIIS);
 			// Initialize Standard Filtering related collections and commands
-			// even though they won't be used for IIS tabs
 			FilterCriteria = new ObservableCollection<FilterCriterion>();
-			FilteredLogEntries = new ObservableCollection<LogEntry>();
+			FilteredLogEntries = new ObservableCollection<LogEntry>(); // Empty for IIS-specific tabs
 			AddFilterCriteriaCommand = new RelayCommand(ExecuteAddFilterCriterion);
 			RemoveFilterCriterionCommand = new RelayCommand<FilterCriterion>(ExecuteRemoveFilterCriterion);
 			ApplyFiltersCommand = new RelayCommand(ExecuteApplyFilters);
 			ResetFiltersCommand = new RelayCommand(ExecuteResetFilters);
+			// Initialize RabbitMQ Filtering related collections and commands
+			RabbitMQFilterCriteria = new ObservableCollection<FilterCriterion>();
+			AddRabbitMQFilterCriterionCommand = new RelayCommand(ExecuteAddRabbitMQFilterCriterion);
+			RemoveRabbitMQFilterCriterionCommand = new RelayCommand<FilterCriterion>(ExecuteRemoveRabbitMQFilterCriterion);
+			ApplyRabbitMQFiltersCommand = new RelayCommand(ExecuteApplyRabbitMQFilters);
+			ResetRabbitMQFiltersCommand = new RelayCommand(ExecuteResetRabbitMQFilters);
 			InitializeFilterFields();
 		}
 
@@ -243,8 +264,7 @@ namespace Log_Parser_App.ViewModels
 			_rabbitMqLogEntries = new List<RabbitMqLogEntry>();
 			LogType = logType;
 			_isSelected = false;
-			// Initialize IIS Filtering related collections and commands even for non-IIS logs,
-			// they just won't be used or visible.
+			// Initialize all collections
 			IISFilterCriteria = new ObservableCollection<IISFilterCriterion>();
 			FilteredIISLogEntries = new ObservableCollection<IisLogEntry>();
 			FilteredRabbitMQLogEntries = new ObservableCollection<RabbitMqLogEntry>();
@@ -260,6 +280,12 @@ namespace Log_Parser_App.ViewModels
 			RemoveFilterCriterionCommand = new RelayCommand<FilterCriterion>(ExecuteRemoveFilterCriterion);
 			ApplyFiltersCommand = new RelayCommand(ExecuteApplyFilters);
 			ResetFiltersCommand = new RelayCommand(ExecuteResetFilters);
+			// Initialize RabbitMQ Filtering related collections and commands
+			RabbitMQFilterCriteria = new ObservableCollection<FilterCriterion>();
+			AddRabbitMQFilterCriterionCommand = new RelayCommand(ExecuteAddRabbitMQFilterCriterion);
+			RemoveRabbitMQFilterCriterionCommand = new RelayCommand<FilterCriterion>(ExecuteRemoveRabbitMQFilterCriterion);
+			ApplyRabbitMQFiltersCommand = new RelayCommand(ExecuteApplyRabbitMQFilters);
+			ResetRabbitMQFiltersCommand = new RelayCommand(ExecuteResetRabbitMQFilters);
 			InitializeFilterFields();
 		}
 
@@ -289,6 +315,12 @@ namespace Log_Parser_App.ViewModels
 			RemoveFilterCriterionCommand = new RelayCommand<FilterCriterion>(ExecuteRemoveFilterCriterion);
 			ApplyFiltersCommand = new RelayCommand(ExecuteApplyFilters);
 			ResetFiltersCommand = new RelayCommand(ExecuteResetFilters);
+			// Initialize RabbitMQ Filtering related collections and commands
+			RabbitMQFilterCriteria = new ObservableCollection<FilterCriterion>();
+			AddRabbitMQFilterCriterionCommand = new RelayCommand(ExecuteAddRabbitMQFilterCriterion);
+			RemoveRabbitMQFilterCriterionCommand = new RelayCommand<FilterCriterion>(ExecuteRemoveRabbitMQFilterCriterion);
+			ApplyRabbitMQFiltersCommand = new RelayCommand(ExecuteApplyRabbitMQFilters);
+			ResetRabbitMQFiltersCommand = new RelayCommand(ExecuteResetRabbitMQFilters);
 			InitializeFilterFields();
 		}
 
@@ -598,7 +630,161 @@ namespace Log_Parser_App.ViewModels
 			} else if (LogType == LogFormatType.IIS) {
 				// For IIS, the filter UI is different and populated directly in the IISFilterCriterion view model
 				// We don't need to populate MasterAvailableFields for the standard filter UI
+			} else if (LogType == LogFormatType.RabbitMQ) {
+				// Initialize RabbitMQ filter fields
+				MasterAvailableFields.AddRange(new[] { "Timestamp", "Level", "Message", "Node", "Username", "ProcessUID" });
+				OperatorsByFieldType["Timestamp"] = new List<string> { "Before", "After", "Equals" };
+				OperatorsByFieldType["Level"] = new List<string> { "Equals", "Not Equals" };
+				OperatorsByFieldType["Message"] = new List<string> { "Contains", "Not Contains", "Equals", "StartsWith", "EndsWith" };
+				OperatorsByFieldType["Node"] = new List<string> { "Equals", "Contains" };
+				OperatorsByFieldType["Username"] = new List<string> { "Equals", "Not Equals", "Contains" };
+				OperatorsByFieldType["ProcessUID"] = new List<string> { "Equals", "Not Equals", "Contains" };
+				
+				// Populate available values from RabbitMQ entries
+				AvailableValuesByField["Level"] = _rabbitMqLogEntries.Select(l => l.EffectiveLevel).Where(s => !string.IsNullOrEmpty(s)).Distinct().ToList()!;
+				AvailableValuesByField["Node"] = _rabbitMqLogEntries.Select(l => l.EffectiveNode).Where(s => !string.IsNullOrEmpty(s)).Distinct().ToList()!;
+				AvailableValuesByField["Username"] = _rabbitMqLogEntries.Select(l => l.EffectiveUserName).Where(s => !string.IsNullOrEmpty(s)).Distinct().ToList()!;
+				AvailableValuesByField["ProcessUID"] = _rabbitMqLogEntries.Select(l => l.EffectiveProcessUID).Where(s => !string.IsNullOrEmpty(s)).Distinct().ToList()!;
 			}
+		}
+
+		// RabbitMQ Filter Methods
+
+		private void ExecuteAddRabbitMQFilterCriterion() {
+			if (LogType != LogFormatType.RabbitMQ)
+				return;
+			var newCriterion = new FilterCriterion { ParentViewModel = this };
+			// Initialize AvailableFields from MasterAvailableFields
+			foreach (var field in MasterAvailableFields) {
+				newCriterion.AvailableFields.Add(field);
+			}
+			// Set initial SelectedField to trigger operators and values population
+			if (MasterAvailableFields.Any()) {
+				newCriterion.SelectedField = MasterAvailableFields.First();
+			}
+			RabbitMQFilterCriteria.Add(newCriterion);
+		}
+
+		private void ExecuteRemoveRabbitMQFilterCriterion(FilterCriterion? criterion) {
+			if (LogType != LogFormatType.RabbitMQ)
+				return;
+			if (criterion != null) {
+				RabbitMQFilterCriteria.Remove(criterion);
+			}
+		}
+
+		private async void ExecuteApplyRabbitMQFilters() {
+			if (LogType != LogFormatType.RabbitMQ)
+				return;
+
+			try {
+				var filterService = App.ServiceProvider?.GetService(typeof(IFilterService)) as IFilterService;
+				if (filterService == null) {
+					// Fallback to manual filtering if service not available
+					ApplyRabbitMQFiltersManually();
+					return;
+				}
+
+				var filteredEntries = await filterService.ApplyRabbitMQFiltersAsync(RabbitMQLogEntries, RabbitMQFilterCriteria);
+				
+				FilteredRabbitMQLogEntries.Clear();
+				foreach (var entry in filteredEntries) {
+					FilteredRabbitMQLogEntries.Add(entry);
+				}
+
+				// Update counts
+				OnPropertyChanged(nameof(RabbitMQ_TotalCount));
+				OnPropertyChanged(nameof(RabbitMQ_ErrorCount));
+				OnPropertyChanged(nameof(RabbitMQ_WarningCount));
+				OnPropertyChanged(nameof(RabbitMQ_InfoCount));
+			}
+			catch (Exception ex) {
+				// Log error and fallback to manual filtering
+				System.Diagnostics.Debug.WriteLine($"Error applying RabbitMQ filters: {ex.Message}");
+				ApplyRabbitMQFiltersManually();
+			}
+		}
+
+		private void ApplyRabbitMQFiltersManually() {
+			List<RabbitMqLogEntry> tempList;
+			if (RabbitMQFilterCriteria == null || !RabbitMQFilterCriteria.Any()) {
+				tempList = new List<RabbitMqLogEntry>(RabbitMQLogEntries);
+			} else {
+				tempList = RabbitMQLogEntries.Where(entry => RabbitMQFilterCriteria.All(filter => MatchRabbitMQFilter(entry, filter))).ToList();
+			}
+			FilteredRabbitMQLogEntries.Clear();
+			foreach (var entry in tempList) {
+				FilteredRabbitMQLogEntries.Add(entry);
+			}
+			
+			// Update counts
+			OnPropertyChanged(nameof(RabbitMQ_TotalCount));
+			OnPropertyChanged(nameof(RabbitMQ_ErrorCount));
+			OnPropertyChanged(nameof(RabbitMQ_WarningCount));
+			OnPropertyChanged(nameof(RabbitMQ_InfoCount));
+		}
+
+		private void ExecuteResetRabbitMQFilters() {
+			if (LogType != LogFormatType.RabbitMQ)
+				return;
+			RabbitMQFilterCriteria.Clear();
+			FilteredRabbitMQLogEntries.Clear();
+			foreach (var entry in RabbitMQLogEntries) {
+				FilteredRabbitMQLogEntries.Add(entry);
+			}
+			
+			// Update counts
+			OnPropertyChanged(nameof(RabbitMQ_TotalCount));
+			OnPropertyChanged(nameof(RabbitMQ_ErrorCount));
+			OnPropertyChanged(nameof(RabbitMQ_WarningCount));
+			OnPropertyChanged(nameof(RabbitMQ_InfoCount));
+		}
+
+		private bool MatchRabbitMQFilter(RabbitMqLogEntry entry, FilterCriterion filter) {
+			string? value = GetRabbitMQLogEntryPropertyValue(entry, filter.SelectedField);
+			if (value == null && !string.IsNullOrEmpty(filter.Value))
+				return false;
+			if (value == null)
+				return true;
+
+			switch (filter.SelectedOperator) {
+				case "Equals":
+					return string.Equals(value, filter.Value, StringComparison.OrdinalIgnoreCase);
+				case "Not Equals":
+					return !string.Equals(value, filter.Value, StringComparison.OrdinalIgnoreCase);
+				case "Contains":
+					return value.Contains(filter.Value ?? "", StringComparison.OrdinalIgnoreCase);
+				case "Not Contains":
+					return !value.Contains(filter.Value ?? "", StringComparison.OrdinalIgnoreCase);
+				case "StartsWith":
+					return value.StartsWith(filter.Value ?? "", StringComparison.OrdinalIgnoreCase);
+				case "EndsWith":
+					return value.EndsWith(filter.Value ?? "", StringComparison.OrdinalIgnoreCase);
+				case "Before":
+					if (DateTime.TryParse(filter.Value, out var beforeDate) && DateTime.TryParse(value, out var entryDate))
+						return entryDate < beforeDate;
+					return false;
+				case "After":
+					if (DateTime.TryParse(filter.Value, out var afterDate) && DateTime.TryParse(value, out var entryDate2))
+						return entryDate2 > afterDate;
+					return false;
+				default:
+					return false;
+			}
+		}
+
+		private string? GetRabbitMQLogEntryPropertyValue(RabbitMqLogEntry entry, string? field) {
+			if (field == null)
+				return null;
+			return field switch {
+				"Message" => entry.EffectiveMessage,
+				"Level" => entry.EffectiveLevel,
+				"Timestamp" => entry.EffectiveTimestamp.ToString(),
+				"Node" => entry.EffectiveNode,
+				"Username" => entry.EffectiveUserName,
+				"ProcessUID" => entry.EffectiveProcessUID,
+				_ => null
+			};
 		}
 
 		#endregion

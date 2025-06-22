@@ -56,6 +56,20 @@ namespace Log_Parser_App.Services
         }
 
         /// <inheritdoc />
+        public async IAsyncEnumerable<RabbitMqLogEntry> ParseLogDirectoryAsync(
+            string directoryPath,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default) {
+            if (!Directory.Exists(directoryPath)) {
+                yield break;
+            }
+
+            var files = Directory.GetFiles(directoryPath, "*.json", SearchOption.TopDirectoryOnly);
+            await foreach (var entry in ParseLogFilesAsync(files, cancellationToken)) {
+                yield return entry;
+            }
+        }
+
+        /// <inheritdoc />
         public async Task<bool> IsValidRabbitMqLogFileAsync(string filePath) {
             if (!File.Exists(filePath))
                 return false;

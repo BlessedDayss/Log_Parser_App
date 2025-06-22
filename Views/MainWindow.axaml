@@ -405,18 +405,29 @@
                     </Border>
 
                     <!-- Standard/RabbitMQ Dashboard Panels -->
-                    <Border Grid.Column="0" Margin="2" Padding="8,4" Background="#382626" CornerRadius="6"
+                    <Border Grid.Column="0" Margin="2" Padding="8,4" Background="#382636" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabStandardOrRabbitMQ}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🆔" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="PROCESS UID" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding MainView.UniqueProcessUIDCount}" FontSize="24" FontWeight="Bold" Margin="0,4,0,0" Foreground="#64F5A6" />
+                            <TextBlock Text="unique processes" FontSize="12" Opacity="0.7" Foreground="#DDDDDD" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="1" Margin="2" Padding="8,4" Background="#3A2626" CornerRadius="6"
                             IsVisible="{Binding MainView.SelectedTab.IsThisTabStandardOrRabbitMQ}">
                         <StackPanel Spacing="2">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="🔴" FontSize="12" VerticalAlignment="Center" />
-                                <TextBlock Text="ERRORS" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                                <TextBlock Text="MESSAGE ERRORS" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
                             </StackPanel>
                             <TextBlock Text="{Binding MainView.ErrorCount}" FontSize="24" FontWeight="Bold" Margin="0,4,0,0" Foreground="#F15B5B" />
-                            <TextBlock Text="{Binding MainView.ErrorPercent, StringFormat={}{0:F1}%}" FontSize="14" Opacity="0.7" Foreground="#DDDDDD" />
+                            <TextBlock Text="{Binding MainView.TotalCount, StringFormat='/ {0} total'}" FontSize="12" Opacity="0.7" Foreground="#DDDDDD" />
                         </StackPanel>
                     </Border>
-                    <Border Grid.Column="1" Margin="2" Padding="8,4" Background="#3A3320" CornerRadius="6"
+                    <Border Grid.Column="2" Margin="2" Padding="8,4" Background="#3A3320" CornerRadius="6"
                             IsVisible="{Binding MainView.SelectedTab.IsThisTabStandardOrRabbitMQ}">
                         <StackPanel Spacing="2">
                             <StackPanel Orientation="Horizontal">
@@ -427,7 +438,7 @@
                             <TextBlock Text="{Binding MainView.WarningPercent, StringFormat={}{0:F1}%}" FontSize="14" Opacity="0.7" Foreground="#DDDDDD" />
                         </StackPanel>
                     </Border>
-                    <Border Grid.Column="2" Margin="2" Padding="8,4" Background="#263238" CornerRadius="6"
+                    <Border Grid.Column="3" Margin="2" Padding="8,4" Background="#263238" CornerRadius="6"
                             IsVisible="{Binding MainView.SelectedTab.IsThisTabStandardOrRabbitMQ}">
                         <StackPanel Spacing="2">
                             <StackPanel Orientation="Horizontal">
@@ -436,17 +447,6 @@
                             </StackPanel>
                             <TextBlock Text="{Binding MainView.InfoCount}" FontSize="24" FontWeight="Bold" Margin="0,4,0,0" Foreground="#64B5F6" />
                             <TextBlock Text="{Binding MainView.InfoPercent, StringFormat={}{0:F1}%}" FontSize="14" Opacity="0.7" Foreground="#DDDDDD" />
-                        </StackPanel>
-                    </Border>
-                    <Border Grid.Column="3" Margin="2" Padding="8,4" Background="#2A2A2A" CornerRadius="6"
-                            IsVisible="{Binding MainView.SelectedTab.IsThisTabStandardOrRabbitMQ}">
-                        <StackPanel Spacing="2">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="⚪" FontSize="12" VerticalAlignment="Center" />
-                                <TextBlock Text="OTHERS" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
-                            </StackPanel>
-                            <TextBlock Text="{Binding MainView.OtherCount}" FontSize="24" FontWeight="Bold" Margin="0,4,0,0" Foreground="#BBBBBB" />
-                            <TextBlock Text="{Binding MainView.OtherPercent, StringFormat={}{0:F1}%}" FontSize="14" Opacity="0.7" Foreground="#DDDDDD" />
                         </StackPanel>
                     </Border>
 
@@ -848,31 +848,22 @@
                                             <Border Grid.Row="0" Background="#2D2F33" BorderBrush="#404040" BorderThickness="0,0,0,1">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="160"/> <!-- timestamp -->
-                                                        <ColumnDefinition Width="100"/> <!-- level -->
-                                                        <ColumnDefinition Width="280"/> <!-- message -->
-                                                        <ColumnDefinition Width="120"/> <!-- node -->
+                                                        <ColumnDefinition Width="180"/> <!-- timestamp -->
+                                                        <ColumnDefinition Width="120"/> <!-- username -->
+                                                        <ColumnDefinition Width="200"/> <!-- processuid -->
+                                                        <ColumnDefinition Width="300"/> <!-- fault message -->
                                                         <ColumnDefinition Width="*"/> <!-- stacktrace - растягивается -->
-                                                        <ColumnDefinition Width="120"/> <!-- queue -->
-                                                        <ColumnDefinition Width="180"/> <!-- consumertype -->
-                                                        <ColumnDefinition Width="30"/> <!-- pid - минимальная фиксированная -->
                                                     </Grid.ColumnDefinitions>
                                                     
-                                                    <TextBlock Grid.Column="0" Text="Timestamp" Padding="4,2" FontWeight="SemiBold"/>
+                                                    <TextBlock Grid.Column="0" Text="SentTime" Padding="4,2" FontWeight="SemiBold"/>
                                                     <Rectangle Grid.Column="0" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
-                                                    <TextBlock Grid.Column="1" Text="Level" Padding="4,2" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="1" Text="Username" Padding="4,2" FontWeight="SemiBold"/>
                                                     <Rectangle Grid.Column="1" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
-                                                    <TextBlock Grid.Column="2" Text="Message" Padding="4,2" FontWeight="SemiBold"/>
+                                                    <TextBlock Grid.Column="2" Text="ProcessUID" Padding="4,2" FontWeight="SemiBold"/>
                                                     <Rectangle Grid.Column="2" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
-                                                    <TextBlock Grid.Column="3" Text="Node" Padding="2,2" FontWeight="SemiBold" FontSize="11"/>
+                                                    <TextBlock Grid.Column="3" Text="Error Message" Padding="4,2" FontWeight="SemiBold"/>
                                                     <Rectangle Grid.Column="3" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
                                                     <TextBlock Grid.Column="4" Text="StackTrace" Padding="4,2" FontWeight="SemiBold"/>
-                                                    <Rectangle Grid.Column="4" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
-                                                    <TextBlock Grid.Column="5" Text="Queue" Padding="4,2" FontWeight="SemiBold"/>
-                                                    <Rectangle Grid.Column="5" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
-                                                    <TextBlock Grid.Column="6" Text="ConsumerType" Padding="4,2" FontWeight="SemiBold"/>
-                                                    <Rectangle Grid.Column="6" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
-                                                    <TextBlock Grid.Column="7" Text="PID" Padding="1,2" FontWeight="SemiBold" HorizontalAlignment="Center" FontSize="9"/>
                                                 </Grid>
                                             </Border>
                                             
@@ -886,30 +877,20 @@
                                                     <DataTemplate x:DataType="models1:RabbitMqLogEntry">
                                                         <Grid>
                                                             <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="160"/> <!-- timestamp -->
-                                                                <ColumnDefinition Width="100"/> <!-- level -->
-                                                                <ColumnDefinition Width="280"/> <!-- message -->
-                                                                <ColumnDefinition Width="120"/> <!-- node -->
+                                                                <ColumnDefinition Width="180"/> <!-- timestamp -->
+                                                                <ColumnDefinition Width="120"/> <!-- username -->
+                                                                <ColumnDefinition Width="200"/> <!-- processuid -->
+                                                                <ColumnDefinition Width="300"/> <!-- fault message -->
                                                                 <ColumnDefinition Width="*"/> <!-- stacktrace - растягивается -->
-                                                                <ColumnDefinition Width="120"/> <!-- queue -->
-                                                                <ColumnDefinition Width="180"/> <!-- consumertype -->
-                                                                <ColumnDefinition Width="30"/> <!-- pid - минимальная фиксированная -->
                                                             </Grid.ColumnDefinitions>
                                                             
                                                             <TextBlock Grid.Column="0" Text="{Binding EffectiveTimestamp, StringFormat='yyyy-MM-dd HH:mm:ss.fff'}" Padding="4,2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top"/>
                                                             <Rectangle Grid.Column="0" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
-                                                            <Border Grid.Column="1" Background="{Binding EffectiveLevel, Converter={StaticResource LogLevelToBrushConverter}}" 
-                                                                    CornerRadius="4" 
-                                                                    Padding="4,2" 
-                                                                    HorizontalAlignment="Center" 
-                                                                    VerticalAlignment="Top"
-                                                                    MinWidth="80">
-                                                                <TextBlock Text="{Binding EffectiveLevel, Converter={StaticResource StringToUpperConverter}}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontSize="16" FontWeight="SemiBold"/>
-                                                            </Border>
+                                                            <TextBlock Grid.Column="1" Text="{Binding EffectiveUserName}" Padding="4,2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top"/>
                                                             <Rectangle Grid.Column="1" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
-                                                            <TextBlock Grid.Column="2" Text="{Binding EffectiveMessage}" Padding="4,2" TextWrapping="Wrap" VerticalAlignment="Top"/>
+                                                            <TextBlock Grid.Column="2" Text="{Binding EffectiveProcessUID}" Padding="4,2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top"/>
                                                             <Rectangle Grid.Column="2" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
-                                                            <TextBlock Grid.Column="3" Text="{Binding EffectiveNodeDisplay}" Padding="2,2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" ToolTip.Tip="{Binding EffectiveNode}" FontSize="10"/>
+                                                            <TextBlock Grid.Column="3" Text="{Binding EffectiveMessage}" Padding="4,2" TextWrapping="Wrap" VerticalAlignment="Top"/>
                                                             <Rectangle Grid.Column="3" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
                                                             <Border Grid.Column="4" 
                                                                     BorderBrush="#404040" 
@@ -929,12 +910,6 @@
                                                                                DoubleTapped="OnStackTraceDoubleTapped"/>
                                                                 </ScrollViewer>
                                                             </Border>
-                                                            <Rectangle Grid.Column="4" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
-                                                            <TextBlock Grid.Column="5" Text="{Binding EffectiveQueue}" Padding="4,2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top"/>
-                                                            <Rectangle Grid.Column="5" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
-                                                            <TextBlock Grid.Column="6" Text="{Binding EffectiveConsumerType}" Padding="4,2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top"/>
-                                                            <Rectangle Grid.Column="6" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
-                                                            <TextBlock Grid.Column="7" Text="{Binding EffectiveProcessId}" Padding="1,2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="8"/>
                                                         </Grid>
                                                     </DataTemplate>
                                                 </ListBox.ItemTemplate>

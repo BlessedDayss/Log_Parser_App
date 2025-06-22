@@ -224,7 +224,12 @@ namespace Log_Parser_App
             services.AddSingleton<IFileService, FileService>();
             services.AddSingleton<ISimpleErrorRecommendationService, SimpleErrorRecommendationService>();
             services.AddSingleton<IIISLogParserService, IISLogParserService>();
-            services.AddSingleton<IRabbitMqLogParserService, RabbitMqLogParserService>();
+            
+            // RabbitMQ Enhanced Services (RLE-001)
+            services.AddSingleton<Log_Parser_App.Services.Parsing.IPairedFileDetectionService, Log_Parser_App.Services.Parsing.PairedFileDetectionService>();
+            services.AddSingleton<Log_Parser_App.Services.Parsing.IPairedRabbitMqLogParserService, Log_Parser_App.Services.Parsing.PairedRabbitMqLogParserService>();
+            services.AddSingleton<RabbitMqLogParserService>(); // Keep original as dependency
+            services.AddSingleton<IRabbitMqLogParserService, Log_Parser_App.Services.Parsing.RabbitMqLogParsingOrchestrator>(); // Replace with orchestrator
 
             services.AddSingleton<ILogFileLoader, LogFileLoader>();
             services.AddSingleton<ILogFilesLoader, LogFilesLoader>();

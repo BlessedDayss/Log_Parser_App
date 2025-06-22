@@ -345,13 +345,13 @@ namespace Log_Parser_App.ViewModels
                     try
                     {
                         // Use RawData for analysis if available (contains full original text), otherwise Message
-                        string textForAnalysis = !string.IsNullOrEmpty(entry.RawData) ? entry.RawData : entry.Message;
+                        string textForAnalysis = !string.IsNullOrEmpty(entry.RawData) ? entry.RawData : entry.Message ?? string.Empty;
                         
                         // Debug logging to see what we're analyzing in FileLoadingViewModel
                         _logger.LogInformation("FILE LOADING ANALYSIS: Message='{Message}', RawData='{RawData}', UsingText='{Text}'", 
                             entry.Message?.Substring(0, Math.Min(50, entry.Message.Length)), 
                             entry.RawData?.Substring(0, Math.Min(100, entry.RawData?.Length ?? 0)),
-                            textForAnalysis?.Substring(0, Math.Min(100, textForAnalysis.Length)));
+                            textForAnalysis.Substring(0, Math.Min(100, textForAnalysis.Length)));
                         
                         var simpleResult = _simpleErrorRecommendationService.AnalyzeError(textForAnalysis);
                         if (simpleResult != null)

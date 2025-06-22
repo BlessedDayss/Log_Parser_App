@@ -8,6 +8,7 @@ namespace Log_Parser_App.Models
 	/// <summary>
 	/// Represents a RabbitMQ log entry parsed from JSON format.
 	/// Supports both simple RabbitMQ logs and MassTransit message structures.
+	/// Enhanced with paired file support for processUId and UserName extraction.
 	/// </summary>
 	public class RabbitMqLogEntry
 	{
@@ -42,6 +43,38 @@ namespace Log_Parser_App.Models
 		[JsonPropertyName("vhost")]
 		public string? VirtualHost { get; set; }
 
+		// Enhanced properties for paired file support
+
+		/// <summary>
+		/// Process UID extracted from message.processUId in paired files
+		/// </summary>
+		public string? ProcessUID { get; set; }
+
+		/// <summary>
+		/// Username extracted from headers.Context.userContext.UserName in paired files
+		/// </summary>
+		public string? UserName { get; set; }
+
+		/// <summary>
+		/// Sent time extracted from sentTime field in paired files
+		/// </summary>
+		public DateTimeOffset? SentTime { get; set; }
+
+		/// <summary>
+		/// Stack trace extracted from paired headers file
+		/// </summary>
+		public string? StackTrace { get; set; }
+
+		/// <summary>
+		/// Error message extracted from MT-Fault-Message in headers
+		/// </summary>
+		public string? FaultMessage { get; set; }
+
+		/// <summary>
+		/// Error timestamp extracted from MT-Fault-Timestamp in headers
+		/// </summary>
+		public DateTimeOffset? FaultTimestamp { get; set; }
+
 		// MassTransit message structure support
 
 		[JsonPropertyName("headers")]
@@ -57,13 +90,13 @@ namespace Log_Parser_App.Models
 		// Computed properties that work for both structures
 
 		public DateTimeOffset? EffectiveTimestamp =>
-			Timestamp ?? Headers?.FaultTimestamp ?? DateTimeOffset.Now;
+			SentTime ?? FaultTimestamp ?? Timestamp ?? Headers?.FaultTimestamp ?? DateTimeOffset.Now;
 
 		public string? EffectiveLevel =>
-			Level ?? (Headers?.FaultExceptionType != null ? "error" : "info");
+			Level ?? (Headers?.FaultExceptionType != null || !string.IsNullOrEmpty(FaultMessage) ? "error" : "info");
 
 		public string? EffectiveMessage =>
-			Message ?? Headers?.FaultMessage ?? "MassTransit message";
+			FaultMessage ?? Message ?? Headers?.FaultMessage ?? "MassTransit message";
 
 		public string? EffectiveNode =>
 			Node ?? Headers?.HostMachineName;
@@ -78,14 +111,64 @@ namespace Log_Parser_App.Models
 			ProcessId ?? Headers?.HostProcessId;
 
 		public string? EffectiveStackTrace =>
-			Headers?.FaultStackTrace;
+			StackTrace ?? Headers?.FaultStackTrace;
 
 		public string? EffectiveConsumerType =>
 			Headers?.FaultConsumerType;
 
+		/// <summary>
+		/// Effective ProcessUID - returns ProcessUID if available, otherwise falls back to ProcessId
+		/// </summary>
+		public string? EffectiveProcessUID =>
+			ProcessUID ?? EffectiveProcessId;
+
+		/// <summary>
+		/// Effective UserName - returns UserName if available, otherwise falls back to User
+		/// </summary>
+		public string? EffectiveUserName =>
+			UserName ?? User;
+
 		#endregion
 
 		#region Methods: Public
+
+		/// <summary>
+		/// Creates a simplified RabbitMQ log entry with only essential fields
+		/// </summary>
+		/// <param name="processUID">Process UID from file</param>
+		/// <param name="userName">Username from file</param>
+		/// <param name="sentTime">Sent time from file</param>
+		/// <param name="faultMessage">Error message from headers</param>
+		/// <param name="stackTrace">Stack trace from headers</param>
+		/// <param name="faultTimestamp">Error timestamp from headers</param>
+		/// <returns>Simplified RabbitMqLogEntry</returns>
+		public static RabbitMqLogEntry CreateSimplified(
+			string? processUID = null,
+			string? userName = null,
+			DateTimeOffset? sentTime = null,
+			string? faultMessage = null,
+			string? stackTrace = null,
+			DateTimeOffset? faultTimestamp = null)
+		{
+			// Debug output to console
+			System.Console.WriteLine($"[DEBUG] CreateSimplified called:");
+			System.Console.WriteLine($"  ProcessUID: {processUID}");
+			System.Console.WriteLine($"  UserName: {userName}");
+			System.Console.WriteLine($"  SentTime: {sentTime}");
+			System.Console.WriteLine($"  FaultMessage: {faultMessage?.Substring(0, Math.Min(100, faultMessage?.Length ?? 0))}");
+			System.Console.WriteLine($"  StackTrace length: {stackTrace?.Length ?? 0}");
+			
+			return new RabbitMqLogEntry
+			{
+				ProcessUID = processUID,
+				UserName = userName,
+				SentTime = sentTime,
+				FaultMessage = faultMessage,
+				StackTrace = stackTrace,
+				FaultTimestamp = faultTimestamp,
+				Level = !string.IsNullOrEmpty(faultMessage) ? "error" : "info"
+			};
+		}
 
 		/// <summary>
 		/// Converts RabbitMqLogEntry to LogEntry for compatibility with existing system

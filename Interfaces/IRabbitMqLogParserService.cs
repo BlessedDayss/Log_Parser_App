@@ -16,6 +16,8 @@ using System.Threading.Tasks;
 
 		IAsyncEnumerable<RabbitMqLogEntry> ParseLogFilesAsync(IEnumerable<string> filePaths, CancellationToken cancellationToken = default);
 
+		IAsyncEnumerable<RabbitMqLogEntry> ParseLogDirectoryAsync(string directoryPath, CancellationToken cancellationToken = default);
+
 		Task<bool> IsValidRabbitMqLogFileAsync(string filePath);
 
 		Task<int> GetEstimatedLogCountAsync(string filePath);
