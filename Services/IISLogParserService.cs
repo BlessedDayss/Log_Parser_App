@@ -41,6 +41,8 @@ namespace Log_Parser_App.Services
         private async IAsyncEnumerable<IisLogEntry> ProcessStreamAsync(StreamReader streamReader, [EnumeratorCancellation] CancellationToken cancellationToken, string filePath) {
             List<string>? fieldNames = null;
             int lineNumber = 0;
+            int dataLinesSeen = 0;
+            
             try {
                 string? line;
                 while ((line = await streamReader.ReadLineAsync(cancellationToken).ConfigureAwait(false)) != null) {
@@ -61,11 +63,25 @@ namespace Log_Parser_App.Services
                         continue;
                     }
 
+                    // If no #Fields directive found but we have data lines, try to infer standard IIS format
+                    if (fieldNames == null && dataLinesSeen == 0) {
+                        // Try to infer field structure from first data line
+                        var parts = line.Split(' ');
+                        if (parts.Length >= 10) { // Minimum expected fields for IIS log
+                            // Use standard IIS Extended Log Format field order
+                            fieldNames = GetStandardIISFields(parts.Length);
+                            _logger.LogInformation("No #Fields directive found in {FilePath}. Inferring standard IIS format with {FieldCount} fields: {Fields}", 
+                                filePath, fieldNames.Count, string.Join(", ", fieldNames));
+                        }
+                    }
+
                     if (fieldNames == null) {
-                        _logger.LogWarning("Skipping data line {LineNumber} in {FilePath} because #Fields directive has not been found yet.", lineNumber, filePath);
+                        _logger.LogWarning("Skipping data line {LineNumber} in {FilePath} because field structure could not be determined. Line: {LineContent}", 
+                            lineNumber, filePath, line);
                         continue;
                     }
 
+                    dataLinesSeen++;
                     IisLogEntry? entry = ParseLogLine(line, fieldNames, lineNumber, filePath);
                     if (entry != null) {
                         yield return entry;
@@ -77,25 +93,52 @@ namespace Log_Parser_App.Services
             }
         }
 
+        private List<string> GetStandardIISFields(int fieldCount) {
+            var standardFields = new List<string> {
+                "date",
+                "time",
+                "cs-method",
+                "cs-uri-query",
+                "s-port",
+                "cs-username",
+                "time-taken",
+                "cs(user-agent)",
+                "sc-status",
+                "s-ip",
+                "cs-uri-stem",
+                "c-ip",
+                "cs(referer)",
+                "sc-substatus",
+                "sc-win32-status"
+            };
+
+            return standardFields.Take(fieldCount).ToList();
+        }
+
         private IisLogEntry? ParseLogLine(string line, List<string> fieldNames, int lineNumber, string filePath) {
             try {
-                var values = line.Split(' ');
+                var values = SplitLogLine(line);
+                
                 if (values.Length != fieldNames.Count) {
-                    _logger.LogWarning(
-                        "Skipping data line {LineNumber} in {FilePath} due to mismatch between field count ({FieldCount}) and value count ({ValueCount}). Line: {LineContent}",
-                        lineNumber,
-                        filePath,
-                        fieldNames.Count,
-                        values.Length,
-                        line);
-                    return null;
+                    if (values.Length < fieldNames.Count) {
+                        var paddedValues = new string[fieldNames.Count];
+                        Array.Copy(values, paddedValues, Math.Min(values.Length, fieldNames.Count));
+                        for (int i = values.Length; i < fieldNames.Count; i++) {
+                            paddedValues[i] = "-";
+                        }
+                        values = paddedValues;
+                    } else if (values.Length > fieldNames.Count) {
+                        var truncatedValues = new string[fieldNames.Count];
+                        Array.Copy(values, truncatedValues, fieldNames.Count);
+                        values = truncatedValues;
+                    }
                 }
 
                 var entry = new IisLogEntry { RawLine = line };
                 string? dateStr = null;
                 string? timeStr = null;
-
-                for (int i = 0; i < fieldNames.Count; i++) {
+                
+                for (int i = 0; i < fieldNames.Count && i < values.Length; i++) {
                     var fieldNameKey = fieldNames[i].ToLowerInvariant();
                     var value = values[i];
 
@@ -114,8 +157,6 @@ namespace Log_Parser_App.Services
                                 DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
                                 out var dateTimeOffset)) {
                             entry.DateTime = dateTimeOffset;
-                        } else {
-                            _logger.LogWarning("Could not parse date/time '{Date} {Time}' at line {LineNumber} in {FilePath}.", dateStr, timeStr, lineNumber, filePath);
                         }
                     }
                     SetEntryProperty(entry, fieldNameKey, value, lineNumber, filePath);
@@ -127,8 +168,6 @@ namespace Log_Parser_App.Services
                             DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
                             out var dateTimeOffset)) {
                         entry.DateTime = dateTimeOffset;
-                    } else {
-                        _logger.LogWarning("Could not parse date/time '{Date} {Time}' (end of loop) at line {LineNumber} in {FilePath}.", dateStr, timeStr, lineNumber, filePath);
                     }
                 }
                 return entry;
@@ -136,6 +175,34 @@ namespace Log_Parser_App.Services
                 _logger.LogError(ex, "Error parsing IIS log entry at line {LineNumber} in {FilePath}. Line: {LineContent}", lineNumber, filePath, line);
                 return new IisLogEntry { RawLine = line, ClientIPAddress = $"Error parsing line: {ex.Message}" };
             }
+        }
+
+        private string[] SplitLogLine(string line) {
+            var parts = new List<string>();
+            var currentPart = new System.Text.StringBuilder();
+            bool inQuotes = false;
+            
+            for (int i = 0; i < line.Length; i++) {
+                char c = line[i];
+                
+                if (c == '"') {
+                    inQuotes = !inQuotes;
+                    currentPart.Append(c);
+                } else if (c == ' ' && !inQuotes) {
+                    if (currentPart.Length > 0) {
+                        parts.Add(currentPart.ToString());
+                        currentPart.Clear();
+                    }
+                } else {
+                    currentPart.Append(c);
+                }
+            }
+            
+            if (currentPart.Length > 0) {
+                parts.Add(currentPart.ToString());
+            }
+            
+            return parts.ToArray();
         }
 
         private void SetEntryProperty(IisLogEntry entry, string fieldName, string value, int lineNumber, string filePath) {
@@ -181,6 +248,8 @@ namespace Log_Parser_App.Services
                         break;
                     case "cs(user-agent)":
                         entry.UserAgent = value == "-" ? "Not Specified" : value;
+                        break;
+                    case "cs(referer)":
                         break;
                     case "cs(cookie)":
                         entry.Cookie = value;

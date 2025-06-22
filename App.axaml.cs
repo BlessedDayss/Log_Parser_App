@@ -292,6 +292,10 @@ namespace Log_Parser_App
 
             services.AddSingleton<Log_Parser_App.Services.ErrorDetection.IAdvancedErrorDetectionService, Log_Parser_App.Services.ErrorDetection.AdvancedErrorDetectionService>();
 
+            // IIS SOLID Architecture Services (ILA-001 - Phase 4: SOLID Compliance)
+            services.AddSingleton<IIISRepository, IISRepository>();
+            services.AddSingleton<IIISService, IISService>();
+
             // Регистрируем сервис ассоциаций файлов
             if (OperatingSystem.IsWindows()) {
                 services.AddSingleton<IFileAssociationService, WindowsFileAssociationService>();

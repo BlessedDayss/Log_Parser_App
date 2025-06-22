@@ -1728,13 +1728,25 @@ namespace Log_Parser_App.ViewModels
         private async Task LoadIISLogs() {
             try {
                 var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop ? desktop.MainWindow : null;
-                var files = await _filePickerService.PickFilesAsync(mainWindow);
-                if (files != null && files.Any()) {
-                    foreach (string file in files) {
-                        // Force load as IIS log regardless of file detection
-                        await LoadIISFileAsync(file);
-                    }
+                var (files, directory) = await _filePickerService.ShowFilePickerContextMenuAsync(mainWindow);
 
+                if (files != null && files.Any()) {
+                    // Load selected files - filter for .log files or validate IIS format
+                    var validIISFiles = new List<string>();
+                    foreach (var file in files) {
+                        if (System.IO.Path.GetExtension(file).Equals(".log", StringComparison.OrdinalIgnoreCase) || 
+                            await IsIISLogFileAsync(file)) {
+                            validIISFiles.Add(file);
+                        }
+                    }
+                    await LoadIISFilesAsync(validIISFiles);
+                } else if (!string.IsNullOrEmpty(directory)) {
+                    // Load all .log files from directory
+                    var logFiles = System.IO.Directory.EnumerateFiles(directory, "*.log", System.IO.SearchOption.TopDirectoryOnly);
+                    await LoadIISFilesAsync(logFiles);
+                }
+
+                if (FileTabs.Any()) {
                     IsStartScreenVisible = false;
                 }
             } catch (Exception ex) {
@@ -1765,69 +1777,106 @@ namespace Log_Parser_App.ViewModels
             }
         }
 
-        private async Task LoadIISFileAsync(string filePath) {
-            try {
-                var sw = System.Diagnostics.Stopwatch.StartNew();
-                int failedEntriesCount = 0;
-                int processedEntriesCount = 0;
+        private async Task LoadIISFilesAsync(IEnumerable<string> filePaths) {
+            var allIISEntries = new List<IisLogEntry>();
+            int totalFailedEntriesCount = 0;
+            int totalProcessedEntriesCount = 0;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
 
-                var iisEntries = await Task.Run(async () => {
-                    var entriesList = new List<IisLogEntry>();
-                    try {
-                        await foreach (var entry in _iisLogParserService.ParseLogFileAsync(filePath, CancellationToken.None)) {
-                            try {
-                                entriesList.Add(entry);
-                                processedEntriesCount++;
-                            } catch (Exception entryEx) {
-                                failedEntriesCount++;
-                                _logger.LogWarning(entryEx, "Failed to process IIS log entry, continuing with next entry. Failed entries so far: {FailedCount}", failedEntriesCount);
-                            }
-                        }
-                    } catch (Exception ex) {
-                        _logger.LogError(ex,
-                            "Exception occurred during IIS log parsing for file {FilePath}. Successfully processed {ProcessedCount} entries, failed {FailedCount} entries.",
-                            filePath,
-                            processedEntriesCount,
-                            failedEntriesCount);
-                    }
-                    return entriesList;
+            try {
+                await Dispatcher.UIThread.InvokeAsync(() => {
+                    IsLoading = true;
+                    StatusMessage = "Loading IIS log files...";
                 });
 
+                var semaphore = new System.Threading.SemaphoreSlim(Environment.ProcessorCount * 2);
+                var tasks = new List<Task>();
+
+                foreach (string filePath in filePaths) {
+                    await semaphore.WaitAsync();
+                    tasks.Add(Task.Run(async () => {
+                        try {
+                            int fileFailedEntriesCount = 0;
+                            int fileProcessedEntriesCount = 0;
+
+                            await foreach (var entry in _iisLogParserService.ParseLogFileAsync(filePath, CancellationToken.None)) {
+                                try {
+                                    lock (allIISEntries) {
+                                        allIISEntries.Add(entry);
+                                    }
+                                    System.Threading.Interlocked.Increment(ref totalProcessedEntriesCount);
+                                    fileProcessedEntriesCount++;
+                                } catch (Exception entryEx) {
+                                    System.Threading.Interlocked.Increment(ref totalFailedEntriesCount);
+                                    fileFailedEntriesCount++;
+                                    _logger.LogWarning(entryEx, "Failed to process IIS log entry from file {FilePath}, continuing. Failed entries so far: {FailedCount}", filePath, fileFailedEntriesCount);
+                                }
+                            }
+
+                            _logger.LogDebug("Processed file {FilePath}: {ProcessedCount} entries, {FailedCount} errors", 
+                                           filePath, fileProcessedEntriesCount, fileFailedEntriesCount);
+                        } catch (Exception ex) {
+                            _logger.LogError(ex, "Error processing IIS log file {FilePath}", filePath);
+                        } finally {
+                            semaphore.Release();
+                        }
+                    }));
+                }
+
+                await Task.WhenAll(tasks);
+
                 await Dispatcher.UIThread.InvokeAsync(() => {
-                    string title = Path.GetFileName(filePath);
-                    var newTab = new TabViewModel(filePath, title, iisEntries);
+                    if (allIISEntries.Any()) {
+                        // Sort by timestamp for better viewing experience
+                        var sortedEntries = allIISEntries.OrderBy(e => e.DateTime ?? DateTimeOffset.MinValue).ToList();
+                        
+                        string title = filePaths.Count() == 1 ? 
+                                     Path.GetFileName(filePaths.First()) : 
+                                     $"IIS Logs ({filePaths.Count()} files)";
+                        
+                        // Use IIS-specific constructor to ensure proper data binding
+                        var newTab = new TabViewModel(filePaths.First(), title, sortedEntries);
 
-                    _logger.LogInformation("Created new IIS tab for file {FilePath}. LogType: {LogType}, IsThisTabIIS: {IsIIS}", filePath, newTab.LogType, newTab.IsThisTabIIS);
+                        _logger.LogInformation("Created new IIS tab for {FileCount} files. LogType: {LogType}, IsThisTabIIS: {IsIIS}", 
+                                             filePaths.Count(), newTab.LogType, newTab.IsThisTabIIS);
 
-                    FileTabs.Clear();
-                    FileTabs.Add(newTab);
-                    SelectedTab = newTab;
+                        FileTabs.Clear();
+                        FileTabs.Add(newTab);
+                        SelectedTab = newTab;
 
-                    UpdateLogStatistics();
+                        UpdateLogStatistics();
 
-                    int totalAttemptedEntries = processedEntriesCount + failedEntriesCount;
-                    double successRate = totalAttemptedEntries > 0 ? Math.Round((double)processedEntriesCount / totalAttemptedEntries * 100, 1) : 100.0;
+                        int totalAttemptedEntries = totalProcessedEntriesCount + totalFailedEntriesCount;
+                        double successRate = totalAttemptedEntries > 0 ? Math.Round((double)totalProcessedEntriesCount / totalAttemptedEntries * 100, 1) : 100.0;
 
-                    _logger.LogInformation("Загружено {ProcessedCount} из {TotalCount} IIS записей за {ElapsedMs}ms (успешность: {SuccessRate}%). Ошибок парсинга: {FailedCount}",
-                        iisEntries.Count,
-                        totalAttemptedEntries,
-                        sw.ElapsedMilliseconds,
-                        successRate,
-                        failedEntriesCount);
+                        _logger.LogInformation("Загружено {ProcessedCount} из {TotalCount} IIS записей за {ElapsedMs}ms (успешность: {SuccessRate}%). Ошибок парсинга: {FailedCount}",
+                            allIISEntries.Count,
+                            totalAttemptedEntries,
+                            sw.ElapsedMilliseconds,
+                            successRate,
+                            totalFailedEntriesCount);
 
-                    StatusMessage = failedEntriesCount > 0
-                        ? $"Loaded {iisEntries.Count} IIS log entries ({successRate}% success rate, {failedEntriesCount} parsing errors)"
-                        : $"Loaded {iisEntries.Count} IIS log entries (100% success rate)";
+                        StatusMessage = totalFailedEntriesCount > 0
+                            ? $"Loaded {allIISEntries.Count} IIS log entries from {filePaths.Count()} files ({successRate}% success rate, {totalFailedEntriesCount} parsing errors)"
+                            : $"Loaded {allIISEntries.Count} IIS log entries from {filePaths.Count()} files (100% success rate)";
+                    } else {
+                        _logger.LogWarning("No IIS entries found in provided files");
+                        StatusMessage = "No IIS log entries found in selected files";
+                    }
 
                     IsLoading = false;
                 });
             } catch (Exception ex) {
-                _logger.LogError(ex, "Ошибка загрузки IIS файла логов");
+                _logger.LogError(ex, "Ошибка загрузки IIS файлов логов");
                 await Dispatcher.UIThread.InvokeAsync(() => {
-                    StatusMessage = $"Error loading IIS log: {ex.Message}";
+                    StatusMessage = $"Error loading IIS logs: {ex.Message}";
                     IsLoading = false;
                 });
             }
+        }
+
+        private async Task LoadIISFileAsync(string filePath) {
+            await LoadIISFilesAsync(new[] { filePath });
         }
 
         [RelayCommand]
