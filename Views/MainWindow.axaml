@@ -403,7 +403,10 @@
                                     IsVisible="{Binding !IsDownloadingUpdate}" />
                         </StackPanel>
                     </Border>
-                    <Border Grid.Column="0" Margin="2" Padding="8,4" Background="#382626" CornerRadius="6">
+
+                    <!-- Standard/RabbitMQ Dashboard Panels -->
+                    <Border Grid.Column="0" Margin="2" Padding="8,4" Background="#382626" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabStandardOrRabbitMQ}">
                         <StackPanel Spacing="2">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="🔴" FontSize="12" VerticalAlignment="Center" />
@@ -413,7 +416,8 @@
                             <TextBlock Text="{Binding MainView.ErrorPercent, StringFormat={}{0:F1}%}" FontSize="14" Opacity="0.7" Foreground="#DDDDDD" />
                         </StackPanel>
                     </Border>
-                    <Border Grid.Column="1" Margin="2" Padding="8,4" Background="#3A3320" CornerRadius="6">
+                    <Border Grid.Column="1" Margin="2" Padding="8,4" Background="#3A3320" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabStandardOrRabbitMQ}">
                         <StackPanel Spacing="2">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="🟠" FontSize="12" VerticalAlignment="Center" />
@@ -423,7 +427,8 @@
                             <TextBlock Text="{Binding MainView.WarningPercent, StringFormat={}{0:F1}%}" FontSize="14" Opacity="0.7" Foreground="#DDDDDD" />
                         </StackPanel>
                     </Border>
-                    <Border Grid.Column="2" Margin="2" Padding="8,4" Background="#263238" CornerRadius="6">
+                    <Border Grid.Column="2" Margin="2" Padding="8,4" Background="#263238" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabStandardOrRabbitMQ}">
                         <StackPanel Spacing="2">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="🔵" FontSize="12" VerticalAlignment="Center" />
@@ -433,7 +438,8 @@
                             <TextBlock Text="{Binding MainView.InfoPercent, StringFormat={}{0:F1}%}" FontSize="14" Opacity="0.7" Foreground="#DDDDDD" />
                         </StackPanel>
                     </Border>
-                    <Border Grid.Column="3" Margin="2" Padding="8,4" Background="#2A2A2A" CornerRadius="6">
+                    <Border Grid.Column="3" Margin="2" Padding="8,4" Background="#2A2A2A" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabStandardOrRabbitMQ}">
                         <StackPanel Spacing="2">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="⚪" FontSize="12" VerticalAlignment="Center" />
@@ -441,6 +447,97 @@
                             </StackPanel>
                             <TextBlock Text="{Binding MainView.OtherCount}" FontSize="24" FontWeight="Bold" Margin="0,4,0,0" Foreground="#BBBBBB" />
                             <TextBlock Text="{Binding MainView.OtherPercent, StringFormat={}{0:F1}%}" FontSize="14" Opacity="0.7" Foreground="#DDDDDD" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- IIS Dashboard Panels -->
+                    <Border Grid.Column="0" Margin="2" Padding="8,4" Background="#382626" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabIIS}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🔢" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="STATUS CODES" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <ItemsControl ItemsSource="{Binding MainView.Statistics.TopStatusCodes}" MaxHeight="60">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models1:IISStatusAnalysis">
+                                        <TextBlock FontSize="12" Margin="0,1" Foreground="#F15B5B">
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}{0} ({1})">
+                                                    <Binding Path="StatusCode"/>
+                                                    <Binding Path="Count"/>
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ProgressBar IsVisible="{Binding MainView.Statistics.IsProcessingAnalytics}" 
+                                         Value="{Binding MainView.Statistics.AnalyticsProgressPercent}" 
+                                         Height="4" Background="#444" Foreground="#F15B5B"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="1" Margin="2" Padding="8,4" Background="#3A3320" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabIIS}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="⏱️" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="LONGEST REQUEST" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <ItemsControl ItemsSource="{Binding MainView.Statistics.LongestRequests}" MaxHeight="60">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models1:IISLongestRequest">
+                                        <StackPanel Margin="0,1">
+                                            <TextBlock Text="{Binding UriStem}" FontSize="11" Foreground="#F9A825" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding FormattedTime}" FontSize="10" Foreground="#DDDDDD" Opacity="0.8"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ProgressBar IsVisible="{Binding MainView.Statistics.IsProcessingAnalytics}" 
+                                         Value="{Binding MainView.Statistics.AnalyticsProgressPercent}" 
+                                         Height="4" Background="#444" Foreground="#F9A825"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="2" Margin="2" Padding="8,4" Background="#263238" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabIIS}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🔄" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="HTTP METHODS" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <ItemsControl ItemsSource="{Binding MainView.Statistics.HttpMethods}" MaxHeight="60">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models1:IISMethodDistribution">
+                                        <TextBlock Text="{Binding FormattedDisplay}" FontSize="12" Margin="0,1" Foreground="#64B5F6"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ProgressBar IsVisible="{Binding MainView.Statistics.IsProcessingAnalytics}" 
+                                         Value="{Binding MainView.Statistics.AnalyticsProgressPercent}" 
+                                         Height="4" Background="#444" Foreground="#64B5F6"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="3" Margin="2" Padding="8,4" Background="#2A2A2A" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabIIS}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="👥" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="TOP USERS" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <ItemsControl ItemsSource="{Binding MainView.Statistics.TopUsers}" MaxHeight="60">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models1:IISUserActivity">
+                                        <StackPanel Margin="0,1">
+                                            <TextBlock Text="{Binding DisplayName}" FontSize="11" Foreground="#BBBBBB" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding RequestCount}" FontSize="10" Foreground="#DDDDDD" Opacity="0.8"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ProgressBar IsVisible="{Binding MainView.Statistics.IsProcessingAnalytics}" 
+                                         Value="{Binding MainView.Statistics.AnalyticsProgressPercent}" 
+                                         Height="4" Background="#444" Foreground="#BBBBBB"/>
                         </StackPanel>
                     </Border>
                 </Grid>

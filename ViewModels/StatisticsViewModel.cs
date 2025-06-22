@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Log_Parser_App.Models;
 using Log_Parser_App.Services;
@@ -8,6 +10,7 @@ using Log_Parser_App.Interfaces;
 using Microsoft.Extensions.Logging;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
+using Avalonia.Threading;
 
 namespace Log_Parser_App.ViewModels
 {
@@ -21,6 +24,7 @@ namespace Log_Parser_App.ViewModels
 
         private readonly IChartService _chartService;
         private readonly ILogger<StatisticsViewModel> _logger;
+        private readonly IIISAnalyticsService _iisAnalyticsService;
 
         #endregion
 
@@ -91,6 +95,28 @@ namespace Log_Parser_App.ViewModels
         [ObservableProperty]
         private Axis[] _errorMessageAxis = Array.Empty<Axis>();
 
+        // IIS Analytics Properties
+        [ObservableProperty]
+        private IISStatusAnalysis[] _topStatusCodes = Array.Empty<IISStatusAnalysis>();
+
+        [ObservableProperty]
+        private IISLongestRequest[] _longestRequests = Array.Empty<IISLongestRequest>();
+
+        [ObservableProperty]
+        private IISMethodDistribution[] _httpMethods = Array.Empty<IISMethodDistribution>();
+
+        [ObservableProperty]
+        private IISUserActivity[] _topUsers = Array.Empty<IISUserActivity>();
+
+        [ObservableProperty]
+        private bool _isProcessingAnalytics;
+
+        [ObservableProperty]
+        private string _analyticsProgressText = string.Empty;
+
+        [ObservableProperty]
+        private double _analyticsProgressPercent;
+
         #endregion
 
         #region Events
@@ -103,10 +129,12 @@ namespace Log_Parser_App.ViewModels
 
         public StatisticsViewModel(
             IChartService chartService,
-            ILogger<StatisticsViewModel> logger)
+            ILogger<StatisticsViewModel> logger,
+            IIISAnalyticsService iisAnalyticsService)
         {
             _chartService = chartService;
             _logger = logger;
+            _iisAnalyticsService = iisAnalyticsService;
         }
 
         #endregion
@@ -167,44 +195,123 @@ namespace Log_Parser_App.ViewModels
         }
 
         /// <summary>
-        /// Update IIS-specific statistics
+        /// Update IIS-specific analytics asynchronously with progress reporting
         /// </summary>
-        public void UpdateIISStatistics(TabViewModel selectedTab)
+        public async Task UpdateIISAnalyticsAsync(TabViewModel selectedTab, CancellationToken cancellationToken = default)
         {
             try
             {
                 if (selectedTab?.IsThisTabIIS != true) return;
+                if (!selectedTab.FilteredIISLogEntries.Any()) return;
 
-                _logger.LogDebug("Updating IIS statistics for tab: {Title}", selectedTab.Title);
+                _logger.LogDebug("Starting IIS analytics for tab: {Title} with {Count} entries", 
+                    selectedTab.Title, selectedTab.FilteredIISLogEntries.Count);
 
-                // Update IIS-specific counts
-                ErrorCount = selectedTab.IIS_ErrorCount;
-                InfoCount = selectedTab.IIS_InfoCount;
-                WarningCount = 0; // IIS logs typically don't have warnings
-                OtherCount = selectedTab.IIS_RedirectCount;
+                IsProcessingAnalytics = true;
+                AnalyticsProgressText = "Initializing IIS analytics...";
+                AnalyticsProgressPercent = 0;
 
-                var total = selectedTab.IIS_TotalCount;
-                if (total > 0)
+                var progress = new Progress<AnalyticsProgress>(p =>
                 {
-                    ErrorPercent = (ErrorCount / (double)total) * 100;
-                    InfoPercent = (InfoCount / (double)total) * 100;
-                    WarningPercent = 0;
-                    OtherPercent = (OtherCount / (double)total) * 100;
-                }
-                else
+                    AnalyticsProgressPercent = p.PercentComplete;
+                    AnalyticsProgressText = p.CurrentOperation;
+                });
+
+                // Process analytics on background thread to avoid UI blocking
+                var result = await _iisAnalyticsService.ProcessAnalyticsAsync(
+                    selectedTab.FilteredIISLogEntries, 
+                    progress, 
+                    cancellationToken).ConfigureAwait(false);
+
+                // Update UI on main thread
+                await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    ErrorPercent = WarningPercent = InfoPercent = OtherPercent = 0;
-                }
+                    // Update dashboard panel data
+                    TopStatusCodes = result.TopStatusCodes;
+                    LongestRequests = result.LongestRequests;
+                    HttpMethods = result.HttpMethods;
+                    TopUsers = result.TopUsers;
 
-                // Calculate IIS charts if needed
-                CalculateIISCharts(selectedTab);
+                    // Update legacy counts for existing dashboard
+                    var total = result.TotalRecordsProcessed;
+                    ErrorCount = result.TopStatusCodes.Where(s => s.StatusCode >= 400).Sum(s => s.Count);
+                    InfoCount = result.TopStatusCodes.Where(s => s.StatusCode >= 200 && s.StatusCode < 300).Sum(s => s.Count);
+                    WarningCount = 0; // Will be replaced by Longest Requests
+                    OtherCount = result.TopStatusCodes.Where(s => s.StatusCode >= 300 && s.StatusCode < 400).Sum(s => s.Count);
 
-                _logger.LogInformation("IIS statistics updated: {Errors} errors, {Info} info, {Redirects} redirects",
-                    ErrorCount, InfoCount, OtherCount);
+                    if (total > 0)
+                    {
+                        ErrorPercent = (ErrorCount / (double)total) * 100;
+                        InfoPercent = (InfoCount / (double)total) * 100;
+                        WarningPercent = 0;
+                        OtherPercent = (OtherCount / (double)total) * 100;
+                    }
+                    else
+                    {
+                        ErrorPercent = WarningPercent = InfoPercent = OtherPercent = 0;
+                    }
+
+                    IsProcessingAnalytics = false;
+                    AnalyticsProgressText = "Analytics complete";
+                    AnalyticsProgressPercent = 100;
+
+                    _logger.LogInformation("IIS analytics completed: {Records} records processed in {Duration}ms", 
+                        result.TotalRecordsProcessed, result.ProcessingTime.TotalMilliseconds);
+                }, Avalonia.Threading.DispatcherPriority.Normal);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation("IIS analytics cancelled for tab: {Title}", selectedTab?.Title);
+                IsProcessingAnalytics = false;
+                AnalyticsProgressText = "Analytics cancelled";
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating IIS statistics");
+                _logger.LogError(ex, "Error processing IIS analytics for tab: {Title}", selectedTab?.Title);
+                IsProcessingAnalytics = false;
+                AnalyticsProgressText = "Analytics failed";
+            }
+        }
+
+        /// <summary>
+        /// Update IIS-specific statistics (legacy method for compatibility)
+        /// </summary>
+        public void UpdateIISStatistics(TabViewModel selectedTab)
+        {
+            if (selectedTab?.IsThisTabIIS != true) return;
+
+            _logger.LogDebug("Updating IIS statistics for tab: {Title}", selectedTab.Title);
+
+            // Start async analytics in background
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await UpdateIISAnalyticsAsync(selectedTab).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error in background IIS analytics");
+                }
+            });
+
+            // Update immediate basic counts for compatibility
+            ErrorCount = selectedTab.IIS_ErrorCount;
+            InfoCount = selectedTab.IIS_InfoCount;
+            WarningCount = 0;
+            OtherCount = selectedTab.IIS_RedirectCount;
+
+            var total = selectedTab.IIS_TotalCount;
+            if (total > 0)
+            {
+                ErrorPercent = (ErrorCount / (double)total) * 100;
+                InfoPercent = (InfoCount / (double)total) * 100;
+                WarningPercent = 0;
+                OtherPercent = (OtherCount / (double)total) * 100;
+            }
+            else
+            {
+                ErrorPercent = WarningPercent = InfoPercent = OtherPercent = 0;
             }
         }
 

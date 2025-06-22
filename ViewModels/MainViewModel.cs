@@ -38,6 +38,9 @@ namespace Log_Parser_App.ViewModels
         private readonly ITabManagerService _tabManagerService;
         private readonly IFilterService _filterService;
         
+        // IIS Analytics Service
+        private readonly StatisticsViewModel _statisticsViewModel;
+        
 
         
         // Error Detection Service
@@ -154,6 +157,9 @@ namespace Log_Parser_App.ViewModels
         [ObservableProperty]
         private LogStatistics _logStatistics = new();
 
+        // Statistics ViewModel for dashboard analytics
+        public StatisticsViewModel Statistics => _statisticsViewModel;
+
 
 
         [ObservableProperty]
@@ -266,7 +272,8 @@ namespace Log_Parser_App.ViewModels
 			ITabManagerService tabManagerService,
 			IFilterService filterService,
 			Log_Parser_App.Services.ErrorDetection.IErrorDetectionService errorDetectionService,
-			IFileTypeDetectionService fileTypeDetectionService) {
+			IFileTypeDetectionService fileTypeDetectionService,
+			StatisticsViewModel statisticsViewModel) {
             _logParserService = logParserService;
             _logger = logger;
             _fileService = fileService;
@@ -280,6 +287,7 @@ namespace Log_Parser_App.ViewModels
 
             _errorDetectionService = errorDetectionService;
             _fileTypeDetectionService = fileTypeDetectionService;
+            _statisticsViewModel = statisticsViewModel;
 
             InitializeErrorRecommendationService();
 
@@ -920,9 +928,23 @@ namespace Log_Parser_App.ViewModels
                 ErrorMessageAxis = stats.ErrorMessageAxis;
 
             } else if (SelectedTab.IsThisTabIIS) {
+                // Start IIS Analytics processing
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _statisticsViewModel.UpdateIISAnalyticsAsync(SelectedTab).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error processing IIS analytics for tab: {Title}", SelectedTab.Title);
+                    }
+                });
+
+                // Set immediate basic counts for legacy compatibility
                 ErrorCount = SelectedTab.IIS_ErrorCount;
                 InfoCount = SelectedTab.IIS_InfoCount;
-                WarningCount = 0; // No warnings for IIS logs for now
+                WarningCount = 0; // No warnings for IIS logs
                 OtherCount = SelectedTab.IIS_RedirectCount; // Redirects as "Other"
 
                 int totalIISEntries = SelectedTab.IIS_TotalCount;

@@ -295,6 +295,9 @@ namespace Log_Parser_App
             // IIS SOLID Architecture Services (ILA-001 - Phase 4: SOLID Compliance)
             services.AddSingleton<IIISRepository, IISRepository>();
             services.AddSingleton<IIISService, IISService>();
+            
+            // IIS Analytics Service (IDP-001 - IIS Dashboard Optimization & Performance)
+            services.AddSingleton<IIISAnalyticsService, IISAnalyticsService>();
 
             // Регистрируем сервис ассоциаций файлов
             if (OperatingSystem.IsWindows()) {
