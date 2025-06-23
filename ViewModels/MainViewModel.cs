@@ -937,26 +937,44 @@ namespace Log_Parser_App.ViewModels
                         ErrorPercent = WarningPercent = InfoPercent = OtherPercent = 0;
                     }
 
-                    // Use standard LogEntry format for charts
-                    var entriesToAnalyze = SelectedTab.LogEntries;
-                    if (entriesToAnalyze != null && entriesToAnalyze.Any()) {
-                        var stats = CalculateStatisticsAndCharts(entriesToAnalyze);
-                        LogStatistics = stats.LogStatistics;
-                        LevelsOverTimeSeries = stats.LevelsOverTimeSeries;
-                        TopErrorsSeries = stats.TopErrorsSeries;
-                        LogDistributionSeries = stats.LogDistributionSeries;
-                        TimeHeatmapSeries = stats.TimeHeatmapSeries;
-                        ErrorTrendSeries = stats.ErrorTrendSeries;
-                        SourcesDistributionSeries = stats.SourcesDistributionSeries;
-                        TimeAxis = stats.TimeAxis;
-                        CountAxis = stats.CountAxis;
-                        DaysAxis = stats.DaysAxis;
-                        HoursAxis = stats.HoursAxis;
-                        SourceAxis = stats.SourceAxis;
-                        ErrorMessageAxis = stats.ErrorMessageAxis;
-                    } else {
-                        LogStatistics = new LogStatistics();
-                        ClearAllCharts();
+                    // Use enhanced RabbitMQ chart generation with improved error and user grouping
+                    var chartData = _chartService.GenerateRabbitMQCharts(rabbitMqEntries);
+                    LogStatistics = new LogStatistics {
+                        TotalCount = TotalCount,
+                        ErrorCount = ErrorCount,
+                        WarningCount = WarningCount,
+                        InfoCount = InfoCount,
+                        OtherCount = OtherCount,
+                        ErrorPercent = ErrorPercent,
+                        WarningPercent = WarningPercent,
+                        InfoPercent = InfoPercent,
+                        OtherPercent = OtherPercent
+                    };
+                    
+                    LevelsOverTimeSeries = chartData.LevelsOverTimeSeries;
+                    TopErrorsSeries = chartData.TopErrorsSeries;
+                    LogDistributionSeries = chartData.LogDistributionSeries;
+                    TimeHeatmapSeries = chartData.TimeHeatmapSeries;
+                    ErrorTrendSeries = chartData.ErrorTrendSeries;
+                    SourcesDistributionSeries = chartData.SourcesDistributionSeries;
+                    TimeAxis = chartData.TimeAxis;
+                    CountAxis = chartData.CountAxis;
+                    DaysAxis = chartData.DaysAxis;
+                    HoursAxis = chartData.HoursAxis;
+                    SourceAxis = chartData.SourceAxis;
+                    ErrorMessageAxis = chartData.ErrorMessageAxis;
+                    
+                    // Use enhanced RabbitMQ-specific charts for error and user analysis
+                    if (chartData.UserDistributionSeries != null && chartData.UserDistributionSeries.Any()) {
+                        // Add user distribution charts to existing series
+                        var existingSeries = SourcesDistributionSeries?.ToList() ?? new List<ISeries>();
+                        existingSeries.AddRange(chartData.UserDistributionSeries);
+                        SourcesDistributionSeries = existingSeries.ToArray();
+                    }
+                    
+                    if (chartData.ErrorGroupingSeries != null && chartData.ErrorGroupingSeries.Any()) {
+                        // Replace top errors with enhanced error grouping
+                        TopErrorsSeries = chartData.ErrorGroupingSeries;
                     }
                 } else {
                     // Standard logs processing

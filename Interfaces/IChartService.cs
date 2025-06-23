@@ -50,6 +50,13 @@ public interface IChartService
     /// <param name="logEntries">Log entries to analyze</param>
     /// <returns>Complete chart data including series and axes</returns>
     ChartDataResult GenerateCharts(IEnumerable<LogEntry> logEntries);
+    
+    /// <summary>
+    /// Generate enhanced chart data for RabbitMQ logs with improved error and user grouping
+    /// </summary>
+    /// <param name="rabbitMqEntries">RabbitMQ log entries to analyze</param>
+    /// <returns>Complete chart data with RabbitMQ-specific enhancements</returns>
+    ChartDataResult GenerateRabbitMQCharts(IEnumerable<RabbitMqLogEntry> rabbitMqEntries);
 }
 
 /// <summary>
@@ -63,6 +70,10 @@ public class ChartDataResult
     public ISeries[] TimeHeatmapSeries { get; set; } = Array.Empty<ISeries>();
     public ISeries[] ErrorTrendSeries { get; set; } = Array.Empty<ISeries>();
     public ISeries[] SourcesDistributionSeries { get; set; } = Array.Empty<ISeries>();
+    
+    // Enhanced RabbitMQ-specific chart series
+    public ISeries[]? UserDistributionSeries { get; set; }
+    public ISeries[]? ErrorGroupingSeries { get; set; }
     
     public Axis[] TimeAxis { get; set; } = Array.Empty<Axis>();
     public Axis[] CountAxis { get; set; } = Array.Empty<Axis>();

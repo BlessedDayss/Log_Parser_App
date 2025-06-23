@@ -169,7 +169,7 @@ namespace Log_Parser_App.Strategies
         }
 
         /// <summary>
-        /// Extract RabbitMQ-specific metadata
+        /// Extract RabbitMQ-specific metadata from LogEntry collection
         /// </summary>
         public LogMetadata ExtractMetadata(IEnumerable<LogEntry> entries)
         {
@@ -229,6 +229,67 @@ namespace Log_Parser_App.Strategies
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error extracting RabbitMQ log metadata");
+                return CreateEmptyMetadata();
+            }
+        }
+
+        /// <summary>
+        /// Extract RabbitMQ-specific metadata from RabbitMqLogEntry collection with enhanced error and user grouping
+        /// </summary>
+        public LogMetadata ExtractMetadata(IEnumerable<RabbitMqLogEntry> entries)
+        {
+            try
+            {
+                var entriesList = entries.ToList();
+                _logger.LogDebug($"Extracting metadata from {entriesList.Count} RabbitMQ log entries");
+
+                if (!entriesList.Any())
+                {
+                    return CreateEmptyMetadata();
+                }
+
+                // Extract enhanced error grouping with counts and percentages
+                var errorGrouping = ExtractEnhancedErrorGroups(entriesList);
+                var userGrouping = ExtractUserGroups(entriesList);
+                var nodes = ExtractNodesFromRabbitMQ(entriesList);
+                
+                var logLevels = entriesList.GroupBy(e => e.EffectiveLevel ?? "INFO").ToDictionary(g => g.Key, g => g.Count());
+
+                var metadata = new LogMetadata
+                {
+                    LogType = LogFormatType.RabbitMQ,
+                    TotalEntries = entriesList.Count,
+                    FirstLogTime = entriesList.Min(e => e.EffectiveTimestamp)?.DateTime ?? DateTime.MinValue,
+                    LastLogTime = entriesList.Max(e => e.EffectiveTimestamp)?.DateTime ?? DateTime.MinValue,
+                    LogLevels = logLevels,
+                    Sources = nodes,
+                    ErrorTypes = errorGrouping.ErrorTypes,
+                    HasStackTraces = entriesList.Any(e => !string.IsNullOrEmpty(e.EffectiveStackTrace)),
+                    HasCorrelationIds = entriesList.Any(e => !string.IsNullOrEmpty(e.Properties?.MessageId)),
+                    AverageMessageLength = entriesList.Average(e => (e.EffectiveMessage ?? "").Length),
+                    LongestMessage = entriesList.OrderByDescending(e => (e.EffectiveMessage ?? "").Length).FirstOrDefault()?.EffectiveMessage ?? "",
+                    UniqueErrorCount = errorGrouping.UniqueErrorCount
+                };
+
+                // Add enhanced RabbitMQ-specific metadata
+                metadata.CustomProperties = new Dictionary<string, object>
+                {
+                    { "Nodes", nodes },
+                    { "ErrorGrouping", errorGrouping },
+                    { "UserGrouping", userGrouping },
+                    { "ProcessUIDs", ExtractProcessUIDs(entriesList) },
+                    { "MessageRate", CalculateMessageRateFromRabbitMQ(entriesList) },
+                    { "ErrorRate", CalculateErrorRateFromRabbitMQ(entriesList) },
+                    { "FaultMessages", ExtractFaultMessages(entriesList) },
+                    { "UserActivity", userGrouping.Users }
+                };
+
+                _logger.LogInformation($"Enhanced metadata extracted for RabbitMQ logs: {metadata.TotalEntries} entries, {errorGrouping.UniqueErrorCount} unique errors, {userGrouping.Users.Count} users");
+                return metadata;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error extracting enhanced RabbitMQ log metadata");
                 return CreateEmptyMetadata();
             }
         }
@@ -674,6 +735,213 @@ namespace Log_Parser_App.Strategies
             };
         }
 
+        /// <summary>
+        /// Extract enhanced error groups with message grouping and counts
+        /// </summary>
+        private EnhancedErrorGrouping ExtractEnhancedErrorGroups(List<RabbitMqLogEntry> entries)
+        {
+            var errorEntries = entries.Where(e => 
+                e.EffectiveLevel?.Equals("error", StringComparison.OrdinalIgnoreCase) == true ||
+                !string.IsNullOrEmpty(e.FaultMessage))
+                .ToList();
+
+            if (!errorEntries.Any())
+            {
+                return new EnhancedErrorGrouping
+                {
+                    ErrorTypes = new Dictionary<string, int>(),
+                    ErrorMessageGroups = new List<ErrorMessageGroup>(),
+                    UniqueErrorCount = 0,
+                    TotalErrorCount = 0
+                };
+            }
+
+            // Group by error message
+            var messageGroups = errorEntries
+                .GroupBy(e => e.EffectiveMessage ?? "Unknown Error")
+                .Select(g => new ErrorMessageGroup
+                {
+                    Message = g.Key,
+                    Count = g.Count(),
+                    Percentage = Math.Round((double)g.Count() / errorEntries.Count * 100, 1),
+                    FirstOccurrence = g.Min(e => e.EffectiveTimestamp) ?? DateTimeOffset.Now,
+                    LastOccurrence = g.Max(e => e.EffectiveTimestamp) ?? DateTimeOffset.Now
+                })
+                .OrderByDescending(g => g.Count)
+                .ToList();
+
+            // Create error types dictionary for compatibility
+            var errorTypes = messageGroups.ToDictionary(
+                g => $"{g.Message} ({g.Count}x - {g.Percentage}%)",
+                g => g.Count
+            );
+
+            return new EnhancedErrorGrouping
+            {
+                ErrorTypes = errorTypes,
+                ErrorMessageGroups = messageGroups,
+                UniqueErrorCount = messageGroups.Count,
+                TotalErrorCount = errorEntries.Count
+            };
+        }
+
+        /// <summary>
+        /// Extract user grouping with activity counts
+        /// </summary>
+        private UserGrouping ExtractUserGroups(List<RabbitMqLogEntry> entries)
+        {
+            var userEntries = entries.Where(e => !string.IsNullOrEmpty(e.EffectiveUserName)).ToList();
+
+            if (!userEntries.Any())
+            {
+                return new UserGrouping
+                {
+                    Users = new Dictionary<string, int>(),
+                    UserActivityGroups = new List<UserActivityGroup>(),
+                    TotalUsers = 0
+                };
+            }
+
+            // Group by username
+            var userGroups = userEntries
+                .GroupBy(e => e.EffectiveUserName!)
+                .Select(g => new UserActivityGroup
+                {
+                    UserName = g.Key,
+                    Count = g.Count(),
+                    Percentage = Math.Round((double)g.Count() / entries.Count * 100, 1),
+                    ErrorCount = g.Count(e => e.EffectiveLevel?.Equals("error", StringComparison.OrdinalIgnoreCase) == true),
+                    FirstActivity = g.Min(e => e.EffectiveTimestamp) ?? DateTimeOffset.Now,
+                    LastActivity = g.Max(e => e.EffectiveTimestamp) ?? DateTimeOffset.Now
+                })
+                .OrderByDescending(g => g.Count)
+                .ToList();
+
+            // Create users dictionary for compatibility
+            var users = userGroups.ToDictionary(
+                g => $"{g.UserName} ({g.Count}x - {g.Percentage}%)",
+                g => g.Count
+            );
+
+            return new UserGrouping
+            {
+                Users = users,
+                UserActivityGroups = userGroups,
+                TotalUsers = userGroups.Count
+            };
+        }
+
+        /// <summary>
+        /// Extract nodes from RabbitMQ entries
+        /// </summary>
+        private Dictionary<string, int> ExtractNodesFromRabbitMQ(List<RabbitMqLogEntry> entries)
+        {
+            return entries
+                .Where(e => !string.IsNullOrEmpty(e.EffectiveNode))
+                .GroupBy(e => e.EffectiveNode!)
+                .ToDictionary(g => g.Key, g => g.Count());
+        }
+
+        /// <summary>
+        /// Extract ProcessUIDs from RabbitMQ entries
+        /// </summary>
+        private Dictionary<string, int> ExtractProcessUIDs(List<RabbitMqLogEntry> entries)
+        {
+            return entries
+                .Where(e => !string.IsNullOrEmpty(e.EffectiveProcessUID))
+                .GroupBy(e => e.EffectiveProcessUID!)
+                .ToDictionary(g => g.Key, g => g.Count());
+        }
+
+        /// <summary>
+        /// Extract fault messages from RabbitMQ entries
+        /// </summary>
+        private Dictionary<string, int> ExtractFaultMessages(List<RabbitMqLogEntry> entries)
+        {
+            return entries
+                .Where(e => !string.IsNullOrEmpty(e.FaultMessage))
+                .GroupBy(e => e.FaultMessage!)
+                .ToDictionary(g => g.Key, g => g.Count());
+        }
+
+        /// <summary>
+        /// Calculate message rate from RabbitMQ entries
+        /// </summary>
+        private double CalculateMessageRateFromRabbitMQ(List<RabbitMqLogEntry> entries)
+        {
+            if (entries.Count < 2) return 0;
+
+            var timestamps = entries.Select(e => e.EffectiveTimestamp).Where(t => t.HasValue).ToList();
+            if (timestamps.Count < 2) return 0;
+
+            var timeSpan = timestamps.Max() - timestamps.Min();
+            return timeSpan?.TotalMinutes > 0 ? entries.Count / timeSpan.Value.TotalMinutes : 0;
+        }
+
+        /// <summary>
+        /// Calculate error rate from RabbitMQ entries
+        /// </summary>
+        private double CalculateErrorRateFromRabbitMQ(List<RabbitMqLogEntry> entries)
+        {
+            if (entries.Count == 0) return 0;
+
+            var errorCount = entries.Count(e => 
+                e.EffectiveLevel?.Equals("error", StringComparison.OrdinalIgnoreCase) == true ||
+                !string.IsNullOrEmpty(e.FaultMessage));
+            
+            return (double)errorCount / entries.Count * 100;
+        }
+
         #endregion
     }
+
+    #region Supporting Classes
+
+    /// <summary>
+    /// Enhanced error grouping with detailed statistics
+    /// </summary>
+    public class EnhancedErrorGrouping
+    {
+        public Dictionary<string, int> ErrorTypes { get; set; } = new();
+        public List<ErrorMessageGroup> ErrorMessageGroups { get; set; } = new();
+        public int UniqueErrorCount { get; set; }
+        public int TotalErrorCount { get; set; }
+    }
+
+    /// <summary>
+    /// Error message group with statistics
+    /// </summary>
+    public class ErrorMessageGroup
+    {
+        public string Message { get; set; } = "";
+        public int Count { get; set; }
+        public double Percentage { get; set; }
+        public DateTimeOffset FirstOccurrence { get; set; }
+        public DateTimeOffset LastOccurrence { get; set; }
+    }
+
+    /// <summary>
+    /// User grouping with activity statistics
+    /// </summary>
+    public class UserGrouping
+    {
+        public Dictionary<string, int> Users { get; set; } = new();
+        public List<UserActivityGroup> UserActivityGroups { get; set; } = new();
+        public int TotalUsers { get; set; }
+    }
+
+    /// <summary>
+    /// User activity group with statistics
+    /// </summary>
+    public class UserActivityGroup
+    {
+        public string UserName { get; set; } = "";
+        public int Count { get; set; }
+        public double Percentage { get; set; }
+        public int ErrorCount { get; set; }
+        public DateTimeOffset FirstActivity { get; set; }
+        public DateTimeOffset LastActivity { get; set; }
+    }
+
+    #endregion
 } 
