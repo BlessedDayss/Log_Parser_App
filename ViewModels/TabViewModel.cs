@@ -25,7 +25,7 @@ namespace Log_Parser_App.ViewModels
 		// RabbitMQ entries collection
 		private List<RabbitMqLogEntry> _rabbitMqLogEntries;
 		private bool _isSelected;
-			private bool _isErrorsOnly;
+		private bool _isErrorsOnly;
 
 	#endregion
 
@@ -94,6 +94,19 @@ namespace Log_Parser_App.ViewModels
 		// Event for notifying when errors-only filter changes
 		public event EventHandler<ErrorsOnlyFilterChangedEventArgs>? ErrorsOnlyFilterChanged;
 
+		private bool _isIISErrorsOnly;
+		public bool IsIISErrorsOnly
+		{
+			get => _isIISErrorsOnly;
+			set
+			{
+				if (SetProperty(ref _isIISErrorsOnly, value))
+				{
+					ExecuteApplyIISFilters();
+				}
+			}
+		}
+
 		// --- IIS Filtering Properties and Commands ---
 
 		public ObservableCollection<IISFilterCriterion> IISFilterCriteria { get; }
@@ -135,6 +148,8 @@ namespace Log_Parser_App.ViewModels
 		public IRelayCommand ApplyIISFiltersCommand { get; }
 
 		public IRelayCommand ResetIISFiltersCommand { get; }
+
+		public IRelayCommand ExportIisLogsToCsvCommand { get; }
 
 		// --- IIS Sorting ---
 		
@@ -204,6 +219,7 @@ namespace Log_Parser_App.ViewModels
 			RemoveIISFilterCriterionCommand = new RelayCommand<IISFilterCriterion>(ExecuteRemoveIISFilterCriterion);
 			ApplyIISFiltersCommand = new RelayCommand(ExecuteApplyIISFilters);
 			ResetIISFiltersCommand = new RelayCommand(ExecuteResetIISFilters);
+			ExportIisLogsToCsvCommand = new RelayCommand(ExecuteExportIisLogsToCsv);
 			SortIISCommand = new RelayCommand<string>(ExecuteSortIIS);
 			// Initialize Standard Filtering related collections and commands
 			FilterCriteria = new ObservableCollection<FilterCriterion>();
@@ -237,6 +253,7 @@ namespace Log_Parser_App.ViewModels
 			RemoveIISFilterCriterionCommand = new RelayCommand<IISFilterCriterion>(ExecuteRemoveIISFilterCriterion);
 			ApplyIISFiltersCommand = new RelayCommand(ExecuteApplyIISFilters);
 			ResetIISFiltersCommand = new RelayCommand(ExecuteResetIISFilters);
+			ExportIisLogsToCsvCommand = new RelayCommand(ExecuteExportIisLogsToCsv);
 			SortIISCommand = new RelayCommand<string>(ExecuteSortIIS);
 			// Initialize Standard Filtering related collections and commands
 			FilterCriteria = new ObservableCollection<FilterCriterion>();
@@ -272,6 +289,7 @@ namespace Log_Parser_App.ViewModels
 			RemoveIISFilterCriterionCommand = new RelayCommand<IISFilterCriterion>(ExecuteRemoveIISFilterCriterion);
 			ApplyIISFiltersCommand = new RelayCommand(ExecuteApplyIISFilters);
 			ResetIISFiltersCommand = new RelayCommand(ExecuteResetIISFilters);
+			ExportIisLogsToCsvCommand = new RelayCommand(ExecuteExportIisLogsToCsv);
 			SortIISCommand = new RelayCommand<string>(ExecuteSortIIS);
 			// Initialize Standard Filtering related collections and commands
 			FilterCriteria = new ObservableCollection<FilterCriterion>();
@@ -307,6 +325,7 @@ namespace Log_Parser_App.ViewModels
 			RemoveIISFilterCriterionCommand = new RelayCommand<IISFilterCriterion>(ExecuteRemoveIISFilterCriterion);
 			ApplyIISFiltersCommand = new RelayCommand(ExecuteApplyIISFilters);
 			ResetIISFiltersCommand = new RelayCommand(ExecuteResetIISFilters);
+			ExportIisLogsToCsvCommand = new RelayCommand(ExecuteExportIisLogsToCsv);
 			SortIISCommand = new RelayCommand<string>(ExecuteSortIIS);
 			// Initialize Standard Filtering related collections and commands
 			FilterCriteria = new ObservableCollection<FilterCriterion>();
@@ -346,40 +365,40 @@ namespace Log_Parser_App.ViewModels
 		}
 
 		private void ExecuteApplyIISFilters() {
-			if (LogType != LogFormatType.IIS)
-				return;
-			List<IisLogEntry> tempList;
-			if (IISFilterCriteria == null || !IISFilterCriteria.Any()) {
-				tempList = new List<IisLogEntry>(IISLogEntries);
-			} else {
-				IEnumerable<IisLogEntry> currentFilteredResults = IISLogEntries;
-				var processedCriteria = IISFilterCriteria.Select(c => new {
-					Criterion = c,
-					LowerFilterValue = c.Value?.ToLowerInvariant() ?? string.Empty,
-					NumericFilterValue = (c.SelectedOperator == "GreaterThan" || c.SelectedOperator == "LessThan") &&
-						IsNumericField(c.SelectedField) && double.TryParse(c.Value, out double parsedNum)
-							? (double?)parsedNum
-							: null
-				}).ToList();
-				foreach (var pCrit in processedCriteria) {
-					currentFilteredResults = currentFilteredResults.Where(entry => MatchCriterion(entry, pCrit.Criterion, pCrit.LowerFilterValue, pCrit.NumericFilterValue));
-				}
-				tempList = currentFilteredResults.ToList();
+			IEnumerable<IisLogEntry> filtered = IISLogEntries;
+
+			if (IsIISErrorsOnly)
+			{
+				filtered = filtered.Where(e => e.HttpStatus.HasValue && e.HttpStatus.Value >= 400);
 			}
+
+			if (IISFilterCriteria.Any())
+			{
+				filtered = filtered.Where(entry => IISFilterCriteria.All(criterion =>
+				{
+					if (string.IsNullOrWhiteSpace(criterion.SelectedOperator))
+					{
+						return true;
+					}
+
+					var valueToCompare = criterion.UseManualInput ? criterion.ManualValue : criterion.Value;
+
+					if (string.IsNullOrWhiteSpace(valueToCompare))
+					{
+						return true;
+					}
+
+					return MatchCriterion(entry, criterion, valueToCompare.ToLower(),
+						double.TryParse(valueToCompare, out var num) ? num : (double?)null);
+				}));
+			}
+
 			FilteredIISLogEntries.Clear();
-			foreach (var entry in tempList) {
+			foreach (var entry in filtered)
+			{
 				FilteredIISLogEntries.Add(entry);
 			}
-			
-			// Apply current sorting if any
-			if (!string.IsNullOrEmpty(CurrentIISSortField)) {
-				ApplySortToIISEntries();
-			}
-			
-			OnPropertyChanged(nameof(IIS_TotalCount));
-			OnPropertyChanged(nameof(IIS_ErrorCount));
-			OnPropertyChanged(nameof(IIS_InfoCount));
-			OnPropertyChanged(nameof(IIS_RedirectCount));
+			ApplySortToIISEntries();
 		}
 
 		private bool IsNumericField(IISLogField field) {
@@ -457,10 +476,13 @@ namespace Log_Parser_App.ViewModels
 		}
 
 		private void ExecuteResetIISFilters() {
-			if (LogType != LogFormatType.IIS)
-				return;
 			IISFilterCriteria.Clear();
-			ExecuteApplyIISFilters(); // Re-apply to show all entries and update counts
+			IsIISErrorsOnly = false;
+			FilteredIISLogEntries.Clear();
+			foreach (var entry in IISLogEntries) {
+				FilteredIISLogEntries.Add(entry);
+			}
+			ApplySortToIISEntries();
 		}
 
 		private void ExecuteSortIIS(string? columnName) {
@@ -529,6 +551,58 @@ namespace Log_Parser_App.ViewModels
 			foreach (var entry in sortedEntries) {
 				FilteredIISLogEntries.Add(entry);
 			}
+		}
+
+		private async void ExecuteExportIisLogsToCsv()
+		{
+			if (LogType != LogFormatType.IIS || !FilteredIISLogEntries.Any())
+				return;
+
+			try
+			{
+				// Simple file path generation for now - in production you might want to use Avalonia's file dialogs
+				var fileName = $"IIS_Logs_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+				var filePath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), fileName);
+				
+				var csv = new System.Text.StringBuilder();
+				
+				// Add header
+				csv.AppendLine("Date,Time,Server IP,Method,URL Path,Query String,Port,User,Client IP,Time Taken (ms),User Agent,Win32 Status,HTTP Status");
+				
+				// Add data rows
+				foreach (var entry in FilteredIISLogEntries)
+				{
+					var escapedUserAgent = EscapeCsvField(entry.ShortUserAgent);
+					var escapedUriStem = EscapeCsvField(entry.UriStem);
+					var escapedUriQuery = EscapeCsvField(entry.UriQuery);
+					var escapedUserName = EscapeCsvField(entry.UserName);
+					
+					csv.AppendLine($"{entry.DateTime:yyyy-MM-dd},{entry.DateTime:HH:mm:ss},{entry.ServerIPAddress},{entry.Method},{escapedUriStem},{escapedUriQuery},{entry.ServerPort},{escapedUserName},{entry.ClientIPAddress},{entry.TimeTaken},{escapedUserAgent},{entry.Win32Status},{entry.HttpStatus}");
+				}
+				
+				await System.IO.File.WriteAllTextAsync(filePath, csv.ToString());
+				
+				// For now, just write to console - in production you might want to show a toast notification
+				Console.WriteLine($"Successfully exported {FilteredIISLogEntries.Count} log entries to {filePath}");
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"Error exporting CSV: {ex.Message}");
+			}
+		}
+
+		private string EscapeCsvField(string? field)
+		{
+			if (string.IsNullOrEmpty(field))
+				return "";
+				
+			// Escape quotes and wrap in quotes if necessary
+			if (field.Contains(',') || field.Contains('"') || field.Contains('\n') || field.Contains('\r'))
+			{
+				return $"\"{field.Replace("\"", "\"\"")}\"";
+			}
+			
+			return field;
 		}
 
 		// Standard Filter Methods
