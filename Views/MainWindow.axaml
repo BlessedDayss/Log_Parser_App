@@ -553,7 +553,7 @@
                         <TabItem Header="All entries">
                             <Grid RowDefinitions="Auto, Auto, *"> 
                                 <!-- Region for Standard Log Filters -->
-                                <StackPanel IsVisible="{Binding MainView.SelectedTab.IsThisTabStandardOrRabbitMQ}" Grid.Row="0" Grid.RowSpan="2"> 
+                                <StackPanel IsVisible="{Binding MainView.SelectedTab.IsThisTabStandard}" Grid.Row="0" Grid.RowSpan="2"> 
                                     <!-- Row 0 for Filter Buttons -->
                                     <Grid VerticalAlignment="Center" Margin="8,8,8,8">
                                         <Grid.ColumnDefinitions>
@@ -681,11 +681,73 @@
                                     </ItemsControl>
                                 </StackPanel>
 
+                                <!-- Region for RabbitMQ Log Filters -->
+                                <StackPanel IsVisible="{Binding MainView.SelectedTab.IsThisTabRabbitMQ}" Grid.Row="0" Grid.RowSpan="2"> 
+                                    <!-- Row 0 for RabbitMQ Filter Buttons -->
+                                    <Grid VerticalAlignment="Center" Margin="8,8,8,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Button Grid.Column="0" Content="+ Add RabbitMQ Filter" Classes="add-button" Click="OnAddRabbitMQFilterClick" 
+                                                Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
+                                        <Button Grid.Column="1" Content="Apply RabbitMQ Filters" Classes="apply-filters-button" Click="OnApplyRabbitMQFiltersClick" 
+                                                Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
+                                        <Button Grid.Column="2" Content="Reset RabbitMQ Filters" Classes="reset-filters-button" Click="OnResetRabbitMQFiltersClick" 
+                                                Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
+                                    </Grid>
+                                    <!-- Row 1 for RabbitMQ Filter Criteria ItemsControl -->
+                                    <ItemsControl ItemsSource="{Binding MainView.SelectedTab.RabbitMQFilterCriteria}" Margin="8,0,8,8">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Vertical" Spacing="6" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="models1:FilterCriterion">
+                                                <Border Background="#2D2E32" CornerRadius="6" Padding="12 8">
+                                                    <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" VerticalAlignment="Center">
+                                                        <ComboBox Grid.Column="0"
+                                                                  ItemsSource="{Binding AvailableFields}"
+                                                                  SelectedItem="{Binding SelectedField}"
+                                                                  MinWidth="150"
+                                                                  Margin="0,0,5,0"/>
+                                                        <ComboBox Grid.Column="1"
+                                                                  ItemsSource="{Binding AvailableOperators}"
+                                                                  SelectedItem="{Binding SelectedOperator}"
+                                                                  MinWidth="100"
+                                                                  Margin="0,0,5,0"/>
+                                                        <Panel Grid.Column="2" Margin="0,0,5,0">
+                                                            <ComboBox IsVisible="{Binding ShowValueComboBox}"
+                                                                      ItemsSource="{Binding AvailableValues}"
+                                                                      SelectedItem="{Binding Value}"
+                                                                      PlaceholderText="Select a value"
+                                                                      MinWidth="150"/>
+                                                            <TextBox IsVisible="{Binding !ShowValueComboBox}"
+                                                                     Text="{Binding Value}"
+                                                                     Watermark="Value"
+                                                                     MinWidth="150"/>
+                                                        </Panel>
+                                                        <Button Grid.Column="3" 
+                                                                Classes="remove-button" 
+                                                                Command="{Binding ParentViewModel.RemoveRabbitMQFilterCriterionCommand}" 
+                                                                CommandParameter="{Binding}"
+                                                                Padding="0" Margin="5,0,0,0">
+                                                            <TextBlock Text="🗑️" FontSize="14"/>
+                                                        </Button>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+
                                 <!-- Row 2 for DataGrid -->
                                 <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                                     <Grid DataContext="{Binding MainView}">
                                         <!-- Standard LogEntry Custom Table -->
-                                        <Grid IsVisible="{Binding SelectedTab.IsThisTabStandardOrRabbitMQ}" Background="#222326" Grid.IsSharedSizeScope="True">
+                                        <Grid IsVisible="{Binding SelectedTab.IsThisTabStandard}" Background="#222326" Grid.IsSharedSizeScope="True">
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto"/>
                                                 <RowDefinition Height="*"/>

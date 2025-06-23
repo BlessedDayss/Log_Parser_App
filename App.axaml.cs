@@ -10,6 +10,7 @@ namespace Log_Parser_App
     using Avalonia.Data.Core.Plugins;
     using Avalonia.Markup.Xaml;
     using Log_Parser_App.Services;
+    using Log_Parser_App.Services.Filtering;
     using Log_Parser_App.ViewModels;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
@@ -262,6 +263,10 @@ namespace Log_Parser_App
             services.AddSingleton<IChartService, ChartService>();
             services.AddSingleton<ITabManagerService, TabManagerService>();
             services.AddSingleton<IFilterService, FilterService>();
+            
+            // RabbitMQ Filtering System (RMQ-002)
+            services.AddSingleton<IRabbitMQFilterService, RabbitMQFilterService>();
+            services.AddSingleton<IFilterConfigurationService, FilterConfigurationService>();
 
             // Phase 3 Advanced pattern services
             services.AddSingleton<IStatisticsService, StatisticsService>();

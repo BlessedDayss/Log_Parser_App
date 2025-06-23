@@ -121,6 +121,24 @@ namespace Log_Parser_App.Views
             }
         }
 
+        public void OnAddRabbitMQFilterClick(object? sender, RoutedEventArgs e) {
+            if (DataContext is MainWindowViewModel viewModel && viewModel.MainView?.SelectedTab != null) {
+                viewModel.MainView.SelectedTab.AddRabbitMQFilterCriterionCommand?.Execute(null);
+            }
+        }
+
+        public void OnApplyRabbitMQFiltersClick(object? sender, RoutedEventArgs e) {
+            if (DataContext is MainWindowViewModel viewModel && viewModel.MainView?.SelectedTab != null) {
+                viewModel.MainView.SelectedTab.ApplyRabbitMQFiltersCommand?.Execute(null);
+            }
+        }
+
+        public void OnResetRabbitMQFiltersClick(object? sender, RoutedEventArgs e) {
+            if (DataContext is MainWindowViewModel viewModel && viewModel.MainView?.SelectedTab != null) {
+                viewModel.MainView.SelectedTab.ResetRabbitMQFiltersCommand?.Execute(null);
+            }
+        }
+
         private void MainWindow_Opened(object? sender, EventArgs e) {
             _mainContentGrid = this.Find<Grid>("MainContentGrid");
 

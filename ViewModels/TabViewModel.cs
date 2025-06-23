@@ -678,14 +678,14 @@ namespace Log_Parser_App.ViewModels
 				return;
 
 			try {
-				var filterService = App.ServiceProvider?.GetService(typeof(IFilterService)) as IFilterService;
-				if (filterService == null) {
+				var rabbitMqFilterService = App.ServiceProvider?.GetService(typeof(IRabbitMQFilterService)) as IRabbitMQFilterService;
+				if (rabbitMqFilterService == null) {
 					// Fallback to manual filtering if service not available
 					ApplyRabbitMQFiltersManually();
 					return;
 				}
 
-				var filteredEntries = await filterService.ApplyRabbitMQFiltersAsync(RabbitMQLogEntries, RabbitMQFilterCriteria);
+				var filteredEntries = await rabbitMqFilterService.ApplySimpleFiltersAsync(RabbitMQLogEntries, RabbitMQFilterCriteria);
 				
 				FilteredRabbitMQLogEntries.Clear();
 				foreach (var entry in filteredEntries) {

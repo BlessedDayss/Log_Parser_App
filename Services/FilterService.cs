@@ -30,8 +30,7 @@ public class FilterService : IFilterService
     private readonly Dictionary<LogFormatType, List<string>> _availableFieldsByLogType = new()
     {
         { LogFormatType.Standard, new List<string> { "Timestamp", "Level", "Message", "Source", "RawData", "CorrelationId", "ErrorType" } },
-        { LogFormatType.IIS, new List<string> { "Timestamp", "Level", "Message", "IPAddress", "Method", "URI", "StatusCode", "BytesSent", "TimeTaken" } },
-        { LogFormatType.RabbitMQ, new List<string> { "Timestamp", "Level", "Message", "Node", "Username", "ProcessUID" } }
+        { LogFormatType.IIS, new List<string> { "Timestamp", "Level", "Message", "IPAddress", "Method", "URI", "StatusCode", "BytesSent", "TimeTaken" } }
     };
 
     // Operators available for each field type
@@ -248,41 +247,7 @@ public class FilterService : IFilterService
         }
     }
 
-    /// <summary>
-    /// Apply filters specifically to RabbitMQ log entries
-    /// </summary>
-    public async Task<IEnumerable<RabbitMqLogEntry>> ApplyRabbitMQFiltersAsync(IEnumerable<RabbitMqLogEntry> rabbitMqEntries, IEnumerable<FilterCriterion> filterCriteria)
-    {
-        return await Task.Run(() =>
-        {
-            try
-            {
-                if (rabbitMqEntries == null)
-                    return Enumerable.Empty<RabbitMqLogEntry>();
 
-                var criteria = filterCriteria?.Where(c => c.IsEnabled).ToList() ?? new List<FilterCriterion>();
-                if (!criteria.Any())
-                    return rabbitMqEntries;
-
-                var filteredEntries = rabbitMqEntries;
-
-                foreach (var criterion in criteria)
-                {
-                    filteredEntries = ApplySingleRabbitMQFilterCriterion(filteredEntries, criterion);
-                }
-
-                _logger.LogDebug("Applied {FilterCount} RabbitMQ filters to {EntryCount} entries, result: {ResultCount} entries",
-                    criteria.Count, rabbitMqEntries.Count(), filteredEntries.Count());
-
-                return filteredEntries;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error applying RabbitMQ filters");
-                return rabbitMqEntries; // Return unfiltered entries on error
-            }
-        });
-    }
 
     #region Private Helper Methods
 
@@ -310,10 +275,6 @@ public class FilterService : IFilterService
                 "method" => ApplyMethodFilter(entries, criterion),
                 "uri" => ApplyURIFilter(entries, criterion),
                 "statuscode" => ApplyStatusCodeFilter(entries, criterion),
-                // RabbitMQ specific fields
-                "node" => ApplyNodeFilter(entries, criterion),
-                "username" => ApplyUsernameFilter(entries, criterion),
-                "processuid" => ApplyProcessUIDFilter(entries, criterion),
                 _ => entries
             };
         }
@@ -439,39 +400,7 @@ public class FilterService : IFilterService
         return ApplyMessageFilter(entries, criterion);
     }
 
-    // RabbitMQ-specific filter methods
-    private IEnumerable<LogEntry> ApplyNodeFilter(IEnumerable<LogEntry> entries, FilterCriterion criterion)
-    {
-        return ApplySourceFilter(entries, criterion);
-    }
 
-    private IEnumerable<LogEntry> ApplyUsernameFilter(IEnumerable<LogEntry> entries, FilterCriterion criterion)
-    {
-        // Username filtering based on RawData that contains RabbitMQ JSON with parsed fields
-        var value = criterion.Value ?? string.Empty;
-        return criterion.Operator switch
-        {
-            "Contains" => entries.Where(e => (e.RawData ?? "").Contains($"\"UserName\":\"{value}\"", StringComparison.OrdinalIgnoreCase) ||
-                                           (e.RawData ?? "").Contains($"\"user\":\"{value}\"", StringComparison.OrdinalIgnoreCase)),
-            "Equals" => entries.Where(e => (e.RawData ?? "").Contains($"\"UserName\":\"{value}\"", StringComparison.OrdinalIgnoreCase) ||
-                                         (e.RawData ?? "").Contains($"\"user\":\"{value}\"", StringComparison.OrdinalIgnoreCase)),
-            _ => entries
-        };
-    }
-
-    private IEnumerable<LogEntry> ApplyProcessUIDFilter(IEnumerable<LogEntry> entries, FilterCriterion criterion)
-    {
-        // ProcessUID filtering based on RawData that contains RabbitMQ JSON with parsed fields  
-        var value = criterion.Value ?? string.Empty;
-        return criterion.Operator switch
-        {
-            "Contains" => entries.Where(e => (e.RawData ?? "").Contains($"\"ProcessUID\":\"{value}\"", StringComparison.OrdinalIgnoreCase) ||
-                                           (e.RawData ?? "").Contains($"\"processUId\":\"{value}\"", StringComparison.OrdinalIgnoreCase)),
-            "Equals" => entries.Where(e => (e.RawData ?? "").Contains($"\"ProcessUID\":\"{value}\"", StringComparison.OrdinalIgnoreCase) ||
-                                         (e.RawData ?? "").Contains($"\"processUId\":\"{value}\"", StringComparison.OrdinalIgnoreCase)),
-            _ => entries
-        };
-    }
 
     private IEnumerable<LogEntry> ApplyRegexFilter(IEnumerable<LogEntry> entries, Func<LogEntry, string> fieldSelector, string pattern)
     {
@@ -512,107 +441,7 @@ public class FilterService : IFilterService
         };
     }
 
-    /// <summary>
-    /// Apply a single filter criterion to RabbitMQ log entries
-    /// </summary>
-    private IEnumerable<RabbitMqLogEntry> ApplySingleRabbitMQFilterCriterion(IEnumerable<RabbitMqLogEntry> entries, FilterCriterion criterion)
-    {
-        try
-        {
-            if (string.IsNullOrEmpty(criterion.Field) || string.IsNullOrEmpty(criterion.Operator))
-                return entries;
 
-            return criterion.Field.ToLower() switch
-            {
-                "timestamp" => ApplyRabbitMQTimestampFilter(entries, criterion),
-                "level" => ApplyRabbitMQLevelFilter(entries, criterion),
-                "message" => ApplyRabbitMQMessageFilter(entries, criterion),
-                "node" => ApplyRabbitMQNodeFilter(entries, criterion),
-                "username" => ApplyRabbitMQUsernameFilter(entries, criterion),
-                "processuid" => ApplyRabbitMQProcessUIDFilter(entries, criterion),
-                _ => entries
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Error applying RabbitMQ filter criterion: {criterion.Field} {criterion.Operator} {criterion.Value}");
-            return entries; // Return unfiltered entries on error
-        }
-    }
-
-    // RabbitMQ-specific filter methods
-    private IEnumerable<RabbitMqLogEntry> ApplyRabbitMQTimestampFilter(IEnumerable<RabbitMqLogEntry> entries, FilterCriterion criterion)
-    {
-        if (!DateTime.TryParse(criterion.Value, out var filterDate))
-            return entries;
-
-        return criterion.Operator switch
-        {
-            "Equals" => entries.Where(e => e.EffectiveTimestamp.HasValue && e.EffectiveTimestamp.Value.Date == filterDate.Date),
-            "Before" => entries.Where(e => e.EffectiveTimestamp.HasValue && e.EffectiveTimestamp.Value < filterDate),
-            "After" => entries.Where(e => e.EffectiveTimestamp.HasValue && e.EffectiveTimestamp.Value > filterDate),
-            _ => entries
-        };
-    }
-
-    private IEnumerable<RabbitMqLogEntry> ApplyRabbitMQLevelFilter(IEnumerable<RabbitMqLogEntry> entries, FilterCriterion criterion)
-    {
-        return criterion.Operator switch
-        {
-            "Equals" => entries.Where(e => string.Equals(e.EffectiveLevel, criterion.Value, StringComparison.OrdinalIgnoreCase)),
-            "Not Equals" => entries.Where(e => !string.Equals(e.EffectiveLevel, criterion.Value, StringComparison.OrdinalIgnoreCase)),
-            _ => entries
-        };
-    }
-
-    private IEnumerable<RabbitMqLogEntry> ApplyRabbitMQMessageFilter(IEnumerable<RabbitMqLogEntry> entries, FilterCriterion criterion)
-    {
-        var value = criterion.Value ?? string.Empty;
-        return criterion.Operator switch
-        {
-            "Contains" => entries.Where(e => (e.EffectiveMessage ?? "").Contains(value, StringComparison.OrdinalIgnoreCase)),
-            "Not Contains" => entries.Where(e => !(e.EffectiveMessage ?? "").Contains(value, StringComparison.OrdinalIgnoreCase)),
-            "Equals" => entries.Where(e => string.Equals(e.EffectiveMessage, value, StringComparison.OrdinalIgnoreCase)),
-            "StartsWith" => entries.Where(e => (e.EffectiveMessage ?? "").StartsWith(value, StringComparison.OrdinalIgnoreCase)),
-            "EndsWith" => entries.Where(e => (e.EffectiveMessage ?? "").EndsWith(value, StringComparison.OrdinalIgnoreCase)),
-            _ => entries
-        };
-    }
-
-    private IEnumerable<RabbitMqLogEntry> ApplyRabbitMQNodeFilter(IEnumerable<RabbitMqLogEntry> entries, FilterCriterion criterion)
-    {
-        var value = criterion.Value ?? string.Empty;
-        return criterion.Operator switch
-        {
-            "Contains" => entries.Where(e => (e.EffectiveNode ?? "").Contains(value, StringComparison.OrdinalIgnoreCase)),
-            "Equals" => entries.Where(e => string.Equals(e.EffectiveNode, value, StringComparison.OrdinalIgnoreCase)),
-            _ => entries
-        };
-    }
-
-    private IEnumerable<RabbitMqLogEntry> ApplyRabbitMQUsernameFilter(IEnumerable<RabbitMqLogEntry> entries, FilterCriterion criterion)
-    {
-        var value = criterion.Value ?? string.Empty;
-        return criterion.Operator switch
-        {
-            "Contains" => entries.Where(e => (e.EffectiveUserName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase)),
-            "Equals" => entries.Where(e => string.Equals(e.EffectiveUserName, value, StringComparison.OrdinalIgnoreCase)),
-            "Not Equals" => entries.Where(e => !string.Equals(e.EffectiveUserName, value, StringComparison.OrdinalIgnoreCase)),
-            _ => entries
-        };
-    }
-
-    private IEnumerable<RabbitMqLogEntry> ApplyRabbitMQProcessUIDFilter(IEnumerable<RabbitMqLogEntry> entries, FilterCriterion criterion)
-    {
-        var value = criterion.Value ?? string.Empty;
-        return criterion.Operator switch
-        {
-            "Contains" => entries.Where(e => (e.EffectiveProcessUID ?? "").Contains(value, StringComparison.OrdinalIgnoreCase)),
-            "Equals" => entries.Where(e => string.Equals(e.EffectiveProcessUID, value, StringComparison.OrdinalIgnoreCase)),
-            "Not Equals" => entries.Where(e => !string.Equals(e.EffectiveProcessUID, value, StringComparison.OrdinalIgnoreCase)),
-            _ => entries
-        };
-    }
 
     #endregion
 }

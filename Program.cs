@@ -36,6 +36,18 @@ using System.Threading.Tasks;
 					await perfTest.RunPerformanceTests();
 					return 0;
 				}
+				// Check for RabbitMQ filtering performance test
+				if (args.Length > 0 && args[0] == "--rabbitmq-filter-test") {
+					Console.WriteLine("=== RabbitMQ Filtering Performance Test Starting ===");
+					try {
+						await PerformanceTest.TestRabbitMQFilteringPerformanceAsync();
+						Console.WriteLine("=== RabbitMQ Filtering Performance Test Complete ===");
+					} catch (Exception ex) {
+						Console.WriteLine($"=== Test Failed: {ex.Message} ===");
+						Console.WriteLine($"Stack trace: {ex.StackTrace}");
+					}
+					return 0;
+				}
 				// Test parsing logic if --test-parsing argument is provided
 				if (args.Length > 0 && args[0] == "--test-parsing") {
 					Console.WriteLine("Testing RabbitMQ header parsing...");
