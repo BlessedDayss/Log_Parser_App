@@ -41,7 +41,8 @@ namespace Log_Parser_App.ViewModels
         // IIS Analytics Service
         private readonly StatisticsViewModel _statisticsViewModel;
         
-
+        // RabbitMQ Dashboard Analytics Service (RDB-003)
+        private readonly RabbitMQDashboardViewModel _rabbitMqDashboardViewModel;
         
         // Error Detection Service
         	private readonly Log_Parser_App.Services.ErrorDetection.IErrorDetectionService _errorDetectionService;
@@ -163,6 +164,9 @@ namespace Log_Parser_App.ViewModels
         // Statistics ViewModel for dashboard analytics
         public StatisticsViewModel Statistics => _statisticsViewModel;
 
+        // RabbitMQ Dashboard Analytics ViewModel (RDB-003)
+        public RabbitMQDashboardViewModel RabbitMQDashboard => _rabbitMqDashboardViewModel;
+
 
 
         [ObservableProperty]
@@ -282,7 +286,8 @@ namespace Log_Parser_App.ViewModels
 			IFilterService filterService,
 			Log_Parser_App.Services.ErrorDetection.IErrorDetectionService errorDetectionService,
 			IFileTypeDetectionService fileTypeDetectionService,
-			StatisticsViewModel statisticsViewModel) {
+			StatisticsViewModel statisticsViewModel,
+			RabbitMQDashboardViewModel rabbitMqDashboardViewModel) {
             _logParserService = logParserService;
             _logger = logger;
             _fileService = fileService;
@@ -297,6 +302,7 @@ namespace Log_Parser_App.ViewModels
             _errorDetectionService = errorDetectionService;
             _fileTypeDetectionService = fileTypeDetectionService;
             _statisticsViewModel = statisticsViewModel;
+            _rabbitMqDashboardViewModel = rabbitMqDashboardViewModel;
 
             InitializeErrorRecommendationService();
 
@@ -1037,6 +1043,19 @@ namespace Log_Parser_App.ViewModels
                         // Replace top errors with enhanced error grouping
                         TopErrorsSeries = chartData.ErrorGroupingSeries;
                     }
+
+                    // Update RabbitMQ Dashboard Analytics (RDB-003)
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await _rabbitMqDashboardViewModel.RefreshAnalyticsAsync(rabbitMqEntries).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error processing RabbitMQ analytics for tab: {Title}", SelectedTab.Title);
+                        }
+                    });
                 } else {
                     // Standard logs processing
                     var entriesToAnalyze = SelectedTab.LogEntries; // Or FilteredLogEntries if standard filters are applied at TabViewModel level

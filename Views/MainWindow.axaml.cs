@@ -139,6 +139,8 @@ namespace Log_Parser_App.Views
             }
         }
 
+
+
         private void MainWindow_Opened(object? sender, EventArgs e) {
             _mainContentGrid = this.Find<Grid>("MainContentGrid");
 

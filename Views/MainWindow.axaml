@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:converters="clr-namespace:Log_Parser_App.Converters"
         xmlns:models1="clr-namespace:Log_Parser_App.Models"
+        xmlns:analytics="clr-namespace:Log_Parser_App.Models.Analytics"
         xmlns:views="clr-namespace:Log_Parser_App.Views"
         xmlns:dataGrid="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.DataGrid"
         xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
@@ -221,6 +222,8 @@
             <Setter Property="Background" Value="#8d98a6" />
             <Setter Property="RenderTransform" Value="scale(1.02)" />
         </Style>
+
+
         
         <Style Selector="Button.apply-button">
             <Setter Property="Background" Value="Transparent" />
@@ -404,9 +407,9 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Standard/RabbitMQ Dashboard Panels -->
+                    <!-- Standard Dashboard Panels (for Standard logs only) -->
                     <Border Grid.Column="0" Margin="2" Padding="8,4" Background="#382636" CornerRadius="6"
-                            IsVisible="{Binding MainView.SelectedTab.IsThisTabStandardOrRabbitMQ}">
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabStandard}">
                         <StackPanel Spacing="2">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="🆔" FontSize="12" VerticalAlignment="Center" />
@@ -417,7 +420,7 @@
                         </StackPanel>
                     </Border>
                     <Border Grid.Column="1" Margin="2" Padding="8,4" Background="#3A2626" CornerRadius="6"
-                            IsVisible="{Binding MainView.SelectedTab.IsThisTabStandardOrRabbitMQ}">
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabStandard}">
                         <StackPanel Spacing="2">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="🔴" FontSize="12" VerticalAlignment="Center" />
@@ -428,7 +431,7 @@
                         </StackPanel>
                     </Border>
                     <Border Grid.Column="2" Margin="2" Padding="8,4" Background="#3A3320" CornerRadius="6"
-                            IsVisible="{Binding MainView.SelectedTab.IsThisTabStandardOrRabbitMQ}">
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabStandard}">
                         <StackPanel Spacing="2">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="🟠" FontSize="12" VerticalAlignment="Center" />
@@ -439,7 +442,7 @@
                         </StackPanel>
                     </Border>
                     <Border Grid.Column="3" Margin="2" Padding="8,4" Background="#263238" CornerRadius="6"
-                            IsVisible="{Binding MainView.SelectedTab.IsThisTabStandardOrRabbitMQ}">
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabStandard}">
                         <StackPanel Spacing="2">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="🔵" FontSize="12" VerticalAlignment="Center" />
@@ -447,6 +450,84 @@
                             </StackPanel>
                             <TextBlock Text="{Binding MainView.InfoCount}" FontSize="24" FontWeight="Bold" Margin="0,4,0,0" Foreground="#64B5F6" />
                             <TextBlock Text="{Binding MainView.InfoPercent, StringFormat={}{0:F1}%}" FontSize="14" Opacity="0.7" Foreground="#DDDDDD" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- RabbitMQ Analytics Dashboard Panels (RDB-003) -->
+                    <Border Grid.Column="0" Margin="2" Padding="8,4" Background="#263238" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabRabbitMQ}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="👥" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="ACTIVE CONSUMERS" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding MainView.RabbitMQDashboard.ActiveConsumersCount}" FontSize="24" FontWeight="Bold" Margin="0,4,0,0" Foreground="#64F5A6" />
+                            <ItemsControl ItemsSource="{Binding MainView.RabbitMQDashboard.ActiveConsumers}" MaxHeight="40">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="analytics:ConsumerStatusInfo">
+                                        <TextBlock Text="{Binding DisplayText}" FontSize="10" Margin="0,1" Foreground="{Binding UIColor}"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ProgressBar IsVisible="{Binding MainView.RabbitMQDashboard.IsLoadingActiveConsumers}" 
+                                         Height="3" Background="#444" Foreground="#64F5A6" IsIndeterminate="True"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="1" Margin="2" Padding="8,4" Background="#382626" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabRabbitMQ}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🚨" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="CRITICAL ERRORS" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding MainView.RabbitMQDashboard.CriticalErrorsCount}" FontSize="24" FontWeight="Bold" Margin="0,4,0,0" Foreground="#F15B5B" />
+                            <ItemsControl ItemsSource="{Binding MainView.RabbitMQDashboard.RecentCriticalErrors}" MaxHeight="40">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="analytics:CriticalErrorInfo">
+                                        <TextBlock Text="{Binding DisplayText}" FontSize="10" Margin="0,1" Foreground="#F15B5B"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ProgressBar IsVisible="{Binding MainView.RabbitMQDashboard.IsLoadingCriticalErrors}" 
+                                         Height="3" Background="#444" Foreground="#F15B5B" IsIndeterminate="True"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="2" Margin="2" Padding="8,4" Background="#3A3320" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabRabbitMQ}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="⚠️" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="ACCOUNT ACTIVITY" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding MainView.RabbitMQDashboard.HighRiskAccountsCount}" FontSize="24" FontWeight="Bold" Margin="0,4,0,0" Foreground="#F9A825" />
+                            <ItemsControl ItemsSource="{Binding MainView.RabbitMQDashboard.AccountActivities}" MaxHeight="40">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="analytics:AccountActivityInfo">
+                                        <TextBlock Text="{Binding DisplayText}" FontSize="10" Margin="0,1" Foreground="{Binding UIColor}"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ProgressBar IsVisible="{Binding MainView.RabbitMQDashboard.IsLoadingAccountActivity}" 
+                                         Height="3" Background="#444" Foreground="#F9A825" IsIndeterminate="True"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="3" Margin="2" Padding="8,4" Background="#2A3A2A" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabRabbitMQ}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="⚡" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="INSIGHTS" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding MainView.RabbitMQDashboard.AnomaliesCount}" FontSize="24" FontWeight="Bold" Margin="0,4,0,0" Foreground="#4CAF50" />
+                            <ItemsControl ItemsSource="{Binding MainView.RabbitMQDashboard.AnomalyInsights}" MaxHeight="40">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="analytics:AnomalyInsightInfo">
+                                        <TextBlock Text="{Binding DisplayText}" FontSize="10" Margin="0,1" Foreground="#4CAF50"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ProgressBar IsVisible="{Binding MainView.RabbitMQDashboard.IsLoadingAnomalies}" 
+                                         Height="3" Background="#444" Foreground="#4CAF50" IsIndeterminate="True"/>
                         </StackPanel>
                     </Border>
 
@@ -899,90 +980,85 @@
                                             </ListBox>
                                         </Grid>
 
-                                        <!-- RabbitMQ LogEntry Grid -->
-                                        <Grid IsVisible="{Binding SelectedTab.IsThisTabRabbitMQ}" Background="#222326">
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="*"/>
-                                            </Grid.RowDefinitions>
-                                            
-                                            <!-- Заголовки колонок для RabbitMQ -->
-                                            <Border Grid.Row="0" Background="#2D2F33" BorderBrush="#404040" BorderThickness="0,0,0,1">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="180"/> <!-- timestamp -->
-                                                        <ColumnDefinition Width="120"/> <!-- username -->
-                                                        <ColumnDefinition Width="250"/> <!-- processuid - увеличена -->
-                                                        <ColumnDefinition Width="350"/> <!-- fault message -->
-                                                        <ColumnDefinition Width="*"/> <!-- stacktrace - растягивается на весь экран -->
-                                                    </Grid.ColumnDefinitions>
-                                                    
-                                                    <TextBlock Grid.Column="0" Text="SentTime" Padding="4,2" FontWeight="SemiBold"/>
-                                                    <Rectangle Grid.Column="0" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
-                                                    <TextBlock Grid.Column="1" Text="Username" Padding="4,2" FontWeight="SemiBold"/>
-                                                    <Rectangle Grid.Column="1" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
-                                                    <TextBlock Grid.Column="2" Text="ProcessUID" Padding="4,2" FontWeight="SemiBold"/>
-                                                    <Rectangle Grid.Column="2" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
-                                                    <TextBlock Grid.Column="3" Text="Error Message" Padding="4,2" FontWeight="SemiBold"/>
-                                                    <Rectangle Grid.Column="3" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
-                                                    <TextBlock Grid.Column="4" Text="StackTrace" Padding="4,2" FontWeight="SemiBold"/>
-                                                </Grid>
-                                            </Border>
-                                            
-                                            <!-- Содержимое таблицы RabbitMQ -->
-                                            <ListBox Grid.Row="1" 
-                                                     ItemsSource="{Binding SelectedTab.FilteredRabbitMQLogEntries}"
-                                                     SelectedItem="{Binding SelectedLogEntry}"
-                                                     Background="Transparent"
-                                                     BorderThickness="0">
-                                                <ListBox.ItemTemplate>
-                                                    <DataTemplate x:DataType="models1:RabbitMqLogEntry">
-                                                        <Grid>
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="180"/> <!-- timestamp -->
-                                                                <ColumnDefinition Width="120"/> <!-- username -->
-                                                                <ColumnDefinition Width="250"/> <!-- processuid - увеличена -->
-                                                                <ColumnDefinition Width="350"/> <!-- fault message -->
-                                                                <ColumnDefinition Width="*"/> <!-- stacktrace - растягивается на весь экран -->
-                                                            </Grid.ColumnDefinitions>
-                                                            
-                                                            <TextBlock Grid.Column="0" Text="{Binding EffectiveTimestamp, StringFormat='yyyy-MM-dd HH:mm:ss.fff'}" Padding="4,2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top"/>
-                                                            <Rectangle Grid.Column="0" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
-                                                            <TextBlock Grid.Column="1" Text="{Binding EffectiveUserName}" Padding="4,2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top"/>
-                                                            <Rectangle Grid.Column="1" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
-                                                            <TextBlock Grid.Column="2" Text="{Binding EffectiveProcessUID}" Padding="4,2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" 
-                                                                       Cursor="Hand" Background="Transparent" 
+                                        <!-- RabbitMQ LogEntry DataGrid with Resizable Columns -->
+                                        <DataGrid Name="RabbitMQDataGrid"
+                                                  IsVisible="{Binding SelectedTab.IsThisTabRabbitMQ}" 
+                                                  ItemsSource="{Binding SelectedTab.FilteredRabbitMQLogEntries}"
+                                                  SelectedItem="{Binding SelectedLogEntry}"
+                                                  Background="#222326"
+                                                  IsReadOnly="True"
+                                                  AutoGenerateColumns="False"
+                                                  CanUserSortColumns="True"
+                                                  CanUserReorderColumns="True"
+                                                  CanUserResizeColumns="True"
+                                                  GridLinesVisibility="All"
+                                                  BorderThickness="1"
+                                                  BorderBrush="#404040"
+                                                  RowBackground="#2A2A2A">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="SentTime" 
+                                                                    Binding="{Binding EffectiveTimestamp, StringFormat='yyyy-MM-dd HH:mm:ss.fff'}" 
+                                                                    Width="180" 
+                                                                    MinWidth="120"/>
+                                                <DataGridTextColumn Header="Username" 
+                                                                    Binding="{Binding EffectiveUserName}" 
+                                                                    Width="120" 
+                                                                    MinWidth="80"/>
+                                                <DataGridTemplateColumn Header="ProcessUID" Width="150" MinWidth="100">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate x:DataType="models1:RabbitMqLogEntry">
+                                                            <TextBlock Text="{Binding EffectiveProcessUID}" 
+                                                                       Padding="4,2" 
+                                                                       TextTrimming="CharacterEllipsis" 
+                                                                       VerticalAlignment="Center"
+                                                                       Cursor="Hand" 
+                                                                       Background="Transparent" 
                                                                        DoubleTapped="OnProcessUIDDoubleTapped"
                                                                        ToolTip.Tip="Double-click to copy ProcessUID"/>
-                                                            <Rectangle Grid.Column="2" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
-                                                            <TextBlock Grid.Column="3" Text="{Binding EffectiveMessage}" Padding="4,2" TextWrapping="Wrap" VerticalAlignment="Top"
-                                                                       Cursor="Hand" Background="Transparent"
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                                <DataGridTemplateColumn Header="Error Message" Width="300" MinWidth="200">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate x:DataType="models1:RabbitMqLogEntry">
+                                                            <TextBlock Text="{Binding EffectiveMessage}" 
+                                                                       Padding="4,2" 
+                                                                       TextWrapping="Wrap" 
+                                                                       VerticalAlignment="Center"
+                                                                       Cursor="Hand" 
+                                                                       Background="Transparent"
                                                                        DoubleTapped="OnErrorMessageDoubleTapped"
                                                                        ToolTip.Tip="Double-click to copy Error Message"/>
-                                                            <Rectangle Grid.Column="3" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
-                                                            <Border Grid.Column="4" 
-                                                                    BorderBrush="#404040" 
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                                <DataGridTemplateColumn Header="StackTrace" Width="*" MinWidth="200">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate x:DataType="models1:RabbitMqLogEntry">
+                                                            <Border BorderBrush="#404040" 
                                                                     BorderThickness="1" 
                                                                     CornerRadius="3"
                                                                     Background="#1E1E1E"
-                                                                    Padding="4,2">
+                                                                    Padding="4,2"
+                                                                    Margin="2">
                                                                 <ScrollViewer HorizontalScrollBarVisibility="Auto"
                                                                               VerticalScrollBarVisibility="Auto"
-                                                                              MaxHeight="80"
+                                                                              MaxHeight="60"
                                                                               Background="Transparent">
                                                                     <TextBlock Text="{Binding EffectiveStackTrace}" 
                                                                                TextWrapping="Wrap"
                                                                                VerticalAlignment="Top"
                                                                                Background="Transparent"
                                                                                Cursor="Hand"
-                                                                               DoubleTapped="OnStackTraceDoubleTapped"/>
+                                                                               DoubleTapped="OnStackTraceDoubleTapped"
+                                                                               ToolTip.Tip="Double-click to expand/collapse"/>
                                                                 </ScrollViewer>
                                                             </Border>
-                                                        </Grid>
-                                                    </DataTemplate>
-                                                </ListBox.ItemTemplate>
-                                            </ListBox>
-                                        </Grid>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
                                     </Grid>
                                 </ScrollViewer>
                             </Grid>
