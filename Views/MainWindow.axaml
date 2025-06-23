@@ -850,9 +850,9 @@
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="180"/> <!-- timestamp -->
                                                         <ColumnDefinition Width="120"/> <!-- username -->
-                                                        <ColumnDefinition Width="200"/> <!-- processuid -->
-                                                        <ColumnDefinition Width="300"/> <!-- fault message -->
-                                                        <ColumnDefinition Width="*"/> <!-- stacktrace - растягивается -->
+                                                        <ColumnDefinition Width="250"/> <!-- processuid - увеличена -->
+                                                        <ColumnDefinition Width="350"/> <!-- fault message -->
+                                                        <ColumnDefinition Width="*"/> <!-- stacktrace - растягивается на весь экран -->
                                                     </Grid.ColumnDefinitions>
                                                     
                                                     <TextBlock Grid.Column="0" Text="SentTime" Padding="4,2" FontWeight="SemiBold"/>
@@ -879,18 +879,24 @@
                                                             <Grid.ColumnDefinitions>
                                                                 <ColumnDefinition Width="180"/> <!-- timestamp -->
                                                                 <ColumnDefinition Width="120"/> <!-- username -->
-                                                                <ColumnDefinition Width="200"/> <!-- processuid -->
-                                                                <ColumnDefinition Width="300"/> <!-- fault message -->
-                                                                <ColumnDefinition Width="*"/> <!-- stacktrace - растягивается -->
+                                                                <ColumnDefinition Width="250"/> <!-- processuid - увеличена -->
+                                                                <ColumnDefinition Width="350"/> <!-- fault message -->
+                                                                <ColumnDefinition Width="*"/> <!-- stacktrace - растягивается на весь экран -->
                                                             </Grid.ColumnDefinitions>
                                                             
                                                             <TextBlock Grid.Column="0" Text="{Binding EffectiveTimestamp, StringFormat='yyyy-MM-dd HH:mm:ss.fff'}" Padding="4,2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top"/>
                                                             <Rectangle Grid.Column="0" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
                                                             <TextBlock Grid.Column="1" Text="{Binding EffectiveUserName}" Padding="4,2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top"/>
                                                             <Rectangle Grid.Column="1" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
-                                                            <TextBlock Grid.Column="2" Text="{Binding EffectiveProcessUID}" Padding="4,2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top"/>
+                                                            <TextBlock Grid.Column="2" Text="{Binding EffectiveProcessUID}" Padding="4,2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" 
+                                                                       Cursor="Hand" Background="Transparent" 
+                                                                       DoubleTapped="OnProcessUIDDoubleTapped"
+                                                                       ToolTip.Tip="Double-click to copy ProcessUID"/>
                                                             <Rectangle Grid.Column="2" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
-                                                            <TextBlock Grid.Column="3" Text="{Binding EffectiveMessage}" Padding="4,2" TextWrapping="Wrap" VerticalAlignment="Top"/>
+                                                            <TextBlock Grid.Column="3" Text="{Binding EffectiveMessage}" Padding="4,2" TextWrapping="Wrap" VerticalAlignment="Top"
+                                                                       Cursor="Hand" Background="Transparent"
+                                                                       DoubleTapped="OnErrorMessageDoubleTapped"
+                                                                       ToolTip.Tip="Double-click to copy Error Message"/>
                                                             <Rectangle Grid.Column="3" Width="1" Fill="#404040" HorizontalAlignment="Right"/>
                                                             <Border Grid.Column="4" 
                                                                     BorderBrush="#404040" 
@@ -992,6 +998,25 @@
                         <ProgressBar IsIndeterminate="True" 
                                    Width="220" />
                         <TextBlock Text="{Binding MainView.StatusMessage}"
+                                   HorizontalAlignment="Center" 
+                                   Foreground="#FFFFFF"
+                                   FontSize="14" />
+                    </StackPanel>
+                </Border>
+            </Panel>
+            
+            <!-- Directory Loading Indicator -->
+            <Panel Grid.Row="2" IsVisible="{Binding MainView.IsLoadingDirectory}">
+                <Border Background="#55395B29" 
+                        Opacity="0.9" 
+                        CornerRadius="8">
+                    <StackPanel Spacing="16" 
+                               HorizontalAlignment="Center" 
+                               VerticalAlignment="Center">
+                        <ProgressBar IsIndeterminate="True" 
+                                   Width="220" 
+                                   Foreground="#4CAF50" />
+                        <TextBlock Text="Loading directory files..."
                                    HorizontalAlignment="Center" 
                                    Foreground="#FFFFFF"
                                    FontSize="14" />

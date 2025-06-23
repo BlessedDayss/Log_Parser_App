@@ -232,6 +232,9 @@ namespace Log_Parser_App.ViewModels
                     HttpMethods = result.HttpMethods;
                     TopUsers = result.TopUsers;
 
+                    _logger.LogInformation("IIS Dashboard updated: StatusCodes={StatusCount}, LongestRequests={RequestCount}, HttpMethods={MethodCount}, TopUsers={UserCount}",
+                        TopStatusCodes.Length, LongestRequests.Length, HttpMethods.Length, TopUsers.Length);
+
                     // Update legacy counts for existing dashboard
                     var total = result.TotalRecordsProcessed;
                     ErrorCount = result.TopStatusCodes.Where(s => s.StatusCode >= 400).Sum(s => s.Count);

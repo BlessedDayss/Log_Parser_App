@@ -54,6 +54,9 @@ namespace Log_Parser_App.ViewModels
         private bool _isLoading;
 
         [ObservableProperty]
+        private bool _isLoadingDirectory;
+
+        [ObservableProperty]
         private string _filePath = string.Empty;
 
         [ObservableProperty]
@@ -681,6 +684,7 @@ namespace Log_Parser_App.ViewModels
             _logger.LogInformation("Attempting to load directory: {DirectoryPath}", dir);
             StatusMessage = $"Opening directory {Path.GetFileName(dir)}...";
             IsLoading = true;
+            IsLoadingDirectory = true;
             FileStatus = $"Dir: {Path.GetFileName(dir)}";
 
             try {
@@ -712,6 +716,7 @@ namespace Log_Parser_App.ViewModels
 					var successfullyLoadedTabsCount = allFiles.Count(f => FileTabs.Any(t => t.FilePath == f));
 					StatusMessage = $"Finished loading files from directory {Path.GetFileName(dir)}. Loaded {successfullyLoadedTabsCount} new tab(s).";
 					IsLoading = false;
+					IsLoadingDirectory = false;
 
 					var lastAddedTabFromDir = FileTabs.LastOrDefault(t => allFiles.Contains(t.FilePath));
 					if (lastAddedTabFromDir != null) {
@@ -729,6 +734,7 @@ namespace Log_Parser_App.ViewModels
                 await Dispatcher.UIThread.InvokeAsync(() => {
                     StatusMessage = $"Error: Access denied to {Path.GetFileName(dir)}.";
                     IsLoading = false;
+                    IsLoadingDirectory = false;
                     UpdateMultiFileModeStatus();
                     _logger.LogInformation("[LoadDirectoryAsync - UnauthorizedAccessException] After UpdateMultiFileModeStatus. IsMultiFileModeActive: {IsActive}", IsMultiFileModeActive);
                     _ = Task.Run(UpdateAllErrorLogEntries);
@@ -738,6 +744,7 @@ namespace Log_Parser_App.ViewModels
                 await Dispatcher.UIThread.InvokeAsync(() => {
                     StatusMessage = $"Error: Directory {Path.GetFileName(dir)} not found.";
                     IsLoading = false;
+                    IsLoadingDirectory = false;
                     UpdateMultiFileModeStatus();
                     _logger.LogInformation("[LoadDirectoryAsync - DirectoryNotFoundException] After UpdateMultiFileModeStatus. IsMultiFileModeActive: {IsActive}", IsMultiFileModeActive);
                     _ = Task.Run(UpdateAllErrorLogEntries);
@@ -747,6 +754,7 @@ namespace Log_Parser_App.ViewModels
                 await Dispatcher.UIThread.InvokeAsync(() => {
                     StatusMessage = $"Error processing directory {Path.GetFileName(dir)}: {ex.Message}";
                     IsLoading = false;
+                    IsLoadingDirectory = false;
                     UpdateMultiFileModeStatus();
                     _logger.LogInformation("[LoadDirectoryAsync - Exception] After UpdateMultiFileModeStatus. IsMultiFileModeActive: {IsActive}", IsMultiFileModeActive);
                     _ = Task.Run(UpdateAllErrorLogEntries);
@@ -893,9 +901,12 @@ namespace Log_Parser_App.ViewModels
 
             // Handle Standard and RabbitMQ logs (they all use standard LogEntry format)
             if (SelectedTab.IsThisTabStandardOrRabbitMQ) {
-                // Special handling for RabbitMQ logs
+                // Special handling for RabbitMQ logs - INDEPENDENT LOGIC
                 if (SelectedTab.IsThisTabRabbitMQ) {
                     var rabbitMqEntries = SelectedTab.FilteredRabbitMQLogEntries;
+                    _logger.LogInformation("RabbitMQ Tab Analysis: Tab={Title}, LogType={LogType}, FilteredEntries={FilteredCount}, AllEntries={AllCount}", 
+                        SelectedTab.Title, SelectedTab.LogType, rabbitMqEntries?.Count() ?? 0, SelectedTab.LogEntries?.Count ?? 0);
+                    
                     if (rabbitMqEntries == null || !rabbitMqEntries.Any()) {
                         // Clear stats for empty RabbitMQ
                         ErrorCount = 0;
@@ -913,26 +924,76 @@ namespace Log_Parser_App.ViewModels
                         return;
                     }
 
-                    // Calculate RabbitMQ-specific statistics
-                    ErrorCount = SelectedTab.RabbitMQ_ErrorCount;
-                    WarningCount = SelectedTab.RabbitMQ_WarningCount;
-                    InfoCount = SelectedTab.RabbitMQ_InfoCount;
-                    OtherCount = 0; // RabbitMQ doesn't have "Other" category
-                    TotalCount = SelectedTab.RabbitMQ_TotalCount;
+                    // Calculate RabbitMQ-specific dashboard INDEPENDENTLY
+                    TotalCount = rabbitMqEntries.Count();
                     
-                    // Calculate unique ProcessUID count
-                    UniqueProcessUIDCount = rabbitMqEntries
-                        .Where(e => !string.IsNullOrEmpty(e.EffectiveProcessUID))
+                    // Find ALL messages and group by identical content
+                    var allMessages = rabbitMqEntries
+                        .Where(e => !string.IsNullOrEmpty(e.Message))
+                        .ToList();
+                    
+                    _logger.LogInformation("RabbitMQ Processing: Total entries={Total}, Entries with messages={WithMessages}", 
+                        TotalCount, allMessages.Count);
+                    
+                    // Group ALL messages by identical content
+                    var messageGroups = allMessages
+                        .GroupBy(e => e.Message?.Trim())
+                        .ToList();
+                    
+                    // Find groups with repeated messages (more than 1 occurrence)
+                    var repeatedMessageGroups = messageGroups
+                        .Where(group => group.Count() > 1) // Only repeated messages
+                        .OrderByDescending(group => group.Count())
+                        .ToList();
+                    
+                    // MESSAGE ERRORS: Total count of all repeated messages
+                    ErrorCount = repeatedMessageGroups.Sum(group => group.Count());
+                    
+                    // PROCESS UID: Count unique ProcessUIDs that have repeated messages
+                    UniqueProcessUIDCount = repeatedMessageGroups
+                        .SelectMany(group => group.Where(e => !string.IsNullOrEmpty(e.EffectiveProcessUID)))
                         .Select(e => e.EffectiveProcessUID)
                         .Distinct()
                         .Count();
+                    
+                    // Log detailed analysis
+                    _logger.LogInformation("RabbitMQ Message Analysis: TotalGroups={TotalGroups}, RepeatedGroups={RepeatedGroups}, RepeatedMessages={RepeatedMessages}", 
+                        messageGroups.Count, repeatedMessageGroups.Count, ErrorCount);
+                    
+                    // Log top repeated message groups for debugging
+                    foreach (var group in repeatedMessageGroups.Take(5))
+                    {
+                        _logger.LogInformation("Repeated message: '{Message}' appears {Count} times", 
+                            group.Key?.Substring(0, Math.Min(150, group.Key.Length)), group.Count());
+                    }
+                    
+                    // Calculate basic level counts independently
+                    WarningCount = rabbitMqEntries.Count(e => 
+                        e.Level?.ToLowerInvariant() == "warning" || 
+                        e.Level?.ToLowerInvariant() == "warn");
+                    
+                    InfoCount = rabbitMqEntries.Count(e => 
+                        e.Level?.ToLowerInvariant() == "info" || 
+                        e.Level?.ToLowerInvariant() == "information");
+                    
+                    OtherCount = rabbitMqEntries.Count(e => 
+                        !string.IsNullOrEmpty(e.Level) &&
+                        e.Level.ToLowerInvariant() != "error" &&
+                        e.Level.ToLowerInvariant() != "warning" &&
+                        e.Level.ToLowerInvariant() != "warn" &&
+                        e.Level.ToLowerInvariant() != "info" &&
+                        e.Level.ToLowerInvariant() != "information");
+                    
+                    // Debug logging
+                    _logger.LogInformation("RabbitMQ Dashboard FINAL: Total={Total}, MessageErrors={MessageErrors}, ProcessUIDs={ProcessUIDs}, Warnings={Warnings}, Info={Info}, Other={Other}", 
+                        TotalCount, ErrorCount, UniqueProcessUIDCount, WarningCount, InfoCount, OtherCount);
 
                     // Calculate percentages
                     if (TotalCount > 0) {
                         ErrorPercent = Math.Round((double)ErrorCount / TotalCount * 100, 1);
                         WarningPercent = Math.Round((double)WarningCount / TotalCount * 100, 1);
                         InfoPercent = Math.Round((double)InfoCount / TotalCount * 100, 1);
-                        OtherPercent = 0;
+                        OtherPercent = Math.Round((double)OtherCount / TotalCount * 100, 1);
                     } else {
                         ErrorPercent = WarningPercent = InfoPercent = OtherPercent = 0;
                     }

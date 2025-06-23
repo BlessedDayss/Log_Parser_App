@@ -11,6 +11,7 @@ namespace Log_Parser_App.Views
     using System.Diagnostics;
     using Log_Parser_App.Models;
     using System.Collections.Specialized;
+    using System.Threading.Tasks;
 
 
 
@@ -187,6 +188,44 @@ namespace Log_Parser_App.Views
                         border.Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#1E1E1E"));
                         border.BorderBrush = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#404040"));
                     }
+                }
+            }
+        }
+
+        public async void OnProcessUIDDoubleTapped(object? sender, TappedEventArgs e) {
+            if (sender is TextBlock textBlock && !string.IsNullOrEmpty(textBlock.Text)) {
+                try {
+                    var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+                    if (clipboard != null) {
+                        await clipboard.SetTextAsync(textBlock.Text);
+                        
+                        // Visual feedback
+                        var originalBrush = textBlock.Background;
+                        textBlock.Background = Avalonia.Media.Brushes.Green;
+                        await Task.Delay(200);
+                        textBlock.Background = originalBrush;
+                    }
+                } catch (Exception ex) {
+                    logger.Error(ex, "Failed to copy ProcessUID to clipboard");
+                }
+            }
+        }
+
+        public async void OnErrorMessageDoubleTapped(object? sender, TappedEventArgs e) {
+            if (sender is TextBlock textBlock && !string.IsNullOrEmpty(textBlock.Text)) {
+                try {
+                    var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+                    if (clipboard != null) {
+                        await clipboard.SetTextAsync(textBlock.Text);
+                        
+                        // Visual feedback
+                        var originalBrush = textBlock.Background;
+                        textBlock.Background = Avalonia.Media.Brushes.LightBlue;
+                        await Task.Delay(200);
+                        textBlock.Background = originalBrush;
+                    }
+                } catch (Exception ex) {
+                    logger.Error(ex, "Failed to copy Error Message to clipboard");
                 }
             }
         }
