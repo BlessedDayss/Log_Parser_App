@@ -29,6 +29,7 @@
         <conv:StringShortenerConverter x:Key="StringShortenerConverter" />
         <converters:LogLevelToBrushConverter x:Key="LogLevelToBrushConverter" />
         <converters:StringToUpperConverter x:Key="StringToUpperConverter" />
+        <converters:BooleanTextSelector x:Key="BooleanTextSelector" />
         
         <!-- Color/Brush Resources -->
         <SolidColorBrush x:Key="BackgroundBrush" Color="#1A1C21" />
@@ -350,13 +351,28 @@
                         </ScrollViewer>
                     </Grid>
                     
-                    <TextBlock Grid.Column="2" 
-                               Text="{Binding MainView.FileStatus}" 
-                               VerticalAlignment="Center" 
-                               HorizontalAlignment="Right"
-                               Margin="10 0 0 0"
-                               Foreground="#CCCCCC"
-                               FontSize="14" />
+                    <StackPanel Grid.Column="2" 
+                                Orientation="Horizontal" 
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Spacing="8">
+                        <!-- Export CSV Button for IIS only -->
+                        <Button Content="📊 Export CSV" 
+                                Classes="apply-filters-button" 
+                                Command="{Binding MainView.SelectedTab.ExportIisLogsToCsvCommand}"
+                                IsVisible="{Binding MainView.SelectedTab.IsThisTabIIS}"
+                                Padding="12,6" 
+                                FontSize="12" 
+                                MinHeight="32" 
+                                MinWidth="120"
+                                ToolTip.Tip="Export filtered IIS logs to CSV file"/>
+                        
+                        <TextBlock Text="{Binding MainView.FileStatus}" 
+                                   VerticalAlignment="Center" 
+                                   Margin="10 0 0 0"
+                                   Foreground="#CCCCCC"
+                                   FontSize="14" />
+                    </StackPanel>
                 </Grid>
             </Border>
             
@@ -704,7 +720,6 @@
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <Button Grid.Column="0" Content="+ Add IIS Filter" Classes="add-button" Click="OnAddIISFilterClick" 
                                                 Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
@@ -712,21 +727,13 @@
                                                 Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
                                         <Button Grid.Column="2" Content="Reset IIS Filters" Classes="reset-filters-button" Click="OnResetIISFiltersClick" 
                                                 Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
-                                        <Button Grid.Column="3" Content="📊 Export to CSV" 
-                                                Classes="apply-filters-button" 
-                                                Command="{Binding MainView.SelectedTab.ExportIisLogsToCsvCommand}"
-                                                Padding="10,5" 
-                                                FontSize="12" 
-                                                MinHeight="32"
-                                                Margin="10,0,0,0"
-                                                HorizontalAlignment="Left"
-                                                MinWidth="150"/>
-                                        <CheckBox Grid.Column="4" 
+                                        <CheckBox Grid.Column="3" 
                                                   Content="Show errors only" 
                                                   IsChecked="{Binding MainView.SelectedTab.IsIISErrorsOnly}"
                                                   Margin="10,0,0,0"
                                                   VerticalAlignment="Center"/>
                                     </Grid>
+
                                     <!-- Row 1 for IIS Filter Criteria ItemsControl -->
                                     <ItemsControl ItemsSource="{Binding MainView.SelectedTab.IISFilterCriteria}" Margin="8,0,8,8">
                                         <ItemsControl.ItemsPanel>
@@ -842,9 +849,9 @@
 
                                 <!-- Row 2 for DataGrid -->
                                 <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                                    <Grid>
+                                    <Grid DataContext="{Binding MainView}">
                                         <!-- Standard LogEntry Custom Table -->
-                                        <Grid IsVisible="{Binding MainView.SelectedTab.IsThisTabStandard}" Background="#222326" Grid.IsSharedSizeScope="True">
+                                        <Grid IsVisible="{Binding SelectedTab.IsThisTabStandard}" Background="#222326" Grid.IsSharedSizeScope="True">
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto"/>
                                                 <RowDefinition Height="*"/>
@@ -869,8 +876,8 @@
                                             
                                             <!-- Table Content -->
                                             <ListBox Grid.Row="1" 
-                                                     ItemsSource="{Binding MainView.SelectedTab.FilteredLogEntries}"
-                                                     SelectedItem="{Binding MainView.SelectedLogEntry}"
+                                                     ItemsSource="{Binding SelectedTab.FilteredLogEntries}"
+                                                     SelectedItem="{Binding SelectedLogEntry}"
                                                      Background="Transparent"
                                                      BorderThickness="0">
                                                 <ListBox.ItemTemplate>
@@ -902,7 +909,7 @@
                                         </Grid>
 
                                         <!-- IISLogEntry Grid -->
-                                        <Grid IsVisible="{Binding MainView.SelectedTab.IsThisTabIIS}" Background="#222326">
+                                        <Grid IsVisible="{Binding SelectedTab.IsThisTabIIS}" Background="#222326">
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto"/>
                                                 <RowDefinition Height="*"/>
@@ -927,56 +934,69 @@
                                                 </Grid.ColumnDefinitions>
                                                 
                                                 <Button Grid.Column="0" Content="Date ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
-                                                        Command="{Binding MainView.SelectedTab.SortIISCommand}" CommandParameter="date" HorizontalContentAlignment="Left"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="date" HorizontalContentAlignment="Left"
                                                         ToolTip.Tip="The date the request was made."/>
                                                 <Button Grid.Column="1" Content="Time ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
-                                                        Command="{Binding MainView.SelectedTab.SortIISCommand}" CommandParameter="time" HorizontalContentAlignment="Left"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="time" HorizontalContentAlignment="Left"
                                                         ToolTip.Tip="The time the request was made."/>
                                                 <Button Grid.Column="2" Content="Server IP ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
-                                                        Command="{Binding MainView.SelectedTab.SortIISCommand}" CommandParameter="s-ip" HorizontalContentAlignment="Left"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="s-ip" HorizontalContentAlignment="Left"
                                                         ToolTip.Tip="The IP address of the server that handled the request."/>
                                                 <Button Grid.Column="3" Content="Method ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
-                                                        Command="{Binding MainView.SelectedTab.SortIISCommand}" CommandParameter="cs-method" HorizontalContentAlignment="Left"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="cs-method" HorizontalContentAlignment="Left"
                                                         ToolTip.Tip="The HTTP method used for the request (e.g., GET, POST)."/>
                                                 <Button Grid.Column="4" Content="URL Path ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
-                                                        Command="{Binding MainView.SelectedTab.SortIISCommand}" CommandParameter="cs-uri-stem" HorizontalContentAlignment="Left"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="cs-uri-stem" HorizontalContentAlignment="Left"
                                                         ToolTip.Tip="The path of the requested URL."/>
                                                 <Button Grid.Column="5" Content="Query String ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
-                                                        Command="{Binding MainView.SelectedTab.SortIISCommand}" CommandParameter="cs-uri-query" HorizontalContentAlignment="Left"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="cs-uri-query" HorizontalContentAlignment="Left"
                                                         ToolTip.Tip="The query string of the request."/>
                                                 <Button Grid.Column="6" Content="Port ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
-                                                        Command="{Binding MainView.SelectedTab.SortIISCommand}" CommandParameter="s-port" HorizontalContentAlignment="Left"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="s-port" HorizontalContentAlignment="Left"
                                                         ToolTip.Tip="The server port that received the request."/>
                                                 <Button Grid.Column="7" Content="User ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
-                                                        Command="{Binding MainView.SelectedTab.SortIISCommand}" CommandParameter="cs-username" HorizontalContentAlignment="Left"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="cs-username" HorizontalContentAlignment="Left"
                                                         ToolTip.Tip="The username of the authenticated user."/>
                                                 <Button Grid.Column="8" Content="Client IP ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
-                                                        Command="{Binding MainView.SelectedTab.SortIISCommand}" CommandParameter="c-ip" HorizontalContentAlignment="Left"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="c-ip" HorizontalContentAlignment="Left"
                                                         ToolTip.Tip="The IP address of the client making the request."/>
                                                 <Button Grid.Column="9" Content="Time Taken (ms) ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
-                                                        Command="{Binding MainView.SelectedTab.SortIISCommand}" CommandParameter="time-taken" HorizontalContentAlignment="Left"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="time-taken" HorizontalContentAlignment="Left"
                                                         ToolTip.Tip="The time taken to process the request in milliseconds."/>
                                                 <Button Grid.Column="10" Content="User Agent ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
-                                                        Command="{Binding MainView.SelectedTab.SortIISCommand}" CommandParameter="cs(User-Agent)" HorizontalContentAlignment="Left"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="cs(User-Agent)" HorizontalContentAlignment="Left"
                                                         ToolTip.Tip="The user agent string of the client."/>
                                                 <Button Grid.Column="11" Content="Win32 Status ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
-                                                        Command="{Binding MainView.SelectedTab.SortIISCommand}" CommandParameter="sc-win32-status" HorizontalContentAlignment="Left"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="sc-win32-status" HorizontalContentAlignment="Left"
                                                         ToolTip.Tip="The Windows status code of the request."/>
                                                 <Button Grid.Column="12" Content="HTTP Status ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
-                                                        Command="{Binding MainView.SelectedTab.SortIISCommand}" CommandParameter="sc-status" HorizontalContentAlignment="Left"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="sc-status" HorizontalContentAlignment="Left"
                                                         ToolTip.Tip="The HTTP status code of the response (e.g., 200, 404, 500)."/>
                                             </Grid>
                                             
                                             <!-- Содержимое таблицы -->
                                             <ListBox Grid.Row="1" 
-                                                     ItemsSource="{Binding MainView.SelectedTab.FilteredIISLogEntries}"
-                                                     SelectedItem="{Binding MainView.SelectedLogEntry}"
+                                                     ItemsSource="{Binding SelectedTab.FilteredIISLogEntries}"
+                                                     SelectedItem="{Binding SelectedLogEntry}"
                                                      Background="Transparent"
                                                      BorderThickness="0">
+                                                <ListBox.Styles>
+                                                    <Style Selector="ListBoxItem">
+                                                        <Setter Property="Padding" Value="0"/>
+                                                        <Setter Property="Margin" Value="0"/>
+                                                        <Style Selector="^:pointerover">
+                                                            <Setter Property="Background" Value="#3D3E42" />
+                                                        </Style>
+                                                        <Style Selector="^/template/ ContentPresenter">
+                                                            <Setter Property="Padding" Value="0"/>
+                                                            <Setter Property="Margin" Value="0"/>
+                                                        </Style>
+                                                    </Style>
+                                                </ListBox.Styles>
                                                 <ListBox.ItemTemplate>
                                                     <DataTemplate x:DataType="models1:IisLogEntry">
                                                         <Grid>
-                                                            <Grid.ColumnDefinitions>
+                                                                <Grid.ColumnDefinitions>
                                                                 <ColumnDefinition Width="Auto" MinWidth="90"/> <!-- date -->
                                                                 <ColumnDefinition Width="Auto" MinWidth="90"/> <!-- time -->
                                                                 <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- s-ip -->
@@ -1013,9 +1033,9 @@
 
                                         <!-- RabbitMQ LogEntry DataGrid with Resizable Columns -->
                                         <DataGrid Name="RabbitMQDataGrid"
-                                                  IsVisible="{Binding MainView.SelectedTab.IsThisTabRabbitMQ}" 
-                                                  ItemsSource="{Binding MainView.SelectedTab.FilteredRabbitMQLogEntries}"
-                                                  SelectedItem="{Binding MainView.SelectedLogEntry}"
+                                                  IsVisible="{Binding SelectedTab.IsThisTabRabbitMQ}" 
+                                                  ItemsSource="{Binding SelectedTab.FilteredRabbitMQLogEntries}"
+                                                  SelectedItem="{Binding SelectedLogEntry}"
                                                   Background="#222326"
                                                   IsReadOnly="True"
                                                   AutoGenerateColumns="False"

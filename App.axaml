@@ -27,7 +27,6 @@
             <converters:StringNotEqualsConverter x:Key="StringNotEqualsConverter"/>
             <converters:ErrorCountToColorConverter x:Key="ErrorCountToColorConverter"/>
             <converters:ErrorTypeToColorConverter x:Key="ErrorTypeToColorConverter"/>
-            <converters:BoolToErrorClassConverter x:Key="BoolToErrorClassConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 
