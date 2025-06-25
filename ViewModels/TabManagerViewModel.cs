@@ -21,6 +21,7 @@ namespace Log_Parser_App.ViewModels
 
         private readonly ITabManagerService _tabManagerService;
         private readonly ILogger<TabManagerViewModel> _logger;
+        private readonly IFilePickerService _filePickerService;
 
         #endregion
 
@@ -88,10 +89,12 @@ namespace Log_Parser_App.ViewModels
 
         public TabManagerViewModel(
             ITabManagerService tabManagerService,
-            ILogger<TabManagerViewModel> logger)
+            ILogger<TabManagerViewModel> logger,
+            IFilePickerService filePickerService)
         {
             _tabManagerService = tabManagerService;
             _logger = logger;
+            _filePickerService = filePickerService;
 
             // Subscribe to service events
             _tabManagerService.TabChanged += OnTabManagerTabChanged;
@@ -170,7 +173,7 @@ namespace Log_Parser_App.ViewModels
                     return existingTab;
                 }
 
-                var tab = new TabViewModel(filePath, System.IO.Path.GetFileName(filePath), new List<LogEntry>(), logType);
+                var tab = new TabViewModel(filePath, System.IO.Path.GetFileName(filePath), new List<LogEntry>(), logType, _filePickerService);
 
                 // Subscribe to tab events
                 tab.ErrorsOnlyFilterChanged += OnTabErrorsOnlyFilterChanged;

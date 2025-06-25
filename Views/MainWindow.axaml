@@ -585,8 +585,14 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="models1:IISLongestRequest">
                                         <StackPanel Margin="0,1">
-                                            <TextBlock Text="{Binding UriStem}" FontSize="11" Foreground="#F9A825" FontWeight="SemiBold"/>
-                                            <TextBlock Text="{Binding FormattedTime}" FontSize="10" Foreground="#DDDDDD" Opacity="0.8"/>
+                                            <TextBlock FontSize="11" Foreground="#F9A825" FontWeight="SemiBold">
+                                                <TextBlock.Text>
+                                                    <MultiBinding StringFormat="{}{0} - {1}ms">
+                                                        <Binding Path="UriStem"/>
+                                                        <Binding Path="TimeTaken"/>
+                                                    </MultiBinding>
+                                                </TextBlock.Text>
+                                            </TextBlock>
                                         </StackPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -626,8 +632,14 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="models1:IISUserActivity">
                                         <StackPanel Margin="0,1">
-                                            <TextBlock Text="{Binding DisplayName}" FontSize="11" Foreground="#BBBBBB" FontWeight="SemiBold"/>
-                                            <TextBlock Text="{Binding RequestCount}" FontSize="10" Foreground="#DDDDDD" Opacity="0.8"/>
+                                            <TextBlock FontSize="11" Foreground="#BBBBBB" FontWeight="SemiBold">
+                                                <TextBlock.Text>
+                                                    <MultiBinding StringFormat="{}{0} - {1}">
+                                                        <Binding Path="DisplayName"/>
+                                                        <Binding Path="RequestCount"/>
+                                                    </MultiBinding>
+                                                </TextBlock.Text>
+                                            </TextBlock>
                                         </StackPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -647,8 +659,8 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <TabControl Grid.Column="0" SelectedIndex="{Binding MainView.SelectedTabIndex}">
-                        <TabItem Header="All entries">
-                            <Grid RowDefinitions="Auto, Auto, *"> 
+                        <TabItem Header="">
+                            <Grid RowDefinitions="Auto, Auto, *">
                                 <!-- Region for Standard Log Filters -->
                                 <StackPanel IsVisible="{Binding MainView.SelectedTab.IsThisTabStandard}" Grid.Row="0" Grid.RowSpan="2"> 
                                     <!-- Row 0 for Filter Buttons -->
@@ -720,6 +732,7 @@
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <Button Grid.Column="0" Content="+ Add IIS Filter" Classes="add-button" Click="OnAddIISFilterClick" 
                                                 Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
@@ -728,6 +741,12 @@
                                         <Button Grid.Column="2" Content="Reset IIS Filters" Classes="reset-filters-button" Click="OnResetIISFiltersClick" 
                                                 Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
                                         <CheckBox Grid.Column="3" 
+                                                  Content="Use OR logic" 
+                                                  IsChecked="{Binding MainView.SelectedTab.UseOrLogicForIISFilters}"
+                                                  Margin="10,0,10,0"
+                                                  VerticalAlignment="Center"
+                                                  ToolTip.Tip="If checked, any filter can match (OR). If unchecked, all filters must match (AND)"/>
+                                        <CheckBox Grid.Column="4" 
                                                   Content="Show errors only" 
                                                   IsChecked="{Binding MainView.SelectedTab.IsIISErrorsOnly}"
                                                   Margin="10,0,0,0"
@@ -744,7 +763,7 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="models1:IISFilterCriterion">
                                                 <Border Background="#2D2E32" CornerRadius="6" Padding="12 8">
-                                                    <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto" VerticalAlignment="Center">
+                                                    <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" VerticalAlignment="Center">
                                                         <ComboBox Grid.Column="0"
                                                                   ItemsSource="{Binding AvailableFields}" 
                                                                   SelectedItem="{Binding SelectedField}"
@@ -860,11 +879,18 @@
                                             <!-- Column Headers -->
                                             <Grid Grid.Row="0" Background="#2D2F33">
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" MinWidth="180" SharedSizeGroup="TimestampCol"/>
-                                                    <ColumnDefinition Width="Auto" MinWidth="100" SharedSizeGroup="LevelCol"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto" MinWidth="150" SharedSizeGroup="SourceCol"/>
-                                                    <ColumnDefinition Width="Auto" MinWidth="150" SharedSizeGroup="RecommendationCol"/>
+                                                    <ColumnDefinition Width="70" MinWidth="65"/> <!-- date -->
+                                                    <ColumnDefinition Width="65" MinWidth="60"/> <!-- time -->
+                                                    <ColumnDefinition Width="95" MinWidth="90"/> <!-- s-ip -->
+                                                    <ColumnDefinition Width="55" MinWidth="50"/> <!-- cs-method -->
+                                                    <ColumnDefinition Width="400" MinWidth="300"/> <!-- cs-uri-stem -->
+                                                    <ColumnDefinition Width="180" MinWidth="120"/> <!-- cs-uri-query -->
+                                                    <ColumnDefinition Width="40" MinWidth="35"/> <!-- s-port -->
+                                                    <ColumnDefinition Width="75" MinWidth="70"/> <!-- cs-username -->
+                                                    <ColumnDefinition Width="95" MinWidth="90"/> <!-- c-ip -->
+                                                    <ColumnDefinition Width="65" MinWidth="60"/> <!-- time-taken -->
+                                                    <ColumnDefinition Width="200" MinWidth="150"/> <!-- cs(User-Agent) -->
+                                                    <ColumnDefinition Width="65" MinWidth="60"/> <!-- sc-status -->
                                                 </Grid.ColumnDefinitions>
                                                 
                                                 <TextBlock Grid.Column="0" Text="Timestamp" Padding="8,8" FontWeight="SemiBold"/>
@@ -918,19 +944,18 @@
                                             <!-- Заголовки колонок -->
                                             <Grid Grid.Row="0" Background="#2D2F33">
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" MinWidth="90"/> <!-- date -->
-                                                    <ColumnDefinition Width="Auto" MinWidth="90"/> <!-- time -->
-                                                    <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- s-ip -->
-                                                    <ColumnDefinition Width="Auto" MinWidth="110"/> <!-- cs-method -->
-                                                    <ColumnDefinition Width="*" MinWidth="150"/> <!-- cs-uri-stem -->
-                                                    <ColumnDefinition Width="*" MinWidth="150"/> <!-- cs-uri-query -->
-                                                    <ColumnDefinition Width="Auto" MinWidth="70"/> <!-- s-port -->
-                                                    <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- cs-username -->
-                                                    <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- c-ip -->
-                                                    <ColumnDefinition Width="Auto" MinWidth="110"/> <!-- time-taken -->
-                                                    <ColumnDefinition Width="*" MinWidth="150"/> <!-- cs(User-Agent) -->
-                                                    <ColumnDefinition Width="Auto" MinWidth="110"/> <!-- sc-win32-status -->
-                                                    <ColumnDefinition Width="Auto" MinWidth="100"/> <!-- sc-status -->
+                                                    <ColumnDefinition Width="70" MinWidth="65"/> <!-- date -->
+                                                    <ColumnDefinition Width="65" MinWidth="60"/> <!-- time -->
+                                                    <ColumnDefinition Width="95" MinWidth="90"/> <!-- s-ip -->
+                                                    <ColumnDefinition Width="55" MinWidth="50"/> <!-- cs-method -->
+                                                    <ColumnDefinition Width="400" MinWidth="300"/> <!-- cs-uri-stem -->
+                                                    <ColumnDefinition Width="180" MinWidth="120"/> <!-- cs-uri-query -->
+                                                    <ColumnDefinition Width="40" MinWidth="35"/> <!-- s-port -->
+                                                    <ColumnDefinition Width="75" MinWidth="70"/> <!-- cs-username -->
+                                                    <ColumnDefinition Width="95" MinWidth="90"/> <!-- c-ip -->
+                                                    <ColumnDefinition Width="65" MinWidth="60"/> <!-- time-taken -->
+                                                    <ColumnDefinition Width="200" MinWidth="150"/> <!-- cs(User-Agent) -->
+                                                    <ColumnDefinition Width="65" MinWidth="60"/> <!-- sc-status -->
                                                 </Grid.ColumnDefinitions>
                                                 
                                                 <Button Grid.Column="0" Content="Date ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
@@ -966,10 +991,7 @@
                                                 <Button Grid.Column="10" Content="User Agent ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
                                                         Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="cs(User-Agent)" HorizontalContentAlignment="Left"
                                                         ToolTip.Tip="The user agent string of the client."/>
-                                                <Button Grid.Column="11" Content="Win32 Status ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
-                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="sc-win32-status" HorizontalContentAlignment="Left"
-                                                        ToolTip.Tip="The Windows status code of the request."/>
-                                                <Button Grid.Column="12" Content="HTTP Status ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                <Button Grid.Column="11" Content="HTTP Status ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
                                                         Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="sc-status" HorizontalContentAlignment="Left"
                                                         ToolTip.Tip="The HTTP status code of the response (e.g., 200, 404, 500)."/>
                                             </Grid>
@@ -997,19 +1019,18 @@
                                                     <DataTemplate x:DataType="models1:IisLogEntry">
                                                         <Grid>
                                                                 <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="Auto" MinWidth="90"/> <!-- date -->
-                                                                <ColumnDefinition Width="Auto" MinWidth="90"/> <!-- time -->
-                                                                <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- s-ip -->
-                                                                <ColumnDefinition Width="Auto" MinWidth="110"/> <!-- cs-method -->
-                                                                <ColumnDefinition Width="*" MinWidth="150"/> <!-- cs-uri-stem -->
-                                                                <ColumnDefinition Width="*" MinWidth="150"/> <!-- cs-uri-query -->
-                                                                <ColumnDefinition Width="Auto" MinWidth="70"/> <!-- s-port -->
-                                                                <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- cs-username -->
-                                                                <ColumnDefinition Width="Auto" MinWidth="120"/> <!-- c-ip -->
-                                                                <ColumnDefinition Width="Auto" MinWidth="110"/> <!-- time-taken -->
-                                                                <ColumnDefinition Width="*" MinWidth="150"/> <!-- cs(User-Agent) -->
-                                                                <ColumnDefinition Width="Auto" MinWidth="110"/> <!-- sc-win32-status -->
-                                                                <ColumnDefinition Width="Auto" MinWidth="100"/> <!-- sc-status -->
+                                                                <ColumnDefinition Width="70" MinWidth="65"/> <!-- date -->
+                                                                <ColumnDefinition Width="65" MinWidth="60"/> <!-- time -->
+                                                                <ColumnDefinition Width="95" MinWidth="90"/> <!-- s-ip -->
+                                                                <ColumnDefinition Width="55" MinWidth="50"/> <!-- cs-method -->
+                                                                <ColumnDefinition Width="400" MinWidth="300"/> <!-- cs-uri-stem -->
+                                                                <ColumnDefinition Width="180" MinWidth="120"/> <!-- cs-uri-query -->
+                                                                <ColumnDefinition Width="40" MinWidth="35"/> <!-- s-port -->
+                                                                <ColumnDefinition Width="75" MinWidth="70"/> <!-- cs-username -->
+                                                                <ColumnDefinition Width="95" MinWidth="90"/> <!-- c-ip -->
+                                                                <ColumnDefinition Width="65" MinWidth="60"/> <!-- time-taken -->
+                                                                <ColumnDefinition Width="200" MinWidth="150"/> <!-- cs(User-Agent) -->
+                                                                <ColumnDefinition Width="65" MinWidth="60"/> <!-- sc-status -->
                                                             </Grid.ColumnDefinitions>
                                                             
                                                             <TextBlock Grid.Column="0" Text="{Binding DateTime, StringFormat='yyyy-MM-dd'}" Padding="8,4"/>
@@ -1023,8 +1044,7 @@
                                                             <TextBlock Grid.Column="8" Text="{Binding ClientIPAddress}" Padding="8,4"/>
                                                             <TextBlock Grid.Column="9" Text="{Binding TimeTaken}" Padding="8,4"/>
                                                             <TextBlock Grid.Column="10" Text="{Binding ShortUserAgent}" Padding="8,4"/>
-                                                            <TextBlock Grid.Column="11" Text="{Binding Win32Status}" Padding="8,4"/>
-                                                            <TextBlock Grid.Column="12" Text="{Binding HttpStatus}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="11" Text="{Binding HttpStatus}" Padding="8,4"/>
                                                         </Grid>
                                                     </DataTemplate>
                                                 </ListBox.ItemTemplate>
@@ -1114,7 +1134,8 @@
                                 </ScrollViewer>
                             </Grid>
                         </TabItem>
-                        <TabItem Header="Errors only">
+                        <TabItem Header="Errors only"
+                                 IsVisible="{Binding MainView.SelectedTab.IsThisTabStandard}">
                             <DataGrid ItemsSource="{Binding MainView.ErrorLogEntries}"
                                       SelectedItem="{Binding MainView.SelectedLogEntry}"
                                       IsReadOnly="True"

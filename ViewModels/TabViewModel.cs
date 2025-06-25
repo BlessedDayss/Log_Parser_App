@@ -8,6 +8,10 @@ using CommunityToolkit.Mvvm.Input;
 using Log_Parser_App.Models;
 using Log_Parser_App.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
+using System.Threading.Tasks;
+using System.Text;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 
 namespace Log_Parser_App.ViewModels
 {
@@ -26,6 +30,7 @@ namespace Log_Parser_App.ViewModels
 		private List<RabbitMqLogEntry> _rabbitMqLogEntries;
 		private bool _isSelected;
 		private bool _isErrorsOnly;
+		private readonly IFilePickerService _filePickerService;
 
 	#endregion
 
@@ -98,13 +103,14 @@ namespace Log_Parser_App.ViewModels
 		public bool IsIISErrorsOnly
 		{
 			get => _isIISErrorsOnly;
-			set
-			{
-				if (SetProperty(ref _isIISErrorsOnly, value))
-				{
-					ExecuteApplyIISFilters();
-				}
-			}
+			set => SetProperty(ref _isIISErrorsOnly, value);
+		}
+
+		private bool _useOrLogicForIISFilters = false;
+		public bool UseOrLogicForIISFilters
+		{
+			get => _useOrLogicForIISFilters;
+			set => SetProperty(ref _useOrLogicForIISFilters, value);
 		}
 
 		// --- IIS Filtering Properties and Commands ---
@@ -203,7 +209,7 @@ namespace Log_Parser_App.ViewModels
 
 		#region Constructors: Public
 
-		public TabViewModel(string filePath, string title, List<LogEntry> logEntries) {
+		public TabViewModel(string filePath, string title, List<LogEntry> logEntries, IFilePickerService filePickerService) {
 			_filePath = filePath;
 			_title = title;
 			_logEntries = logEntries;
@@ -211,6 +217,7 @@ namespace Log_Parser_App.ViewModels
 			_rabbitMqLogEntries = new List<RabbitMqLogEntry>();
 			LogType = LogFormatType.Standard;
 			_isSelected = false;
+			_filePickerService = filePickerService;
 			// Initialize all collections - even if not used by this log type
 			IISFilterCriteria = new ObservableCollection<IISFilterCriterion>();
 			FilteredIISLogEntries = new ObservableCollection<IisLogEntry>();
@@ -219,7 +226,7 @@ namespace Log_Parser_App.ViewModels
 			RemoveIISFilterCriterionCommand = new RelayCommand<IISFilterCriterion>(ExecuteRemoveIISFilterCriterion);
 			ApplyIISFiltersCommand = new RelayCommand(ExecuteApplyIISFilters);
 			ResetIISFiltersCommand = new RelayCommand(ExecuteResetIISFilters);
-			ExportIisLogsToCsvCommand = new RelayCommand(ExecuteExportIisLogsToCsv);
+			ExportIisLogsToCsvCommand = new RelayCommand(async () => await ExecuteExportIisLogsToCsvAsync());
 			SortIISCommand = new RelayCommand<string>(ExecuteSortIIS);
 			// Initialize Standard Filtering related collections and commands
 			FilterCriteria = new ObservableCollection<FilterCriterion>();
@@ -237,7 +244,7 @@ namespace Log_Parser_App.ViewModels
 			InitializeFilterFields();
 		}
 
-		public TabViewModel(string filePath, string title, List<IisLogEntry> iisLogEntries) {
+		public TabViewModel(string filePath, string title, List<IisLogEntry> iisLogEntries, IFilePickerService filePickerService) {
 			_filePath = filePath;
 			_title = title;
 			_logEntries = new List<LogEntry>();
@@ -245,15 +252,16 @@ namespace Log_Parser_App.ViewModels
 			_rabbitMqLogEntries = new List<RabbitMqLogEntry>();
 			LogType = LogFormatType.IIS;
 			_isSelected = false;
+			_filePickerService = filePickerService;
 			// Initialize all collections
 			IISFilterCriteria = new ObservableCollection<IISFilterCriterion>();
-			FilteredIISLogEntries = new ObservableCollection<IisLogEntry>(iisLogEntries); // Initially populate with all IIS entries
+			FilteredIISLogEntries = new ObservableCollection<IisLogEntry>(iisLogEntries);
 			FilteredRabbitMQLogEntries = new ObservableCollection<RabbitMqLogEntry>();
 			AddIISFilterCriterionCommand = new RelayCommand(ExecuteAddIISFilterCriterion);
 			RemoveIISFilterCriterionCommand = new RelayCommand<IISFilterCriterion>(ExecuteRemoveIISFilterCriterion);
 			ApplyIISFiltersCommand = new RelayCommand(ExecuteApplyIISFilters);
 			ResetIISFiltersCommand = new RelayCommand(ExecuteResetIISFilters);
-			ExportIisLogsToCsvCommand = new RelayCommand(ExecuteExportIisLogsToCsv);
+			ExportIisLogsToCsvCommand = new RelayCommand(async () => await ExecuteExportIisLogsToCsvAsync());
 			SortIISCommand = new RelayCommand<string>(ExecuteSortIIS);
 			// Initialize Standard Filtering related collections and commands
 			FilterCriteria = new ObservableCollection<FilterCriterion>();
@@ -273,7 +281,7 @@ namespace Log_Parser_App.ViewModels
 
 		// Constructor for RabbitMQ and other log types with explicit LogFormatType
 
-		public TabViewModel(string filePath, string title, List<LogEntry> logEntries, LogFormatType logType) {
+		public TabViewModel(string filePath, string title, List<LogEntry> logEntries, LogFormatType logType, IFilePickerService filePickerService) {
 			_filePath = filePath;
 			_title = title;
 			_logEntries = logEntries;
@@ -281,6 +289,7 @@ namespace Log_Parser_App.ViewModels
 			_rabbitMqLogEntries = new List<RabbitMqLogEntry>();
 			LogType = logType;
 			_isSelected = false;
+			_filePickerService = filePickerService;
 			// Initialize all collections
 			IISFilterCriteria = new ObservableCollection<IISFilterCriterion>();
 			FilteredIISLogEntries = new ObservableCollection<IisLogEntry>();
@@ -289,7 +298,7 @@ namespace Log_Parser_App.ViewModels
 			RemoveIISFilterCriterionCommand = new RelayCommand<IISFilterCriterion>(ExecuteRemoveIISFilterCriterion);
 			ApplyIISFiltersCommand = new RelayCommand(ExecuteApplyIISFilters);
 			ResetIISFiltersCommand = new RelayCommand(ExecuteResetIISFilters);
-			ExportIisLogsToCsvCommand = new RelayCommand(ExecuteExportIisLogsToCsv);
+			ExportIisLogsToCsvCommand = new RelayCommand(async () => await ExecuteExportIisLogsToCsvAsync());
 			SortIISCommand = new RelayCommand<string>(ExecuteSortIIS);
 			// Initialize Standard Filtering related collections and commands
 			FilterCriteria = new ObservableCollection<FilterCriterion>();
@@ -309,7 +318,7 @@ namespace Log_Parser_App.ViewModels
 
 		// Constructor specifically for RabbitMQ logs 
 
-		public TabViewModel(string filePath, string title, List<RabbitMqLogEntry> rabbitMqLogEntries) {
+		public TabViewModel(string filePath, string title, List<RabbitMqLogEntry> rabbitMqLogEntries, IFilePickerService filePickerService) {
 			_filePath = filePath;
 			_title = title;
 			_logEntries = new List<LogEntry>();
@@ -317,6 +326,7 @@ namespace Log_Parser_App.ViewModels
 			_rabbitMqLogEntries = rabbitMqLogEntries;
 			LogType = LogFormatType.RabbitMQ;
 			_isSelected = false;
+			_filePickerService = filePickerService;
 			// Initialize all collections
 			IISFilterCriteria = new ObservableCollection<IISFilterCriterion>();
 			FilteredIISLogEntries = new ObservableCollection<IisLogEntry>();
@@ -325,7 +335,7 @@ namespace Log_Parser_App.ViewModels
 			RemoveIISFilterCriterionCommand = new RelayCommand<IISFilterCriterion>(ExecuteRemoveIISFilterCriterion);
 			ApplyIISFiltersCommand = new RelayCommand(ExecuteApplyIISFilters);
 			ResetIISFiltersCommand = new RelayCommand(ExecuteResetIISFilters);
-			ExportIisLogsToCsvCommand = new RelayCommand(ExecuteExportIisLogsToCsv);
+			ExportIisLogsToCsvCommand = new RelayCommand(async () => await ExecuteExportIisLogsToCsvAsync());
 			SortIISCommand = new RelayCommand<string>(ExecuteSortIIS);
 			// Initialize Standard Filtering related collections and commands
 			FilterCriteria = new ObservableCollection<FilterCriterion>();
@@ -374,23 +384,38 @@ namespace Log_Parser_App.ViewModels
 
 			if (IISFilterCriteria.Any())
 			{
-				filtered = filtered.Where(entry => IISFilterCriteria.All(criterion =>
+				if (UseOrLogicForIISFilters)
 				{
-					if (string.IsNullOrWhiteSpace(criterion.SelectedOperator))
+					// OR logic - at least one criteria must match
+					filtered = filtered.Where(entry => IISFilterCriteria.Any(criterion =>
 					{
-						return true;
-					}
+						if (string.IsNullOrWhiteSpace(criterion.SelectedOperator))
+							return false;
 
-					var valueToCompare = criterion.UseManualInput ? criterion.ManualValue : criterion.Value;
+						var valueToCompare = criterion.UseManualInput ? criterion.ManualValue : criterion.Value;
+						if (string.IsNullOrWhiteSpace(valueToCompare))
+							return false;
 
-					if (string.IsNullOrWhiteSpace(valueToCompare))
+						return MatchCriterion(entry, criterion, valueToCompare.ToLower(),
+							double.TryParse(valueToCompare, out var num) ? num : (double?)null);
+					}));
+				}
+				else
+				{
+					// AND logic - all criteria must match
+					filtered = filtered.Where(entry => IISFilterCriteria.All(criterion =>
 					{
-						return true;
-					}
+						if (string.IsNullOrWhiteSpace(criterion.SelectedOperator))
+							return true;
 
-					return MatchCriterion(entry, criterion, valueToCompare.ToLower(),
-						double.TryParse(valueToCompare, out var num) ? num : (double?)null);
-				}));
+						var valueToCompare = criterion.UseManualInput ? criterion.ManualValue : criterion.Value;
+						if (string.IsNullOrWhiteSpace(valueToCompare))
+							return true;
+
+						return MatchCriterion(entry, criterion, valueToCompare.ToLower(),
+							double.TryParse(valueToCompare, out var num) ? num : (double?)null);
+					}));
+				}
 			}
 
 			FilteredIISLogEntries.Clear();
@@ -553,42 +578,99 @@ namespace Log_Parser_App.ViewModels
 			}
 		}
 
-		private async void ExecuteExportIisLogsToCsv()
+		private async Task ExecuteExportIisLogsToCsvAsync()
 		{
-			if (LogType != LogFormatType.IIS || !FilteredIISLogEntries.Any())
+			// Debug information
+			Console.WriteLine($"=== IIS CSV Export Started ===");
+			Console.WriteLine($"LogType: {LogType}");
+			Console.WriteLine($"FilteredIISLogEntries count: {FilteredIISLogEntries?.Count ?? 0}");
+			Console.WriteLine($"IISLogEntries count: {IISLogEntries?.Count ?? 0}");
+
+			if (LogType != LogFormatType.IIS)
+			{
+				ShowMessage("Wrong Log Type", $"Current log type is {LogType}, expected IIS");
 				return;
+			}
+
+			// Get data to export - use filtered if available, otherwise all IIS entries
+			var dataToExport = FilteredIISLogEntries?.Any() == true ? FilteredIISLogEntries.ToList() : IISLogEntries;
+			
+			if (dataToExport == null || !dataToExport.Any())
+			{
+				ShowMessage("No IIS data to export", "Please load IIS logs first or check if data is filtered out.");
+				return;
+			}
+
+			Console.WriteLine($"Exporting {dataToExport.Count()} IIS log entries...");
 
 			try
 			{
-				// Simple file path generation for now - in production you might want to use Avalonia's file dialogs
-				var fileName = $"IIS_Logs_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
-				var filePath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), fileName);
-				
-				var csv = new System.Text.StringBuilder();
-				
-				// Add header
-				csv.AppendLine("Date,Time,Server IP,Method,URL Path,Query String,Port,User,Client IP,Time Taken (ms),User Agent,Win32 Status,HTTP Status");
-				
-				// Add data rows
-				foreach (var entry in FilteredIISLogEntries)
+				// Get MainWindow for file dialog
+				var mainWindow = App.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop 
+					? desktop.MainWindow 
+					: null;
+
+				if (mainWindow == null)
 				{
-					var escapedUserAgent = EscapeCsvField(entry.ShortUserAgent);
-					var escapedUriStem = EscapeCsvField(entry.UriStem);
-					var escapedUriQuery = EscapeCsvField(entry.UriQuery);
-					var escapedUserName = EscapeCsvField(entry.UserName);
-					
-					csv.AppendLine($"{entry.DateTime:yyyy-MM-dd},{entry.DateTime:HH:mm:ss},{entry.ServerIPAddress},{entry.Method},{escapedUriStem},{escapedUriQuery},{entry.ServerPort},{escapedUserName},{entry.ClientIPAddress},{entry.TimeTaken},{escapedUserAgent},{entry.Win32Status},{entry.HttpStatus}");
+					ShowMessage("Error", "Cannot access main window for file dialog");
+					return;
+				}
+
+				// Call SaveFileAsync using injected service - this will block the UI thread but it's simpler for now
+				var saveTask = _filePickerService.SaveFileAsync(mainWindow, "IIS_Logs_Export.csv");
+				var filePath = await saveTask;
+
+				if (string.IsNullOrEmpty(filePath))
+				{
+					Console.WriteLine("User cancelled file save dialog");
+					return; // User cancelled
+				}
+
+				Console.WriteLine($"Selected file path: {filePath}");
+
+				// Generate CSV content
+				var csv = new StringBuilder();
+				
+				// CSV Header (without Win32Status)
+				csv.AppendLine("Date,Time,ServerIP,Method,UriStem,UriQuery,Port,Username,ClientIP,TimeTaken,UserAgent,HttpStatus");
+				
+				// CSV Data
+				foreach (var entry in dataToExport)
+				{
+					var line = $"{entry.DateTime?.ToString("yyyy-MM-dd") ?? ""}," +
+							  $"{entry.DateTime?.ToString("HH:mm:ss") ?? ""}," +
+							  $"\"{entry.ServerIPAddress ?? ""}\"," +
+							  $"\"{entry.Method ?? ""}\"," +
+							  $"\"{entry.UriStem?.Replace("\"", "\"\"") ?? ""}\"," +
+							  $"\"{entry.UriQuery?.Replace("\"", "\"\"") ?? ""}\"," +
+							  $"{entry.ServerPort?.ToString() ?? ""}," +
+							  $"\"{entry.UserName ?? ""}\"," +
+							  $"\"{entry.ClientIPAddress ?? ""}\"," +
+							  $"{entry.TimeTaken?.ToString() ?? ""}," +
+							  $"\"{entry.UserAgent?.Replace("\"", "\"\"") ?? ""}\"," +
+							  $"{entry.HttpStatus?.ToString() ?? ""}";
+					csv.AppendLine(line);
 				}
 				
-				await System.IO.File.WriteAllTextAsync(filePath, csv.ToString());
+				System.IO.File.WriteAllText(filePath, csv.ToString());
 				
-				// For now, just write to console - in production you might want to show a toast notification
-				Console.WriteLine($"Successfully exported {FilteredIISLogEntries.Count} log entries to {filePath}");
+				Console.WriteLine($"File written successfully. Size: {csv.Length} characters");
+				
+				// Show success message
+				ShowMessage("Export Successful", $"Successfully exported {dataToExport.Count()} IIS log entries to:\n{filePath}");
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine($"Error exporting CSV: {ex.Message}");
+				Console.WriteLine($"Export error: {ex}");
+				// Show error message
+				ShowMessage("Export Failed", $"Error exporting CSV: {ex.Message}\n\nFull error: {ex}");
 			}
+		}
+
+		private void ShowMessage(string title, string message)
+		{
+			// For now use console output - in production should show dialog
+			Console.WriteLine($"{title}: {message}");
 		}
 
 		private string EscapeCsvField(string? field)
