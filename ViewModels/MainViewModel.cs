@@ -480,7 +480,7 @@ namespace Log_Parser_App.ViewModels
                 await Dispatcher.UIThread.InvokeAsync(() => {
                     // Create a new tab instead of just setting LogEntries
                     var title = Path.GetFileName(filePath);
-                    var newTab = new TabViewModel(filePath, title, processedEntries.ToList());
+                    var newTab = new TabViewModel(filePath, title, processedEntries.ToList(), _filePickerService);
 
                     // Add debug logging to check tab type
                     _logger.LogInformation("Created new tab in LoadFileAsync for file {FilePath}. LogType: {LogType}, IsThisTabIIS: {IsIIS}, IsThisTabStandard: {IsStandard}",
@@ -644,7 +644,7 @@ namespace Log_Parser_App.ViewModels
 
                 await Dispatcher.UIThread.InvokeAsync(() => {
                     var title = Path.GetFileName(filePath);
-                    var newTab = new TabViewModel(filePath, title, processedEntries.ToList()); // Use ToList() for safety if processedEntries is modified elsewhere
+                    var newTab = new TabViewModel(filePath, title, processedEntries.ToList(), _filePickerService); // Use ToList() for safety if processedEntries is modified elsewhere
 
                     // Add debug logging to check tab type
                     _logger.LogInformation("Created new tab for file {FilePath}. LogType: {LogType}, IsThisTabIIS: {IsIIS}, IsThisTabStandard: {IsStandard}",
@@ -2039,7 +2039,7 @@ namespace Log_Parser_App.ViewModels
                                      $"IIS Logs ({filePaths.Count()} files)";
                         
                         // Use IIS-specific constructor to ensure proper data binding
-                        var newTab = new TabViewModel(filePaths.First(), title, sortedEntries);
+                        			var newTab = new TabViewModel(filePaths.First(), title, (List<IisLogEntry>)sortedEntries, _filePickerService);
 
                         _logger.LogInformation("Created new IIS tab for {FileCount} files. LogType: {LogType}, IsThisTabIIS: {IsIIS}", 
                                              filePaths.Count(), newTab.LogType, newTab.IsThisTabIIS);
@@ -2131,7 +2131,7 @@ namespace Log_Parser_App.ViewModels
 
                 await Dispatcher.UIThread.InvokeAsync(() => {
                     string title = System.IO.Path.GetFileName(filePath);
-                    var newTab = new TabViewModel(filePath, title, rabbitEntries);
+                    			var newTab = new TabViewModel(filePath, title, rabbitEntries, _filePickerService);
 
                     FileTabs.Clear();
                     FileTabs.Add(newTab);
@@ -2185,7 +2185,7 @@ namespace Log_Parser_App.ViewModels
 
                 await Dispatcher.UIThread.InvokeAsync(() => {
                     string title = $"RabbitMQ ({System.IO.Path.GetFileName(directoryPath)})";
-                    var newTab = new TabViewModel(directoryPath, title, rabbitEntries);
+                    				var newTab = new TabViewModel(directoryPath, title, rabbitEntries, _filePickerService);
 
                     FileTabs.Clear();
                     FileTabs.Add(newTab);
@@ -2242,7 +2242,7 @@ namespace Log_Parser_App.ViewModels
 
             await Dispatcher.UIThread.InvokeAsync(() => {
                 string title = filePaths.Count() == 1 ? System.IO.Path.GetFileName(filePaths.First()) : $"RabbitMQ ({filePaths.Count()} files)";
-                var newTab = new TabViewModel("RabbitMQ", title, allEntries);
+                			var newTab = new TabViewModel("RabbitMQ", title, allEntries, _filePickerService);
 
                 FileTabs.Clear();
                 FileTabs.Add(newTab);

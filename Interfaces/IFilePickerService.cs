@@ -15,6 +15,8 @@ using Avalonia.Controls;
 
 		Task<string?> PickDirectoryAsync(Window? window);
 
+		Task<string?> SaveFileAsync(Window? window, string suggestedFileName = "export.csv");
+
 		Task<(IEnumerable<string>? Files, string? Directory)> ShowFilePickerContextMenuAsync(Window? window);
 
 		#endregion

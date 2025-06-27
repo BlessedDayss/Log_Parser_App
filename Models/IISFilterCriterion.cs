@@ -32,6 +32,7 @@ namespace Log_Parser_App.Models
         private string _value = string.Empty;
         private string _manualValue = string.Empty;
         private bool _useManualInput = false;
+        private string _logicalOperator = "AND"; // Default to AND
 
         [System.Text.Json.Serialization.JsonIgnore]
         public TabViewModel? ParentViewModel { get; set; } // Changed from dynamic?
@@ -39,6 +40,7 @@ namespace Log_Parser_App.Models
         public ObservableCollection<IISLogField> AvailableFields { get; }
         public ObservableCollection<string> AvailableOperators { get; } = new();
         public ObservableCollection<string> AvailableValues { get; } = new();
+        public List<string> AvailableLogicalOperators { get; } = new() { "AND", "OR" };
 
         public IISFilterCriterion() {
             AvailableFields = new ObservableCollection<IISLogField>((IISLogField[])System.Enum.GetValues(typeof(IISLogField)));
@@ -92,6 +94,11 @@ namespace Log_Parser_App.Models
                     OnPropertyChanged(nameof(ShowTextBox));
                 }
             }
+        }
+
+        public string LogicalOperator {
+            get => _logicalOperator;
+            set => SetProperty(ref _logicalOperator, value);
         }
 
         // Compatibility properties for services

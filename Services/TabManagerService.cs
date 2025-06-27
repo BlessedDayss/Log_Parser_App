@@ -19,12 +19,14 @@ namespace Log_Parser_App.Services;
 public class TabManagerService : ITabManagerService
 {
     private readonly ILogger<TabManagerService> _logger;
+    private readonly IFilePickerService _filePickerService;
     private readonly ObservableCollection<TabViewModel> _fileTabs;
     private TabViewModel? _selectedTab;
 
-    public TabManagerService(ILogger<TabManagerService> logger)
+    public TabManagerService(ILogger<TabManagerService> logger, IFilePickerService filePickerService)
     {
         _logger = logger;
+        _filePickerService = filePickerService;
         _fileTabs = new ObservableCollection<TabViewModel>();
     }
 
@@ -71,7 +73,7 @@ public class TabManagerService : ITabManagerService
                     return existingTab;
                 }
 
-                var newTab = new TabViewModel(filePath, tabName, new List<LogEntry>(), logType);
+                var newTab = new TabViewModel(filePath, tabName, new List<LogEntry>(), logType, _filePickerService);
 
                 Dispatcher.UIThread.Invoke(() =>
                 {

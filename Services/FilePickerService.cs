@@ -34,6 +34,22 @@ namespace Log_Parser_App.Services
             return folders.Count > 0 ? folders[0].Path.LocalPath : null;
         }
 
+        public async Task<string?> SaveFileAsync(Window? window, string suggestedFileName = "export.csv") {
+            if (window == null || window.StorageProvider == null)
+                return null;
+
+            var file = await window.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions {
+                SuggestedFileName = suggestedFileName,
+                DefaultExtension = "csv",
+                FileTypeChoices = new[] {
+                    new FilePickerFileType("CSV files") { Patterns = new[] { "*.csv" } },
+                    new FilePickerFileType("All files") { Patterns = new[] { "*" } }
+                }
+            });
+
+            return file?.Path?.LocalPath;
+        }
+
         public async Task<(IEnumerable<string>? Files, string? Directory)> ShowFilePickerContextMenuAsync(Window? window) {
             if (window == null)
                 return (null, null);
