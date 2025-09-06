@@ -1,0 +1,220 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
+        mc:Ignorable="d" d:DesignWidth="650" d:DesignHeight="500"
+        x:Class="Log_Parser_App.Views.WelcomeWindow"
+        MinWidth="650" MinHeight="500" SizeToContent="WidthAndHeight"
+        WindowStartupLocation="CenterScreen"
+        SystemDecorations="None"
+        Background="#0F1419"
+        CanResize="false"
+        Title="Welcome to Log Parser">
+
+    <!-- Animated background -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <!-- Gradient background -->
+        <Rectangle Grid.RowSpan="2">
+            <Rectangle.Fill>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#0F1419" Offset="0"/>
+                    <GradientStop Color="#1A1C21" Offset="0.5"/>
+                    <GradientStop Color="#0F1419" Offset="1"/>
+                </LinearGradientBrush>
+            </Rectangle.Fill>
+        </Rectangle>
+
+        <!-- Subtle pattern overlay -->
+        <Rectangle Opacity="0.03" Grid.RowSpan="2">
+            <Rectangle.Fill>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#4CAF50" Offset="0"/>
+                    <GradientStop Color="#2196F3" Offset="0.5"/>
+                    <GradientStop Color="#FF9800" Offset="1"/>
+                </LinearGradientBrush>
+            </Rectangle.Fill>
+        </Rectangle>
+
+        <!-- Main content (responsive scaled) -->
+        <Viewbox Grid.Row="0" Margin="32" Stretch="Uniform" StretchDirection="DownOnly">
+            <Grid Width="760">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+            <!-- Header with logo and title -->
+            <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,16">
+                <!-- Logo with glow effect -->
+                <Border Background="#4CAF50" CornerRadius="50" Padding="2" Margin="0,0,0,18">
+                    <Border Background="#1A1C21" CornerRadius="47" Padding="4">
+                        <svg:Svg Width="60" Height="60" Path="/Assets/log-parser-icon.svg"/>
+                    </Border>
+                </Border>
+
+                <TextBlock Text="Welcome to Log Parser"
+                          FontSize="32"
+                          FontWeight="Bold"
+                          Foreground="#F5F5F7"
+                          HorizontalAlignment="Center"
+                          Margin="0,0,0,10"
+                          TextWrapping="Wrap"
+                          TextAlignment="Center">
+                    <TextBlock.Effect>
+                        <DropShadowEffect BlurRadius="2" Color="#4CAF50" Opacity="0.3"/>
+                    </TextBlock.Effect>
+                </TextBlock>
+
+                <TextBlock Text="Professional Log Analysis Tool"
+                          FontSize="18"
+                          Foreground="#F5F5F7"
+                          HorizontalAlignment="Center"
+                          FontWeight="Normal"
+                          Opacity="0.8"/>
+            </StackPanel>
+
+            <!-- Main content area -->
+            <StackPanel Grid.Row="1" VerticalAlignment="Top" Spacing="16">
+                <!-- Feature highlights with consistent design -->
+                <Border Name="FeatureCard1" Background="#2A2D32" CornerRadius="8" Padding="16" Margin="0,0,0,10" RenderTransformOrigin="0.5,0.5"
+                        BorderBrush="#4CAF50" BorderThickness="1" Opacity="0.9">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="4" Color="#4CAF50" Opacity="0.1"/>
+                    </Border.Effect>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Width="44" Height="44"
+                                Background="#4CAF50" CornerRadius="8"
+                                Margin="0,0,16,0" VerticalAlignment="Center">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="2" Color="#4CAF50" Opacity="0.2"/>
+                            </Border.Effect>
+                            <TextBlock Text="📊" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="Advanced Log Analysis"
+                                      FontSize="20"
+                                      FontWeight="SemiBold"
+                                      Foreground="#F5F5F7"
+                                      Margin="0,0,0,4"/>
+                            <TextBlock Text="Parse and analyze logs from multiple sources including IIS, RabbitMQ, and standard log files"
+                                      FontSize="16"
+                                      Foreground="#AAAAAA"
+                                      TextWrapping="Wrap"
+                                      LineHeight="22"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Name="FeatureCard2" Background="#2A2D32" CornerRadius="8" Padding="16" Margin="0,0,0,10" RenderTransformOrigin="0.5,0.5"
+                        BorderBrush="#2196F3" BorderThickness="1" Opacity="0.9">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="4" Color="#2196F3" Opacity="0.1"/>
+                    </Border.Effect>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Width="44" Height="44"
+                                Background="#2196F3" CornerRadius="8"
+                                Margin="0,0,16,0" VerticalAlignment="Center">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="2" Color="#2196F3" Opacity="0.2"/>
+                            </Border.Effect>
+                            <TextBlock Text="🔍" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="Powerful Filtering"
+                                      FontSize="20"
+                                      FontWeight="SemiBold"
+                                      Foreground="#F5F5F7"
+                                      Margin="0,0,0,4"/>
+                            <TextBlock Text="Filter logs by error types, time ranges, and custom criteria with real-time results"
+                                      FontSize="16"
+                                      Foreground="#AAAAAA"
+                                      TextWrapping="Wrap"
+                                      LineHeight="22"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Name="FeatureCard3" Background="#2A2D32" CornerRadius="8" Padding="16" RenderTransformOrigin="0.5,0.5"
+                        BorderBrush="#FF9800" BorderThickness="1" Opacity="0.9">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="4" Color="#FF9800" Opacity="0.1"/>
+                    </Border.Effect>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Width="44" Height="44"
+                                Background="#FF9800" CornerRadius="8"
+                                Margin="0,0,16,0" VerticalAlignment="Center">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="2" Color="#FF9800" Opacity="0.2"/>
+                            </Border.Effect>
+                            <TextBlock Text="📈" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="Visual Analytics"
+                                      FontSize="20"
+                                      FontWeight="SemiBold"
+                                      Foreground="#F5F5F7"
+                                      Margin="0,0,0,4"/>
+                            <TextBlock Text="Generate charts, heatmaps, and statistics to visualize log patterns and trends"
+                                      FontSize="16"
+                                      Foreground="#AAAAAA"
+                                      TextWrapping="Wrap"
+                                      LineHeight="22"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </StackPanel>
+            </Grid>
+        </Viewbox>
+
+        <!-- Fixed footer always visible -->
+        <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,8,0,16">
+            <Button Name="GetStartedButton" RenderTransformOrigin="0.5,0.5"
+                    Content="Get Started"
+                    FontSize="18"
+                    FontWeight="SemiBold"
+                    Padding="32,14"
+                    CornerRadius="8"
+                    HorizontalAlignment="Center"
+                    Click="GetStartedButton_OnClick"
+                    BorderThickness="1"
+                    BorderBrush="#4CAF50"
+                    Background="#2A2D32"
+                    Foreground="#F5F5F7">
+                <Button.Effect>
+                    <DropShadowEffect BlurRadius="3" Color="#4CAF50" Opacity="0.15"/>
+                </Button.Effect>
+            </Button>
+
+            <TextBlock Name="VersionTextBlock"
+                      HorizontalAlignment="Center"
+                      Margin="0,10,0,0"
+                      Foreground="#666666"
+                      FontSize="12"
+                      FontWeight="Light"
+                      Opacity="0.7"/>
+        </StackPanel>
+    </Grid>
+</Window>

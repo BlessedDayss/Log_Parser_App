@@ -86,73 +86,51 @@ namespace Log_Parser_App
                     Console.WriteLine($"[App] Error creating MainWindowViewModel: {ex.Message}");
                 }
 
-                var splashScreen = new Views.SplashScreen();
-                desktop.MainWindow = splashScreen;
+                // Create MainWindow but don't show it yet
+                MainWindow = new MainWindow {
+                    DataContext = mainWindowViewModel
+                };
+                Console.WriteLine("[App] MainWindow created but not shown yet.");
 
-                Task.Run(async () => {
+                // Show WelcomeWindow first as the initial MainWindow to prevent shutdown on close
+                var welcomeWindow = new Views.WelcomeWindow();
+                desktop.MainWindow = welcomeWindow;
+                welcomeWindow.GetStartedClicked += (sender, e) => {
+                    // Switch the desktop MainWindow to the real app window BEFORE closing welcome
+                    desktop.MainWindow = MainWindow;
+                    MainWindow.Show();
+                    Console.WriteLine("[App] MainWindow shown. Closing WelcomeWindow...");
+                    welcomeWindow.Close();
+                    Console.WriteLine("[App] WelcomeWindow closed, control handed to MainWindow.");
+                };
+                welcomeWindow.Show();
+                Console.WriteLine("[App] WelcomeWindow shown as initial screen.");
+
+                // Process command line arguments for file opening after UI is ready
+                if (mainWindowViewModel?.MainView != null) {
+                    Console.WriteLine("[App] Processing command line arguments for file opening...");
+                    // Call CheckCommandLineArgs via reflection to avoid making it public
+                    var checkMethod = typeof(MainViewModel).GetMethod("CheckCommandLineArgs",
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    checkMethod?.Invoke(mainWindowViewModel.MainView, null);
+                }
+
+                IFileService? fileService = null;
+                try {
+                    fileService = services.GetRequiredService<IFileService>();
+                    Console.WriteLine("[App] IFileService resolved.");
+                } catch (Exception ex) {
+                    Console.WriteLine($"[App] Error resolving IFileService: {ex.Message}");
+                }
+
+                if (fileService is FileService fs && MainWindow != null) {
                     try {
-                        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => splashScreen.UpdateStatus("Loading..."));
-
-                        await Task.Delay(3000);
-
-                        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => {
-                            try {
-                                MainWindow = new MainWindow {
-                                    DataContext = mainWindowViewModel
-                                };
-                                Console.WriteLine("[App] MainWindow created and DataContext set.");
-
-                                desktop.MainWindow = MainWindow;
-                                MainWindow.Show();
-                                splashScreen.Close();
-                                Console.WriteLine("[App] desktop.MainWindow assigned to MainWindow.");
-
-                                // Process command line arguments for file opening after UI is ready
-                                if (mainWindowViewModel?.MainView != null) {
-                                    Console.WriteLine("[App] Processing command line arguments for file opening...");
-                                    // Call CheckCommandLineArgs via reflection to avoid making it public
-                                    var checkMethod = typeof(MainViewModel).GetMethod("CheckCommandLineArgs",
-                                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                                    checkMethod?.Invoke(mainWindowViewModel.MainView, null);
-                                }
-
-                                IFileService? fileService = null;
-                                try {
-                                    fileService = services.GetRequiredService<IFileService>();
-                                    Console.WriteLine("[App] IFileService resolved.");
-                                } catch (Exception ex) {
-                                    Console.WriteLine($"[App] Error resolving IFileService: {ex.Message}");
-                                }
-
-                                if (fileService is FileService fs && MainWindow != null) {
-                                    try {
-                                        fs.InitializeTopLevel(MainWindow);
-                                        Console.WriteLine("[App] FileService.InitializeTopLevel called.");
-                                    } catch (Exception ex) {
-                                        Console.WriteLine($"[App] Error in FileService.InitializeTopLevel: {ex.Message}");
-                                    }
-                                }
-                            } catch (Exception ex) {
-                                Console.WriteLine($"[App] Error creating MainWindow: {ex.Message}");
-                            }
-                        });
+                        fs.InitializeTopLevel(MainWindow);
+                        Console.WriteLine("[App] FileService.InitializeTopLevel called.");
                     } catch (Exception ex) {
-                        Console.WriteLine($"[App] Error in splash screen task: {ex.Message}");
-
-                        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => {
-                            try {
-                                MainWindow = new MainWindow {
-                                    DataContext = mainWindowViewModel
-                                };
-                                desktop.MainWindow = MainWindow;
-                                MainWindow.Show();
-                                splashScreen.Close();
-                            } catch (Exception ex2) {
-                                Console.WriteLine($"[App] Error in fallback window creation: {ex2.Message}");
-                            }
-                        });
+                        Console.WriteLine($"[App] Error in FileService.InitializeTopLevel: {ex.Message}");
                     }
-                });
+                }
 
                 if (OperatingSystem.IsWindows()) {
                     Console.WriteLine("[App] OperatingSystem is Windows. Setting up FileAssociationService.");

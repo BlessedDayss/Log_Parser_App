@@ -659,9 +659,9 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <TabControl Grid.Column="0" SelectedIndex="{Binding MainView.SelectedTabIndex}">
-                        <TabItem Header="">
+
+                        <TabItem Header="📊 Logs">
                             <Grid RowDefinitions="Auto, Auto, *">
-                                <!-- Region for Standard Log Filters -->
                                 <StackPanel IsVisible="{Binding MainView.SelectedTab.IsThisTabStandard}" Grid.Row="0" Grid.RowSpan="2"> 
                                     <!-- Row 0 for Filter Buttons -->
                                     <Grid VerticalAlignment="Center" Margin="8,8,8,8">
