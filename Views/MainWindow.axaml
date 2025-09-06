@@ -662,211 +662,74 @@
 
                         <TabItem Header="📊 Logs">
                             <Grid RowDefinitions="Auto, Auto, *">
-                                <StackPanel IsVisible="{Binding MainView.SelectedTab.IsThisTabStandard}" Grid.Row="0" Grid.RowSpan="2"> 
-                                    <!-- Row 0 for Filter Buttons -->
-                                    <Grid VerticalAlignment="Center" Margin="8,8,8,8">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <Button Grid.Column="0" Content="+ Add Filter" Classes="add-button" Click="OnAddFilterClick" 
-                                                Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
-                                        <Button Grid.Column="1" Content="Apply Filters" Classes="apply-filters-button" Click="OnApplyFiltersClick" 
-                                                Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
-                                        <Button Grid.Column="2" Content="Reset Filters" Classes="reset-filters-button" Click="OnResetFiltersClick" 
-                                                Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
-                                    </Grid>
-                                    <!-- Row 1 for Filter Criteria ItemsControl -->
-                                    <ItemsControl ItemsSource="{Binding MainView.SelectedTab.FilterCriteria}" Margin="8,0,8,8">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <StackPanel Orientation="Vertical" Spacing="6" />
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="models1:FilterCriterion">
-                                                <Border Background="#2D2E32" CornerRadius="6" Padding="12 8">
-                                                    <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" VerticalAlignment="Center">
-                                                        <ComboBox Grid.Column="0"
-                                                                  ItemsSource="{Binding AvailableFields}"
-                                                                  SelectedItem="{Binding SelectedField}"
-                                                                  MinWidth="150"
-                                                                  Margin="0,0,5,0"/>
-                                                        <ComboBox Grid.Column="1"
-                                                                  ItemsSource="{Binding AvailableOperators}"
-                                                                  SelectedItem="{Binding SelectedOperator}"
-                                                                  MinWidth="100"
-                                                                  Margin="0,0,5,0"/>
-                                                        <Panel Grid.Column="2" Margin="0,0,5,0">
-                                                            <ComboBox IsVisible="{Binding ShowValueComboBox}"
-                                                                      ItemsSource="{Binding AvailableValues}"
-                                                                      SelectedItem="{Binding Value}"
-                                                                      PlaceholderText="Select a value"
-                                                                      MinWidth="150"/>
-                                                            <TextBox IsVisible="{Binding !ShowValueComboBox}"
-                                                                     Text="{Binding Value}"
-                                                                     Watermark="Value"
-                                                                     MinWidth="150"/>
-                                                        </Panel>
-                                                        <Button Grid.Column="3" 
-                                                                Classes="remove-button" 
-                                                                Command="{Binding ParentViewModel.RemoveFilterCriterionCommand}" 
-                                                                CommandParameter="{Binding}"
-                                                                Padding="0" Margin="5,0,0,0">
-                                                            <TextBlock Text="🗑️" FontSize="14"/>
-                                                        </Button>
-                                                    </Grid>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </StackPanel> 
+                                <!-- Unified Buttons Row -->
+                                <Grid Grid.Row="0" VerticalAlignment="Center" Margin="8,8,8,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" Content="+ Add Filter" Classes="add-button" Click="OnAddUnifiedFilterClick"
+                                            Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
+                                    <Button Grid.Column="1" Content="Apply Filters" Classes="apply-filters-button" Click="OnApplyUnifiedFiltersClick"
+                                            Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
+                                    <Button Grid.Column="2" Content="Reset Filters" Classes="reset-filters-button" Click="OnResetUnifiedFiltersClick"
+                                            Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
+                                </Grid>
 
-                                <!-- Region for IIS Log Filters -->
-                                <StackPanel IsVisible="{Binding MainView.SelectedTab.IsThisTabIIS}" Grid.Row="0" Grid.RowSpan="2"> 
-                                    <!-- Row 0 for IIS Filter Buttons -->
-                                    <Grid VerticalAlignment="Center" Margin="8,8,8,8">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <Button Grid.Column="0" Content="+ Add IIS Filter" Classes="add-button" Click="OnAddIISFilterClick" 
-                                                Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
-                                        <Button Grid.Column="1" Content="Apply IIS Filters" Classes="apply-filters-button" Click="OnApplyIISFiltersClick" 
-                                                Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
-                                        <Button Grid.Column="2" Content="Reset IIS Filters" Classes="reset-filters-button" Click="OnResetIISFiltersClick" 
-                                                Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
-                                        <CheckBox Grid.Column="3" 
-                                                  Content="Use OR logic" 
-                                                  IsChecked="{Binding MainView.SelectedTab.UseOrLogicForIISFilters}"
-                                                  Margin="10,0,10,0"
-                                                  VerticalAlignment="Center"
-                                                  ToolTip.Tip="If checked, any filter can match (OR). If unchecked, all filters must match (AND)"/>
-                                        <CheckBox Grid.Column="4" 
-                                                  Content="Show errors only" 
-                                                  IsChecked="{Binding MainView.SelectedTab.IsIISErrorsOnly}"
-                                                  Margin="10,0,0,0"
-                                                  VerticalAlignment="Center"/>
-                                    </Grid>
+                                <!-- Criteria row per type (only one visible) -->
+                                <ItemsControl Grid.Row="1" IsVisible="{Binding MainView.SelectedTab.IsThisTabStandardOrRabbitMQ}" ItemsSource="{Binding MainView.SelectedTab.FilterCriteria}" Margin="8,0,8,8">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Vertical" Spacing="6" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="models1:FilterCriterion">
+                                            <Border Background="#2D2E32" CornerRadius="6" Padding="12 8">
+                                                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" VerticalAlignment="Center">
+                                                    <ComboBox Grid.Column="0" ItemsSource="{Binding AvailableFields}" SelectedItem="{Binding SelectedField}" MinWidth="150" Margin="0,0,5,0"/>
+                                                    <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableOperators}" SelectedItem="{Binding SelectedOperator}" MinWidth="100" Margin="0,0,5,0"/>
+                                                    <Panel Grid.Column="2" Margin="0,0,5,0">
+                                                        <ComboBox IsVisible="{Binding ShowValueComboBox}" ItemsSource="{Binding AvailableValues}" SelectedItem="{Binding Value}" PlaceholderText="Select a value" MinWidth="150"/>
+                                                        <TextBox IsVisible="{Binding !ShowValueComboBox}" Text="{Binding Value}" Watermark="Value" MinWidth="150"/>
+                                                    </Panel>
+                                                    <Button Grid.Column="3" Classes="remove-button" Command="{Binding ParentViewModel.RemoveFilterCriterionCommand}" CommandParameter="{Binding}" Padding="0" Margin="5,0,0,0">
+                                                        <TextBlock Text="🗑️" FontSize="14"/>
+                                                    </Button>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
 
-                                    <!-- Row 1 for IIS Filter Criteria ItemsControl -->
-                                    <ItemsControl ItemsSource="{Binding MainView.SelectedTab.IISFilterCriteria}" Margin="8,0,8,8">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <StackPanel Orientation="Vertical" Spacing="6" />
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="models1:IISFilterCriterion">
-                                                <Border Background="#2D2E32" CornerRadius="6" Padding="12 8">
-                                                    <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" VerticalAlignment="Center">
-                                                        <ComboBox Grid.Column="0"
-                                                                  ItemsSource="{Binding AvailableFields}" 
-                                                                  SelectedItem="{Binding SelectedField}"
-                                                                  MinWidth="150"
-                                                                  Margin="0,0,5,0"/>
-                                                        <ComboBox Grid.Column="1"
-                                                                  ItemsSource="{Binding AvailableOperators}"
-                                                                  SelectedItem="{Binding SelectedOperator}"
-                                                                  MinWidth="100"
-                                                                  Margin="0,0,5,0"/>
-                                                        <Panel Grid.Column="2" Margin="0,0,5,0">
-                                                            <ComboBox IsVisible="{Binding ShowValueComboBox}"
-                                                                      ItemsSource="{Binding AvailableValues}"
-                                                                      SelectedItem="{Binding Value}"
-                                                                      PlaceholderText="Select a value"
-                                                                      MinWidth="150"/>
-                                                            <TextBox IsVisible="{Binding ShowTextBox}"
-                                                                     Text="{Binding ManualValue}"
-                                                                     Watermark="Enter value manually"
-                                                                     MinWidth="150"/>
-                                                        </Panel>
-                                                        <CheckBox Grid.Column="3"
-                                                                  IsChecked="{Binding UseManualInput}"
-                                                                  Content="Manual"
-                                                                  Margin="5,0,5,0"
-                                                                  ToolTip.Tip="Enable manual input"/>
-                                                        <Button Grid.Column="4" 
-                                                                Classes="remove-button" 
-                                                                Command="{Binding ParentViewModel.RemoveIISFilterCriterionCommand}" 
-                                                                CommandParameter="{Binding}"
-                                                                Padding="0" Margin="5,0,0,0">
-                                                            <TextBlock Text="🗑️" FontSize="14"/>
-                                                        </Button>
-                                                    </Grid>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </StackPanel>
+                                <ItemsControl Grid.Row="1" IsVisible="{Binding MainView.SelectedTab.IsThisTabIIS}" ItemsSource="{Binding MainView.SelectedTab.IISFilterCriteria}" Margin="8,0,8,8">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Vertical" Spacing="6" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="models1:IISFilterCriterion">
+                                            <Border Background="#2D2E32" CornerRadius="6" Padding="12 8">
+                                                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" VerticalAlignment="Center">
+                                                    <ComboBox Grid.Column="0" ItemsSource="{Binding AvailableFields}" SelectedItem="{Binding SelectedField}" MinWidth="150" Margin="0,0,5,0"/>
+                                                    <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableOperators}" SelectedItem="{Binding SelectedOperator}" MinWidth="100" Margin="0,0,5,0"/>
+                                                    <Panel Grid.Column="2" Margin="0,0,5,0">
+                                                        <ComboBox IsVisible="{Binding ShowValueComboBox}" ItemsSource="{Binding AvailableValues}" SelectedItem="{Binding Value}" PlaceholderText="Select a value" MinWidth="150"/>
+                                                        <TextBox IsVisible="{Binding ShowTextBox}" Text="{Binding ManualValue}" Watermark="Enter value manually" MinWidth="150"/>
+                                                    </Panel>
+                                                    <CheckBox Grid.Column="3" IsChecked="{Binding UseManualInput}" Content="Manual" Margin="5,0,5,0"/>
+                                                    <Button Grid.Column="4" Classes="remove-button" Command="{Binding ParentViewModel.RemoveIISFilterCriterionCommand}" CommandParameter="{Binding}" Padding="0" Margin="5,0,0,0">
+                                                        <TextBlock Text="🗑️" FontSize="14"/>
+                                                    </Button>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
 
-                                <!-- Region for RabbitMQ Log Filters -->
-                                <StackPanel IsVisible="{Binding MainView.SelectedTab.IsThisTabRabbitMQ}" Grid.Row="0" Grid.RowSpan="2"> 
-                                    <!-- Row 0 for RabbitMQ Filter Buttons -->
-                                    <Grid VerticalAlignment="Center" Margin="8,8,8,8">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <Button Grid.Column="0" Content="+ Add RabbitMQ Filter" Classes="add-button" Click="OnAddRabbitMQFilterClick" 
-                                                Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
-                                        <Button Grid.Column="1" Content="Apply RabbitMQ Filters" Classes="apply-filters-button" Click="OnApplyRabbitMQFiltersClick" 
-                                                Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
-                                        <Button Grid.Column="2" Content="Reset RabbitMQ Filters" Classes="reset-filters-button" Click="OnResetRabbitMQFiltersClick" 
-                                                Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
-                                    </Grid>
-                                    <!-- Row 1 for RabbitMQ Filter Criteria ItemsControl -->
-                                    <ItemsControl ItemsSource="{Binding MainView.SelectedTab.RabbitMQFilterCriteria}" Margin="8,0,8,8">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <StackPanel Orientation="Vertical" Spacing="6" />
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="models1:FilterCriterion">
-                                                <Border Background="#2D2E32" CornerRadius="6" Padding="12 8">
-                                                    <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" VerticalAlignment="Center">
-                                                        <ComboBox Grid.Column="0"
-                                                                  ItemsSource="{Binding AvailableFields}"
-                                                                  SelectedItem="{Binding SelectedField}"
-                                                                  MinWidth="150"
-                                                                  Margin="0,0,5,0"/>
-                                                        <ComboBox Grid.Column="1"
-                                                                  ItemsSource="{Binding AvailableOperators}"
-                                                                  SelectedItem="{Binding SelectedOperator}"
-                                                                  MinWidth="100"
-                                                                  Margin="0,0,5,0"/>
-                                                        <Panel Grid.Column="2" Margin="0,0,5,0">
-                                                            <ComboBox IsVisible="{Binding ShowValueComboBox}"
-                                                                      ItemsSource="{Binding AvailableValues}"
-                                                                      SelectedItem="{Binding Value}"
-                                                                      PlaceholderText="Select a value"
-                                                                      MinWidth="150"/>
-                                                            <TextBox IsVisible="{Binding !ShowValueComboBox}"
-                                                                     Text="{Binding Value}"
-                                                                     Watermark="Value"
-                                                                     MinWidth="150"/>
-                                                        </Panel>
-                                                        <Button Grid.Column="3" 
-                                                                Classes="remove-button" 
-                                                                Command="{Binding ParentViewModel.RemoveRabbitMQFilterCriterionCommand}" 
-                                                                CommandParameter="{Binding}"
-                                                                Padding="0" Margin="5,0,0,0">
-                                                            <TextBlock Text="🗑️" FontSize="14"/>
-                                                        </Button>
-                                                    </Grid>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </StackPanel>
-
-                                <!-- Row 2 for DataGrid -->
+                                <!-- Data region stays the same below -->
                                 <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                                     <Grid DataContext="{Binding MainView}">
                                         <!-- Standard LogEntry Custom Table -->

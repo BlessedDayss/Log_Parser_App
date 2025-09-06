@@ -42,7 +42,6 @@ namespace Log_Parser_App.Views
         }
 
 
-
         private void LogEntryRow_Tapped(object? sender, Avalonia.Input.TappedEventArgs e) {
             if (sender is DataGrid dataGrid && dataGrid.SelectedItem is Log_Parser_App.Models.LogEntry entry) {
                 var now = DateTime.Now;
@@ -82,6 +81,34 @@ namespace Log_Parser_App.Views
                         Console.WriteLine($"Failed to open file '{tabViewModel.FilePath}': {ex.Message}");
                     }
                 }
+            }
+        }
+
+        // Unified filter handlers
+        public void OnAddUnifiedFilterClick(object? sender, RoutedEventArgs e) {
+            if (DataContext is MainWindowViewModel vm && vm.MainView?.SelectedTab != null) {
+                var tab = vm.MainView.SelectedTab;
+                if (tab.IsThisTabIIS) tab.AddIISFilterCriterionCommand?.Execute(null);
+                else if (tab.IsThisTabRabbitMQ) tab.AddRabbitMQFilterCriterionCommand?.Execute(null);
+                else tab.AddFilterCriteriaCommand?.Execute(null);
+            }
+        }
+
+        public void OnApplyUnifiedFiltersClick(object? sender, RoutedEventArgs e) {
+            if (DataContext is MainWindowViewModel vm && vm.MainView?.SelectedTab != null) {
+                var tab = vm.MainView.SelectedTab;
+                if (tab.IsThisTabIIS) tab.ApplyIISFiltersCommand?.Execute(null);
+                else if (tab.IsThisTabRabbitMQ) tab.ApplyRabbitMQFiltersCommand?.Execute(null);
+                else tab.ApplyFiltersCommand?.Execute(null);
+            }
+        }
+
+        public void OnResetUnifiedFiltersClick(object? sender, RoutedEventArgs e) {
+            if (DataContext is MainWindowViewModel vm && vm.MainView?.SelectedTab != null) {
+                var tab = vm.MainView.SelectedTab;
+                if (tab.IsThisTabIIS) tab.ResetIISFiltersCommand?.Execute(null);
+                else if (tab.IsThisTabRabbitMQ) tab.ResetRabbitMQFiltersCommand?.Execute(null);
+                else tab.ResetFiltersCommand?.Execute(null);
             }
         }
 
@@ -140,7 +167,6 @@ namespace Log_Parser_App.Views
         }
 
 
-
         private void MainWindow_Opened(object? sender, EventArgs e) {
             _mainContentGrid = this.Find<Grid>("MainContentGrid");
 
@@ -149,7 +175,7 @@ namespace Log_Parser_App.Views
             }
         }
 
-        private void FileTabs_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) {
+        private void FileTabs_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) {
             if (DataContext is MainWindowViewModel viewModel) {
                 UpdateContentVisibility(viewModel.MainView.FileTabs.Count);
             }
