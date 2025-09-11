@@ -1,0 +1,36 @@
+[
+  {
+    "contains": "Error while saving the metadata of application",
+    "extract": "metadata of application (.+?) from packages '(.+?)' into DB.*Package with UId: ([a-f0-9-]+) is not found",
+    "message": "Package {2} has non-existent dependency. App: {1}, Missing UId: {3}",
+    "fix": "Check app-descriptor of package {2} and remove invalid UId {3} dependency"
+  },
+  {
+    "contains": "Dependent package",
+    "extract": "\"(.+?)\" not found",
+    "message": "Missing package {1}",
+    "fix": "Install package {1} or remove dependency"
+  },
+  {
+    "contains": "dotnet cli",
+    "message": "Dotnet CLI execution error",
+    "fix": "Check .NET SDK installation and PATH variable"
+  },
+  {
+    "contains": "CultureId =",
+    "extract": "CultureId = ([a-f0-9-]+)",
+    "message": "Invalid culture {1}",
+    "fix": "Check if culture {1} exists in system"
+  },
+  {
+    "contains": "Version conflict",
+    "extract": "for '(.+?)'",
+    "message": "Version conflict for {1}",
+    "fix": "Update {1} to compatible version"
+  },
+  {
+    "contains": "Access denied",
+    "message": "Permission error",
+    "fix": "Run as administrator or check file permissions"
+  }
+] 

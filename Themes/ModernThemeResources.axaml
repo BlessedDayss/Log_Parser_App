@@ -1,0 +1,142 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
+    <!-- Theme Dictionaries for Light/Dark variants -->
+    <ResourceDictionary.ThemeDictionaries>
+        
+        <!-- Light Theme -->
+        <ResourceDictionary x:Key="Light">
+            <!-- Primary Colors -->
+            <Color x:Key="PrimaryColor">#2563EB</Color>
+            <Color x:Key="PrimaryLightColor">#3B82F6</Color>
+            <Color x:Key="PrimaryDarkColor">#1E40AF</Color>
+            
+            <!-- Surface Colors -->
+            <Color x:Key="SurfaceColor">#FFFFFF</Color>
+            <Color x:Key="SurfaceVariantColor">#F8FAFC</Color>
+            <Color x:Key="BackgroundColor">#F1F5F9</Color>
+            
+            <!-- Text Colors -->
+            <Color x:Key="OnSurfaceColor">#1E293B</Color>
+            <Color x:Key="OnSurfaceVariantColor">#64748B</Color>
+            <Color x:Key="OnBackgroundColor">#0F172A</Color>
+            
+            <!-- Accent Colors -->
+            <Color x:Key="AccentColor">#3B82F6</Color>
+            <Color x:Key="SuccessColor">#10B981</Color>
+            <Color x:Key="WarningColor">#F59E0B</Color>
+            <Color x:Key="ErrorColor">#EF4444</Color>
+            
+            <!-- Glass Effect Colors -->
+            <Color x:Key="GlassColor">#F8FAFC80</Color>
+            <Color x:Key="GlassBorderColor">#E2E8F020</Color>
+            
+            <!-- Border Colors -->
+            <Color x:Key="BorderColor">#E2E8F0</Color>
+            <Color x:Key="BorderVariantColor">#CBD5E1</Color>
+        </ResourceDictionary>
+        
+        <!-- Dark Theme -->
+        <ResourceDictionary x:Key="Dark">
+            <!-- Primary Colors -->
+            <Color x:Key="PrimaryColor">#3B82F6</Color>
+            <Color x:Key="PrimaryLightColor">#60A5FA</Color>
+            <Color x:Key="PrimaryDarkColor">#2563EB</Color>
+            
+            <!-- Surface Colors -->
+            <Color x:Key="SurfaceColor">#1E293B</Color>
+            <Color x:Key="SurfaceVariantColor">#334155</Color>
+            <Color x:Key="BackgroundColor">#0F172A</Color>
+            
+            <!-- Text Colors -->
+            <Color x:Key="OnSurfaceColor">#F1F5F9</Color>
+            <Color x:Key="OnSurfaceVariantColor">#94A3B8</Color>
+            <Color x:Key="OnBackgroundColor">#E2E8F0</Color>
+            
+            <!-- Accent Colors -->
+            <Color x:Key="AccentColor">#60A5FA</Color>
+            <Color x:Key="SuccessColor">#34D399</Color>
+            <Color x:Key="WarningColor">#FBBF24</Color>
+            <Color x:Key="ErrorColor">#F87171</Color>
+            
+            <!-- Glass Effect Colors -->
+            <Color x:Key="GlassColor">#1E293B80</Color>
+            <Color x:Key="GlassBorderColor">#33415520</Color>
+            
+            <!-- Border Colors -->
+            <Color x:Key="BorderColor">#374151</Color>
+            <Color x:Key="BorderVariantColor">#4B5563</Color>
+        </ResourceDictionary>
+        
+    </ResourceDictionary.ThemeDictionaries>
+    
+    <!-- Brushes (Theme-aware) -->
+    <SolidColorBrush x:Key="PrimaryBrush" Color="{DynamicResource PrimaryColor}" />
+    <SolidColorBrush x:Key="PrimaryLightBrush" Color="{DynamicResource PrimaryLightColor}" />
+    <SolidColorBrush x:Key="PrimaryDarkBrush" Color="{DynamicResource PrimaryDarkColor}" />
+    
+    <SolidColorBrush x:Key="SurfaceBrush" Color="{DynamicResource SurfaceColor}" />
+    <SolidColorBrush x:Key="SurfaceVariantBrush" Color="{DynamicResource SurfaceVariantColor}" />
+    <SolidColorBrush x:Key="BackgroundBrush" Color="{DynamicResource BackgroundColor}" />
+    
+    <SolidColorBrush x:Key="OnSurfaceBrush" Color="{DynamicResource OnSurfaceColor}" />
+    <SolidColorBrush x:Key="OnSurfaceVariantBrush" Color="{DynamicResource OnSurfaceVariantColor}" />
+    <SolidColorBrush x:Key="OnBackgroundBrush" Color="{DynamicResource OnBackgroundColor}" />
+    
+    <SolidColorBrush x:Key="AccentBrush" Color="{DynamicResource AccentColor}" />
+    <SolidColorBrush x:Key="SuccessBrush" Color="{DynamicResource SuccessColor}" />
+    <SolidColorBrush x:Key="WarningBrush" Color="{DynamicResource WarningColor}" />
+    <SolidColorBrush x:Key="ErrorBrush" Color="{DynamicResource ErrorColor}" />
+    
+    <!-- Glass Effect Brushes -->
+    <SolidColorBrush x:Key="GlassBrush" Color="{DynamicResource GlassColor}" />
+    <SolidColorBrush x:Key="GlassBorderBrush" Color="{DynamicResource GlassBorderColor}" />
+    
+    <!-- Border Brushes -->
+    <SolidColorBrush x:Key="BorderBrush" Color="{DynamicResource BorderColor}" />
+    <SolidColorBrush x:Key="BorderVariantBrush" Color="{DynamicResource BorderVariantColor}" />
+    
+    <!-- Gradients -->
+    <LinearGradientBrush x:Key="PrimaryGradientBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="{DynamicResource PrimaryColor}" Offset="0" />
+        <GradientStop Color="{DynamicResource PrimaryLightColor}" Offset="1" />
+    </LinearGradientBrush>
+    
+    <LinearGradientBrush x:Key="SurfaceGradientBrush" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="{DynamicResource SurfaceColor}" Offset="0" />
+        <GradientStop Color="{DynamicResource SurfaceVariantColor}" Offset="1" />
+    </LinearGradientBrush>
+    
+    <!-- Typography Resources -->
+    <FontFamily x:Key="PrimaryFontFamily">Segoe UI, Arial, sans-serif</FontFamily>
+    <FontFamily x:Key="MonospaceFontFamily">Consolas, Monaco, monospace</FontFamily>
+    
+    <!-- Font Sizes -->
+    <x:Double x:Key="DisplayFontSize">32</x:Double>
+    <x:Double x:Key="HeadlineFontSize">24</x:Double>
+    <x:Double x:Key="TitleFontSize">20</x:Double>
+    <x:Double x:Key="BodyFontSize">16</x:Double>
+    <x:Double x:Key="CaptionFontSize">14</x:Double>
+    <x:Double x:Key="LabelFontSize">12</x:Double>
+    
+    <!-- Spacing System (8px Grid) -->
+    <Thickness x:Key="SpacingXS">4</Thickness>
+    <Thickness x:Key="SpacingSM">8</Thickness>
+    <Thickness x:Key="SpacingMD">16</Thickness>
+    <Thickness x:Key="SpacingLG">24</Thickness>
+    <Thickness x:Key="SpacingXL">32</Thickness>
+    <Thickness x:Key="Spacing2XL">48</Thickness>
+    
+    <!-- Corner Radius -->
+    <CornerRadius x:Key="SmallCornerRadius">4</CornerRadius>
+    <CornerRadius x:Key="MediumCornerRadius">8</CornerRadius>
+    <CornerRadius x:Key="LargeCornerRadius">12</CornerRadius>
+    <CornerRadius x:Key="ExtraLargeCornerRadius">16</CornerRadius>
+    
+    <!-- Shadows -->
+    <BoxShadows x:Key="SmallShadow">0 1 3 0 #00000012, 0 1 2 0 #00000024</BoxShadows>
+    <BoxShadows x:Key="MediumShadow">0 4 6 -1 #00000010, 0 2 4 -1 #00000006</BoxShadows>
+    <BoxShadows x:Key="LargeShadow">0 10 15 -3 #00000010, 0 4 6 -2 #00000005</BoxShadows>
+    <BoxShadows x:Key="ExtraLargeShadow">0 20 25 -5 #00000010, 0 10 10 -5 #00000004</BoxShadows>
+    
+</ResourceDictionary> 
