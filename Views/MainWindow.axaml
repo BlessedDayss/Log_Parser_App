@@ -1,0 +1,1191 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Log_Parser_App.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:converters="clr-namespace:Log_Parser_App.Converters"
+        xmlns:models1="clr-namespace:Log_Parser_App.Models"
+        xmlns:analytics="clr-namespace:Log_Parser_App.Models.Analytics"
+        xmlns:views="clr-namespace:Log_Parser_App.Views"
+        xmlns:dataGrid="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.DataGrid"
+        xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
+        xmlns:lvccore="using:LiveChartsCore"
+        xmlns:lvcskt="using:LiveChartsCore.SkiaSharpView"
+        xmlns:lvcskia="using:LiveChartsCore.SkiaSharpView.Painting"
+        xmlns:conv="clr-namespace:Log_Parser_App.Converters"
+        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="750"
+        x:Class="Log_Parser_App.Views.MainWindow"
+        x:Name="mainWindowInstance"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/logparserv1.ico"
+        Title="LogParser - Log Analyzer"
+        MinWidth="950" MinHeight="650"
+        Background="#1A1C21"
+        ExtendClientAreaToDecorationsHint="True">
+
+    <Window.Resources>
+        <converters:BoolToTabColorConverter x:Key="BoolToTabColorConverter" />
+        <converters:TabToVisibilityConverter x:Key="TabToVisibilityConv" />
+        <conv:StringShortenerConverter x:Key="StringShortenerConverter" />
+        <converters:LogLevelToBrushConverter x:Key="LogLevelToBrushConverter" />
+        <converters:StringToUpperConverter x:Key="StringToUpperConverter" />
+        <converters:BooleanTextSelector x:Key="BooleanTextSelector" />
+        
+        <!-- Color/Brush Resources -->
+        <SolidColorBrush x:Key="BackgroundBrush" Color="#1A1C21" />
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#22252D" />
+        <SolidColorBrush x:Key="PrimaryBrush" Color="#4E72C8" />
+        <SolidColorBrush x:Key="SecondaryBrush" Color="#5D6B8E" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#5C80BC" />
+        <SolidColorBrush x:Key="TextBrush" Color="#F5F5F7" />
+        <SolidColorBrush x:Key="ErrorBrush" Color="#E74C3C" />
+        <SolidColorBrush x:Key="WarningBrush" Color="#F39C12" />
+        <SolidColorBrush x:Key="InfoBrush" Color="#3498DB" />
+        <SolidColorBrush x:Key="SuccessBrush" Color="#2ECC71" />
+    </Window.Resources>
+
+    <Window.Styles>
+        <Style Selector="Button.icon-button">
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="8" />
+            <Setter Property="Margin" Value="4" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0.2" />
+                    <BrushTransition Property="Background" Duration="0.2" />
+                    <BrushTransition Property="Foreground" Duration="0.2" />
+                </Transitions>
+            </Setter>
+            <Style Selector="^:pointerover">
+                <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+                <Setter Property="Foreground" Value="#ffffff" />
+                <Setter Property="RenderTransform" Value="scale(1.05)" />
+            </Style>
+            <Style Selector="^:pressed">
+                <Setter Property="RenderTransform" Value="scale(0.95)" />
+            </Style>
+        </Style>
+        
+        <Style Selector="ListBox">
+            <Setter Property="Margin" Value="8" />
+            <Setter Property="Background" Value="#2D2E32" />
+            <Setter Property="Foreground" Value="#E0E0E0" />
+        </Style>
+        
+        <Style Selector="ListBoxItem">
+            <Setter Property="Background" Value="#2D2E32" />
+            <Setter Property="Foreground" Value="#E0E0E0" />
+            <Setter Property="Padding" Value="8" />
+            <Style Selector="^:nth-child(odd)">
+                <Setter Property="Background" Value="#262729" />
+            </Style>
+            <Style Selector="^:pointerover">
+                <Setter Property="Background" Value="#3D3E42" />
+            </Style>
+            <Style Selector="^:selected">
+                <Setter Property="Background" Value="#4A4C53" />
+            </Style>
+        </Style>
+        
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="#22252D" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="BoxShadow" Value="0 4 16 0 #15000000" />
+            <Setter Property="Margin" Value="10" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BoxShadowsTransition Property="BoxShadow" Duration="0.2" />
+                    <ThicknessTransition Property="Margin" Duration="0.2" />
+                </Transitions>
+            </Setter>
+        </Style>
+        
+        <Style Selector="Border.card:pointerover">
+            <Setter Property="BoxShadow" Value="0 6 20 0 #20000000" />
+            <Setter Property="Margin" Value="8 6 12 14" />
+        </Style>
+        
+        <Style Selector="Button">
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Padding" Value="16 10" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0.15" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0.15" />
+                </Transitions>
+            </Setter>
+            <Style Selector="^:pointerover">
+                <Setter Property="Background" Value="#5A80D3" />
+                <Setter Property="RenderTransform" Value="scale(1.02)" />
+            </Style>
+            <Style Selector="^:pressed">
+                <Setter Property="RenderTransform" Value="scale(0.98)" />
+            </Style>
+        </Style>
+        
+        <Style Selector="Button.remove-button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#A0A0A0" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="8 0 0 0" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0.15"/>
+                    <BrushTransition Property="Foreground" Duration="0.15"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        
+        <Style Selector="Button.remove-button:pointerover">
+            <Setter Property="Background" Value="#4E3636" />
+            <Setter Property="Foreground" Value="#F15B5B" />
+        </Style>
+        
+        <Style Selector="Button.add-button">
+            <Setter Property="Background" Value="#357538" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Padding" Value="12 8" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0.15"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0.15" />
+                </Transitions>
+            </Setter>
+        </Style>
+        
+        <Style Selector="Button.add-button:pointerover">
+            <Setter Property="Background" Value="#4CAF50" />
+            <Setter Property="RenderTransform" Value="scale(1.02)" />
+        </Style>
+        
+        <Style Selector="Button.apply-filters-button">
+            <Setter Property="Background" Value="#4e72c8" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Padding" Value="12 8" />
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0.15"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0.15" />
+                </Transitions>
+            </Setter>
+        </Style>
+        
+        <Style Selector="Button.apply-filters-button:pointerover">
+            <Setter Property="Background" Value="#5a80d3" />
+            <Setter Property="RenderTransform" Value="scale(1.02)" />
+        </Style>
+        
+        <Style Selector="Button.reset-filters-button">
+            <Setter Property="Background" Value="#7c8694" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Padding" Value="12 8" />
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0.15"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0.15" />
+                </Transitions>
+            </Setter>
+        </Style>
+        
+        <Style Selector="Button.reset-filters-button:pointerover">
+            <Setter Property="Background" Value="#8d98a6" />
+            <Setter Property="RenderTransform" Value="scale(1.02)" />
+        </Style>
+
+
+        
+        <Style Selector="Button.apply-button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#A0A0A0" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0.15"/>
+                    <BrushTransition Property="Foreground" Duration="0.15"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        
+        <Style Selector="Button.apply-button:pointerover">
+            <Setter Property="Background" Value="#36544E" />
+            <Setter Property="Foreground" Value="#5BF15B" />
+        </Style>
+        
+        <Style Selector="Button.icon-button-small">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="2" />
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0.15"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        
+        <Style Selector="Button.icon-button-small:pointerover">
+            <Setter Property="Background" Value="#444444" />
+        </Style>
+    </Window.Styles>
+
+    <Panel>
+        <Grid Margin="0,30,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            
+            <Border Grid.Row="0" 
+                    Padding="16 8" 
+                    Background="#262729"
+                    Margin="0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                        <Button Classes="icon-button" 
+                                ToolTip.Tip="File options"
+                                Command="{Binding MainView.ShowFilePickerContextMenuCommand}">
+                            <TextBlock Text="📁" FontSize="18" />
+                        </Button>
+
+                        <Button Classes="icon-button" 
+                                ToolTip.Tip="IIS Logs Analysis"
+                                Command="{Binding MainView.LoadIISLogsCommand}">
+                            <TextBlock Text="🖥️" FontSize="18" />
+                        </Button>
+                        <Button Classes="icon-button" 
+                                ToolTip.Tip="RabbitMQ Logs Analysis"
+                                Command="{Binding MainView.LoadRabbitMqLogsCommand}">
+                            <TextBlock Text="🐰" FontSize="18" />
+                        </Button>
+                    </StackPanel>
+
+                    <Grid Grid.Column="1">
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" 
+                                     VerticalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding MainView.FileTabs}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Background="{Binding IsSelected, Converter={StaticResource BoolToTabColorConverter}}"
+                                                Padding="10 5" 
+                                                Margin="0 0 2 0" 
+                                                CornerRadius="4 4 0 0"
+                                                BorderThickness="0"
+                                                Click="SelectTab"
+                                                DoubleTapped="Tab_DoubleTapped"
+                                                CommandParameter="{Binding}">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" 
+                                                           Text="{Binding Title}" 
+                                                           VerticalAlignment="Center"
+                                                           Margin="0 0 10 0"/>
+                                                <Button Grid.Column="1"
+                                                        Classes="icon-button-small"
+                                                        Click="CloseTab"
+                                                        CommandParameter="{Binding}">
+                                                    <TextBlock Text="✕" FontSize="10"/>
+                                                </Button>
+                                            </Grid>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                    
+                    <StackPanel Grid.Column="2" 
+                                Orientation="Horizontal" 
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Spacing="8">
+                        <!-- Export CSV Button for IIS only -->
+                        <Button Content="📊 Export CSV" 
+                                Classes="apply-filters-button" 
+                                Command="{Binding MainView.SelectedTab.ExportIisLogsToCsvCommand}"
+                                IsVisible="{Binding MainView.SelectedTab.IsThisTabIIS}"
+                                Padding="12,6" 
+                                FontSize="12" 
+                                MinHeight="32" 
+                                MinWidth="120"
+                                ToolTip.Tip="Export filtered IIS logs to CSV file"/>
+                        
+                        <TextBlock Text="{Binding MainView.FileStatus}" 
+                                   VerticalAlignment="Center" 
+                                   Margin="10 0 0 0"
+                                   Foreground="#CCCCCC"
+                                   FontSize="14" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+            
+            <Border Grid.Row="1" Margin="16,8,16,16" Padding="16" Background="#262729" CornerRadius="8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- Auto-Update Block -->
+                    <Border Grid.Column="0" Background="#1a3d1a" CornerRadius="8" Padding="8,4" Margin="2" 
+                            IsVisible="{Binding IsUpdateAvailable}">
+                        <StackPanel Spacing="6">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="4">
+                                <TextBlock Text="🔄" FontSize="14" VerticalAlignment="Center" />
+                                <TextBlock Text="Auto-Update" 
+                                       FontWeight="Bold" 
+                                           FontSize="12"
+                                       Foreground="White" 
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding AvailableUpdate.Version, StringFormat='v{0} available'}" 
+                                       Foreground="#90EE90" 
+                                       FontSize="11"
+                                       HorizontalAlignment="Center" />
+                            <TextBlock Text="Installing automatically..." 
+                                       Foreground="#AAAAAA" 
+                                       FontSize="10"
+                                       HorizontalAlignment="Center"
+                                       IsVisible="{Binding IsDownloadingUpdate}" />          
+                            <ProgressBar Value="{Binding DownloadProgress}" 
+                                         Maximum="100"
+                                         Height="4"
+                                         Background="#333333"
+                                         Foreground="#4CAF50"
+                                         IsVisible="{Binding IsDownloadingUpdate}" />
+                            <Button Content="Manual Install" 
+                                    Command="{Binding DownloadAndUpdateCommand}"
+                                    Background="#4CAF50"
+                                    Foreground="White"
+                                    Padding="8,3"
+                                    FontSize="10"
+                                    HorizontalAlignment="Stretch"
+                                    IsVisible="{Binding !IsDownloadingUpdate}" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Standard Dashboard Panels (for Standard logs only) -->
+                    <Border Grid.Column="0" Margin="2" Padding="8,4" Background="#382636" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabStandard}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🆔" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="PROCESS UID" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding MainView.UniqueProcessUIDCount}" FontSize="24" FontWeight="Bold" Margin="0,4,0,0" Foreground="#64F5A6" />
+                            <TextBlock Text="unique processes" FontSize="12" Opacity="0.7" Foreground="#DDDDDD" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="1" Margin="2" Padding="8,4" Background="#3A2626" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabStandard}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🔴" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="MESSAGE ERRORS" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding MainView.ErrorCount}" FontSize="24" FontWeight="Bold" Margin="0,4,0,0" Foreground="#F15B5B" />
+                            <TextBlock Text="{Binding MainView.TotalCount, StringFormat='/ {0} total'}" FontSize="12" Opacity="0.7" Foreground="#DDDDDD" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="2" Margin="2" Padding="8,4" Background="#3A3320" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabStandard}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🟠" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="WARNINGS" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding MainView.WarningCount}" FontSize="24" FontWeight="Bold" Margin="0,4,0,0" Foreground="#F9A825" />
+                            <TextBlock Text="{Binding MainView.WarningPercent, StringFormat={}{0:F1}%}" FontSize="14" Opacity="0.7" Foreground="#DDDDDD" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="3" Margin="2" Padding="8,4" Background="#263238" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabStandard}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🔵" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="INFORMATION" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding MainView.InfoCount}" FontSize="24" FontWeight="Bold" Margin="0,4,0,0" Foreground="#64B5F6" />
+                            <TextBlock Text="{Binding MainView.InfoPercent, StringFormat={}{0:F1}%}" FontSize="14" Opacity="0.7" Foreground="#DDDDDD" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- RabbitMQ Analytics Dashboard Panels (RDB-003) -->
+                    <Border Grid.Column="0" Margin="2" Padding="8,4" Background="#263238" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabRabbitMQ}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="👥" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="ACTIVE CONSUMERS" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding MainView.RabbitMQDashboard.ActiveConsumersCount}" FontSize="24" FontWeight="Bold" Margin="0,4,0,0" Foreground="#64F5A6" />
+                            <ItemsControl ItemsSource="{Binding MainView.RabbitMQDashboard.ActiveConsumers}" MaxHeight="40">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="analytics:ConsumerStatusInfo">
+                                        <TextBlock Text="{Binding DisplayText}" FontSize="10" Margin="0,1" Foreground="{Binding UIColor}"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ProgressBar IsVisible="{Binding MainView.RabbitMQDashboard.IsLoadingActiveConsumers}" 
+                                         Height="3" Background="#444" Foreground="#64F5A6" IsIndeterminate="True"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="1" Margin="2" Padding="8,4" Background="#382626" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabRabbitMQ}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🚨" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="CRITICAL ERRORS" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding MainView.RabbitMQDashboard.CriticalErrorsCount}" FontSize="24" FontWeight="Bold" Margin="0,4,0,0" Foreground="#F15B5B" />
+                            <ItemsControl ItemsSource="{Binding MainView.RabbitMQDashboard.RecentCriticalErrors}" MaxHeight="40">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="analytics:CriticalErrorInfo">
+                                        <TextBlock Text="{Binding DisplayText}" FontSize="10" Margin="0,1" Foreground="#F15B5B"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ProgressBar IsVisible="{Binding MainView.RabbitMQDashboard.IsLoadingCriticalErrors}" 
+                                         Height="3" Background="#444" Foreground="#F15B5B" IsIndeterminate="True"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="2" Margin="2" Padding="8,4" Background="#3A3320" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabRabbitMQ}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="⚠️" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="ACCOUNT ACTIVITY" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding MainView.RabbitMQDashboard.HighRiskAccountsCount}" FontSize="24" FontWeight="Bold" Margin="0,4,0,0" Foreground="#F9A825" />
+                            <ItemsControl ItemsSource="{Binding MainView.RabbitMQDashboard.AccountActivities}" MaxHeight="40">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="analytics:AccountActivityInfo">
+                                        <TextBlock Text="{Binding DisplayText}" FontSize="10" Margin="0,1" Foreground="{Binding UIColor}"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ProgressBar IsVisible="{Binding MainView.RabbitMQDashboard.IsLoadingAccountActivity}" 
+                                         Height="3" Background="#444" Foreground="#F9A825" IsIndeterminate="True"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="3" Margin="2" Padding="8,4" Background="#2A3A2A" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabRabbitMQ}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="⚡" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="INSIGHTS" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding MainView.RabbitMQDashboard.AnomaliesCount}" FontSize="24" FontWeight="Bold" Margin="0,4,0,0" Foreground="#4CAF50" />
+                            <ItemsControl ItemsSource="{Binding MainView.RabbitMQDashboard.AnomalyInsights}" MaxHeight="40">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="analytics:AnomalyInsightInfo">
+                                        <TextBlock Text="{Binding DisplayText}" FontSize="10" Margin="0,1" Foreground="#4CAF50"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ProgressBar IsVisible="{Binding MainView.RabbitMQDashboard.IsLoadingAnomalies}" 
+                                         Height="3" Background="#444" Foreground="#4CAF50" IsIndeterminate="True"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- IIS Dashboard Panels -->
+                    <Border Grid.Column="0" Margin="2" Padding="8,4" Background="#382626" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabIIS}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🔢" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="STATUS CODES" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <ItemsControl ItemsSource="{Binding MainView.Statistics.TopStatusCodes}" MaxHeight="60">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models1:IISStatusAnalysis">
+                                        <TextBlock FontSize="12" Margin="0,1" Foreground="#F15B5B">
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}{0} ({1})">
+                                                    <Binding Path="StatusCode"/>
+                                                    <Binding Path="Count"/>
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ProgressBar IsVisible="{Binding MainView.Statistics.IsProcessingAnalytics}" 
+                                         Value="{Binding MainView.Statistics.AnalyticsProgressPercent}" 
+                                         Height="4" Background="#444" Foreground="#F15B5B"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="1" Margin="2" Padding="8,4" Background="#3A3320" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabIIS}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="⏱️" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="LONGEST REQUEST" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <ItemsControl ItemsSource="{Binding MainView.Statistics.LongestRequests}" MaxHeight="60">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models1:IISLongestRequest">
+                                        <StackPanel Margin="0,1">
+                                            <TextBlock FontSize="11" Foreground="#F9A825" FontWeight="SemiBold">
+                                                <TextBlock.Text>
+                                                    <MultiBinding StringFormat="{}{0} - {1}ms">
+                                                        <Binding Path="UriStem"/>
+                                                        <Binding Path="TimeTaken"/>
+                                                    </MultiBinding>
+                                                </TextBlock.Text>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ProgressBar IsVisible="{Binding MainView.Statistics.IsProcessingAnalytics}" 
+                                         Value="{Binding MainView.Statistics.AnalyticsProgressPercent}" 
+                                         Height="4" Background="#444" Foreground="#F9A825"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="2" Margin="2" Padding="8,4" Background="#263238" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabIIS}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🔄" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="HTTP METHODS" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <ItemsControl ItemsSource="{Binding MainView.Statistics.HttpMethods}" MaxHeight="60">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models1:IISMethodDistribution">
+                                        <TextBlock Text="{Binding FormattedDisplay}" FontSize="12" Margin="0,1" Foreground="#64B5F6"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ProgressBar IsVisible="{Binding MainView.Statistics.IsProcessingAnalytics}" 
+                                         Value="{Binding MainView.Statistics.AnalyticsProgressPercent}" 
+                                         Height="4" Background="#444" Foreground="#64B5F6"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="3" Margin="2" Padding="8,4" Background="#2A2A2A" CornerRadius="6"
+                            IsVisible="{Binding MainView.SelectedTab.IsThisTabIIS}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="👥" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="TOP USERS" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <ItemsControl ItemsSource="{Binding MainView.Statistics.TopUsers}" MaxHeight="60">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models1:IISUserActivity">
+                                        <StackPanel Margin="0,1">
+                                            <TextBlock FontSize="11" Foreground="#BBBBBB" FontWeight="SemiBold">
+                                                <TextBlock.Text>
+                                                    <MultiBinding StringFormat="{}{0} - {1}">
+                                                        <Binding Path="DisplayName"/>
+                                                        <Binding Path="RequestCount"/>
+                                                    </MultiBinding>
+                                                </TextBlock.Text>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ProgressBar IsVisible="{Binding MainView.Statistics.IsProcessingAnalytics}" 
+                                         Value="{Binding MainView.Statistics.AnalyticsProgressPercent}" 
+                                         Height="4" Background="#444" Foreground="#BBBBBB"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+            
+            <Border Grid.Row="2" Margin="16,0,16,16" Background="#262729" CornerRadius="8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TabControl Grid.Column="0" SelectedIndex="{Binding MainView.SelectedTabIndex}">
+
+                        <TabItem Header="📊 Logs">
+                            <Grid RowDefinitions="Auto, Auto, *">
+                                <!-- Unified Buttons Row -->
+                                <Grid Grid.Row="0" VerticalAlignment="Center" Margin="8,8,8,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" Content="+ Add Filter" Classes="add-button" Click="OnAddUnifiedFilterClick"
+                                            Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
+                                    <Button Grid.Column="1" Content="Apply Filters" Classes="apply-filters-button" Click="OnApplyUnifiedFiltersClick"
+                                            Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
+                                    <Button Grid.Column="2" Content="Reset Filters" Classes="reset-filters-button" Click="OnResetUnifiedFiltersClick"
+                                            Padding="10,5" FontSize="12" MinHeight="32" Margin="2,0,2,0" HorizontalAlignment="Stretch" />
+                                </Grid>
+
+                                <!-- Criteria row per type (only one visible) -->
+                                <ItemsControl Grid.Row="1" IsVisible="{Binding MainView.SelectedTab.IsThisTabStandardOrRabbitMQ}" ItemsSource="{Binding MainView.SelectedTab.FilterCriteria}" Margin="8,0,8,8">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Vertical" Spacing="6" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="models1:FilterCriterion">
+                                            <Border Background="#2D2E32" CornerRadius="6" Padding="12 8">
+                                                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" VerticalAlignment="Center">
+                                                    <ComboBox Grid.Column="0" ItemsSource="{Binding AvailableFields}" SelectedItem="{Binding SelectedField}" MinWidth="150" Margin="0,0,5,0"/>
+                                                    <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableOperators}" SelectedItem="{Binding SelectedOperator}" MinWidth="100" Margin="0,0,5,0"/>
+                                                    <Panel Grid.Column="2" Margin="0,0,5,0">
+                                                        <ComboBox IsVisible="{Binding ShowValueComboBox}" ItemsSource="{Binding AvailableValues}" SelectedItem="{Binding Value}" PlaceholderText="Select a value" MinWidth="150"/>
+                                                        <TextBox IsVisible="{Binding !ShowValueComboBox}" Text="{Binding Value}" Watermark="Value" MinWidth="150"/>
+                                                    </Panel>
+                                                    <Button Grid.Column="3" Classes="remove-button" Command="{Binding ParentViewModel.RemoveFilterCriterionCommand}" CommandParameter="{Binding}" Padding="0" Margin="5,0,0,0">
+                                                        <TextBlock Text="🗑️" FontSize="14"/>
+                                                    </Button>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <ItemsControl Grid.Row="1" IsVisible="{Binding MainView.SelectedTab.IsThisTabIIS}" ItemsSource="{Binding MainView.SelectedTab.IISFilterCriteria}" Margin="8,0,8,8">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Vertical" Spacing="6" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="models1:IISFilterCriterion">
+                                            <Border Background="#2D2E32" CornerRadius="6" Padding="12 8">
+                                                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" VerticalAlignment="Center">
+                                                    <ComboBox Grid.Column="0" ItemsSource="{Binding AvailableFields}" SelectedItem="{Binding SelectedField}" MinWidth="150" Margin="0,0,5,0"/>
+                                                    <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableOperators}" SelectedItem="{Binding SelectedOperator}" MinWidth="100" Margin="0,0,5,0"/>
+                                                    <Panel Grid.Column="2" Margin="0,0,5,0">
+                                                        <ComboBox IsVisible="{Binding ShowValueComboBox}" ItemsSource="{Binding AvailableValues}" SelectedItem="{Binding Value}" PlaceholderText="Select a value" MinWidth="150"/>
+                                                        <TextBox IsVisible="{Binding ShowTextBox}" Text="{Binding ManualValue}" Watermark="Enter value manually" MinWidth="150"/>
+                                                    </Panel>
+                                                    <CheckBox Grid.Column="3" IsChecked="{Binding UseManualInput}" Content="Manual" Margin="5,0,5,0"/>
+                                                    <Button Grid.Column="4" Classes="remove-button" Command="{Binding ParentViewModel.RemoveIISFilterCriterionCommand}" CommandParameter="{Binding}" Padding="0" Margin="5,0,0,0">
+                                                        <TextBlock Text="🗑️" FontSize="14"/>
+                                                    </Button>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <!-- Data region stays the same below -->
+                                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                                    <Grid DataContext="{Binding MainView}">
+                                        <!-- Standard LogEntry Custom Table -->
+                                        <Grid IsVisible="{Binding SelectedTab.IsThisTabStandard}" Background="#222326" Grid.IsSharedSizeScope="True">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                            </Grid.RowDefinitions>
+                                            
+                                            <!-- Column Headers -->
+                                            <Grid Grid.Row="0" Background="#2D2F33">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="70" MinWidth="65"/> <!-- date -->
+                                                    <ColumnDefinition Width="65" MinWidth="60"/> <!-- time -->
+                                                    <ColumnDefinition Width="95" MinWidth="90"/> <!-- s-ip -->
+                                                    <ColumnDefinition Width="55" MinWidth="50"/> <!-- cs-method -->
+                                                    <ColumnDefinition Width="400" MinWidth="300"/> <!-- cs-uri-stem -->
+                                                    <ColumnDefinition Width="180" MinWidth="120"/> <!-- cs-uri-query -->
+                                                    <ColumnDefinition Width="40" MinWidth="35"/> <!-- s-port -->
+                                                    <ColumnDefinition Width="75" MinWidth="70"/> <!-- cs-username -->
+                                                    <ColumnDefinition Width="95" MinWidth="90"/> <!-- c-ip -->
+                                                    <ColumnDefinition Width="65" MinWidth="60"/> <!-- time-taken -->
+                                                    <ColumnDefinition Width="200" MinWidth="150"/> <!-- cs(User-Agent) -->
+                                                    <ColumnDefinition Width="65" MinWidth="60"/> <!-- sc-status -->
+                                                </Grid.ColumnDefinitions>
+                                                
+                                                <TextBlock Grid.Column="0" Text="Timestamp" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="1" Text="Level" Padding="8,8" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                                <TextBlock Grid.Column="2" Text="Message" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="3" Text="Source" Padding="8,8" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="4" Text="Recommendation" Padding="8,8" FontWeight="SemiBold"/>
+                                            </Grid>
+                                            
+                                            <!-- Table Content -->
+                                            <ListBox Grid.Row="1" 
+                                                     ItemsSource="{Binding SelectedTab.FilteredLogEntries}"
+                                                     SelectedItem="{Binding SelectedLogEntry}"
+                                                     Background="Transparent"
+                                                     BorderThickness="0">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="models1:LogEntry">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto" SharedSizeGroup="TimestampCol"/>
+                                                                <ColumnDefinition Width="Auto" SharedSizeGroup="LevelCol"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto" SharedSizeGroup="SourceCol"/>
+                                                                <ColumnDefinition Width="Auto" SharedSizeGroup="RecommendationCol"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            
+                                                            <TextBlock Grid.Column="0" Text="{Binding Timestamp, StringFormat='yyyy-MM-dd HH:mm:ss.fff'}" Padding="8,4"/>
+                                                            <Border Grid.Column="1" Background="{Binding Level, Converter={StaticResource LogLevelToBrushConverter}}" 
+                                                                    CornerRadius="3" 
+                                                                    Padding="5,2" 
+                                                                    HorizontalAlignment="Center" 
+                                                                    MinWidth="60">
+                                                                <TextBlock Text="{Binding Level}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontSize="10" FontWeight="Bold"/>
+                                                            </Border>
+                                                            <TextBlock Grid.Column="2" Text="{Binding Message}" Padding="8,4" TextWrapping="Wrap"/>
+                                                            <TextBlock Grid.Column="3" Text="{Binding Source}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="4" Text="{Binding Recommendation}" Padding="8,4"/>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+                                        </Grid>
+
+                                        <!-- IISLogEntry Grid -->
+                                        <Grid IsVisible="{Binding SelectedTab.IsThisTabIIS}" Background="#222326">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                            </Grid.RowDefinitions>
+                                            
+                                            <!-- Заголовки колонок -->
+                                            <Grid Grid.Row="0" Background="#2D2F33">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="70" MinWidth="65"/> <!-- date -->
+                                                    <ColumnDefinition Width="65" MinWidth="60"/> <!-- time -->
+                                                    <ColumnDefinition Width="95" MinWidth="90"/> <!-- s-ip -->
+                                                    <ColumnDefinition Width="55" MinWidth="50"/> <!-- cs-method -->
+                                                    <ColumnDefinition Width="400" MinWidth="300"/> <!-- cs-uri-stem -->
+                                                    <ColumnDefinition Width="180" MinWidth="120"/> <!-- cs-uri-query -->
+                                                    <ColumnDefinition Width="40" MinWidth="35"/> <!-- s-port -->
+                                                    <ColumnDefinition Width="75" MinWidth="70"/> <!-- cs-username -->
+                                                    <ColumnDefinition Width="95" MinWidth="90"/> <!-- c-ip -->
+                                                    <ColumnDefinition Width="65" MinWidth="60"/> <!-- time-taken -->
+                                                    <ColumnDefinition Width="200" MinWidth="150"/> <!-- cs(User-Agent) -->
+                                                    <ColumnDefinition Width="65" MinWidth="60"/> <!-- sc-status -->
+                                                </Grid.ColumnDefinitions>
+                                                
+                                                <Button Grid.Column="0" Content="Date ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="date" HorizontalContentAlignment="Left"
+                                                        ToolTip.Tip="The date the request was made."/>
+                                                <Button Grid.Column="1" Content="Time ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="time" HorizontalContentAlignment="Left"
+                                                        ToolTip.Tip="The time the request was made."/>
+                                                <Button Grid.Column="2" Content="Server IP ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="s-ip" HorizontalContentAlignment="Left"
+                                                        ToolTip.Tip="The IP address of the server that handled the request."/>
+                                                <Button Grid.Column="3" Content="Method ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="cs-method" HorizontalContentAlignment="Left"
+                                                        ToolTip.Tip="The HTTP method used for the request (e.g., GET, POST)."/>
+                                                <Button Grid.Column="4" Content="URL Path ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="cs-uri-stem" HorizontalContentAlignment="Left"
+                                                        ToolTip.Tip="The path of the requested URL."/>
+                                                <Button Grid.Column="5" Content="Query String ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="cs-uri-query" HorizontalContentAlignment="Left"
+                                                        ToolTip.Tip="The query string of the request."/>
+                                                <Button Grid.Column="6" Content="Port ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="s-port" HorizontalContentAlignment="Left"
+                                                        ToolTip.Tip="The server port that received the request."/>
+                                                <Button Grid.Column="7" Content="User ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="cs-username" HorizontalContentAlignment="Left"
+                                                        ToolTip.Tip="The username of the authenticated user."/>
+                                                <Button Grid.Column="8" Content="Client IP ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="c-ip" HorizontalContentAlignment="Left"
+                                                        ToolTip.Tip="The IP address of the client making the request."/>
+                                                <Button Grid.Column="9" Content="Time Taken (ms) ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="time-taken" HorizontalContentAlignment="Left"
+                                                        ToolTip.Tip="The time taken to process the request in milliseconds."/>
+                                                <Button Grid.Column="10" Content="User Agent ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="cs(User-Agent)" HorizontalContentAlignment="Left"
+                                                        ToolTip.Tip="The user agent string of the client."/>
+                                                <Button Grid.Column="11" Content="HTTP Status ↕" Padding="8,8" FontWeight="SemiBold" Background="Transparent" BorderThickness="0"
+                                                        Command="{Binding SelectedTab.SortIISCommand}" CommandParameter="sc-status" HorizontalContentAlignment="Left"
+                                                        ToolTip.Tip="The HTTP status code of the response (e.g., 200, 404, 500)."/>
+                                            </Grid>
+                                            
+                                            <!-- Содержимое таблицы -->
+                                            <ListBox Grid.Row="1" 
+                                                     ItemsSource="{Binding SelectedTab.FilteredIISLogEntries}"
+                                                     SelectedItem="{Binding SelectedLogEntry}"
+                                                     Background="Transparent"
+                                                     BorderThickness="0">
+                                                <ListBox.Styles>
+                                                    <Style Selector="ListBoxItem">
+                                                        <Setter Property="Padding" Value="0"/>
+                                                        <Setter Property="Margin" Value="0"/>
+                                                        <Style Selector="^:pointerover">
+                                                            <Setter Property="Background" Value="#3D3E42" />
+                                                        </Style>
+                                                        <Style Selector="^/template/ ContentPresenter">
+                                                            <Setter Property="Padding" Value="0"/>
+                                                            <Setter Property="Margin" Value="0"/>
+                                                        </Style>
+                                                    </Style>
+                                                </ListBox.Styles>
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="models1:IisLogEntry">
+                                                        <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="70" MinWidth="65"/> <!-- date -->
+                                                                <ColumnDefinition Width="65" MinWidth="60"/> <!-- time -->
+                                                                <ColumnDefinition Width="95" MinWidth="90"/> <!-- s-ip -->
+                                                                <ColumnDefinition Width="55" MinWidth="50"/> <!-- cs-method -->
+                                                                <ColumnDefinition Width="400" MinWidth="300"/> <!-- cs-uri-stem -->
+                                                                <ColumnDefinition Width="180" MinWidth="120"/> <!-- cs-uri-query -->
+                                                                <ColumnDefinition Width="40" MinWidth="35"/> <!-- s-port -->
+                                                                <ColumnDefinition Width="75" MinWidth="70"/> <!-- cs-username -->
+                                                                <ColumnDefinition Width="95" MinWidth="90"/> <!-- c-ip -->
+                                                                <ColumnDefinition Width="65" MinWidth="60"/> <!-- time-taken -->
+                                                                <ColumnDefinition Width="200" MinWidth="150"/> <!-- cs(User-Agent) -->
+                                                                <ColumnDefinition Width="65" MinWidth="60"/> <!-- sc-status -->
+                                                            </Grid.ColumnDefinitions>
+                                                            
+                                                            <TextBlock Grid.Column="0" Text="{Binding DateTime, StringFormat='yyyy-MM-dd'}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="1" Text="{Binding DateTime, StringFormat='HH:mm:ss'}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="2" Text="{Binding ServerIPAddress}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="3" Text="{Binding Method}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="4" Text="{Binding UriStem}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="5" Text="{Binding UriQuery}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="6" Text="{Binding ServerPort}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="7" Text="{Binding UserName}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="8" Text="{Binding ClientIPAddress}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="9" Text="{Binding TimeTaken}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="10" Text="{Binding ShortUserAgent}" Padding="8,4"/>
+                                                            <TextBlock Grid.Column="11" Text="{Binding HttpStatus}" Padding="8,4"/>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+                                        </Grid>
+
+                                        <!-- RabbitMQ LogEntry DataGrid with Resizable Columns -->
+                                        <DataGrid Name="RabbitMQDataGrid"
+                                                  IsVisible="{Binding SelectedTab.IsThisTabRabbitMQ}" 
+                                                  ItemsSource="{Binding SelectedTab.FilteredRabbitMQLogEntries}"
+                                                  SelectedItem="{Binding SelectedLogEntry}"
+                                                  Background="#222326"
+                                                  IsReadOnly="True"
+                                                  AutoGenerateColumns="False"
+                                                  CanUserSortColumns="True"
+                                                  CanUserReorderColumns="True"
+                                                  CanUserResizeColumns="True"
+                                                  GridLinesVisibility="All"
+                                                  BorderThickness="1"
+                                                  BorderBrush="#404040"
+                                                  RowBackground="#2A2A2A">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="SentTime" 
+                                                                    Binding="{Binding EffectiveTimestamp, StringFormat='yyyy-MM-dd HH:mm:ss.fff'}" 
+                                                                    Width="180" 
+                                                                    MinWidth="120"/>
+                                                <DataGridTextColumn Header="Username" 
+                                                                    Binding="{Binding EffectiveUserName}" 
+                                                                    Width="120" 
+                                                                    MinWidth="80"/>
+                                                <DataGridTemplateColumn Header="ProcessUID" Width="150" MinWidth="100">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate x:DataType="models1:RabbitMqLogEntry">
+                                                            <TextBlock Text="{Binding EffectiveProcessUID}" 
+                                                                       Padding="4,2" 
+                                                                       TextTrimming="CharacterEllipsis" 
+                                                                       VerticalAlignment="Center"
+                                                                       Cursor="Hand" 
+                                                                       Background="Transparent" 
+                                                                       DoubleTapped="OnProcessUIDDoubleTapped"
+                                                                       ToolTip.Tip="Double-click to copy ProcessUID"/>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                                <DataGridTemplateColumn Header="Error Message" Width="300" MinWidth="200">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate x:DataType="models1:RabbitMqLogEntry">
+                                                            <TextBlock Text="{Binding EffectiveMessage}" 
+                                                                       Padding="4,2" 
+                                                                       TextWrapping="Wrap" 
+                                                                       VerticalAlignment="Center"
+                                                                       Cursor="Hand" 
+                                                                       Background="Transparent"
+                                                                       DoubleTapped="OnErrorMessageDoubleTapped"
+                                                                       ToolTip.Tip="Double-click to copy Error Message"/>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                                <DataGridTemplateColumn Header="StackTrace" Width="*" MinWidth="200">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate x:DataType="models1:RabbitMqLogEntry">
+                                                            <Border BorderBrush="#404040" 
+                                                                    BorderThickness="1" 
+                                                                    CornerRadius="3"
+                                                                    Background="#1E1E1E"
+                                                                    Padding="4,2"
+                                                                    Margin="2">
+                                                                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                                                              VerticalScrollBarVisibility="Auto"
+                                                                              MaxHeight="60"
+                                                                              Background="Transparent">
+                                                                    <TextBlock Text="{Binding EffectiveStackTrace}" 
+                                                                               TextWrapping="Wrap"
+                                                                               VerticalAlignment="Top"
+                                                                               Background="Transparent"
+                                                                               Cursor="Hand"
+                                                                               DoubleTapped="OnStackTraceDoubleTapped"
+                                                                               ToolTip.Tip="Double-click to expand/collapse"/>
+                                                                </ScrollViewer>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </Grid>
+                                </ScrollViewer>
+                            </Grid>
+                        </TabItem>
+                        <TabItem Header="Errors only"
+                                 IsVisible="{Binding MainView.SelectedTab.IsThisTabStandard}">
+                            <DataGrid ItemsSource="{Binding MainView.ErrorLogEntries}"
+                                      SelectedItem="{Binding MainView.SelectedLogEntry}"
+                                      IsReadOnly="True"
+                                      AutoGenerateColumns="False"
+                                      CanUserSortColumns="True"
+                                      CanUserReorderColumns="True"
+                                      CanUserResizeColumns="True"
+                                      GridLinesVisibility="All"
+                                      BorderThickness="1"
+                                      BorderBrush="Gray">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp}" Width="160"/>
+                                    <DataGridTemplateColumn Header="Level" Width="130">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate x:DataType="models1:LogEntry">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
+                                                    <PathIcon Data="{Binding LevelIcon}" Width="16" Height="16" Foreground="{Binding LevelColor}"/>
+                                                    <TextBlock Text="{Binding Level}" VerticalAlignment="Center" Foreground="{Binding LevelColor}"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="6*" MinWidth="200"/>
+                                    <DataGridTextColumn Header="Recommendation" Binding="{Binding Recommendation}" Width="3*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </TabItem>
+                        <!-- New TabItem for Errors in All -->
+                        <TabItem Header="Errors in All"
+                                 IsVisible="{Binding MainView.IsMultiFileModeActive}">
+                            <DataGrid ItemsSource="{Binding MainView.AllErrorLogEntries}"
+                                      SelectedItem="{Binding MainView.SelectedLogEntry}"
+                                      IsReadOnly="True"
+                                      AutoGenerateColumns="False"
+                                      CanUserSortColumns="True"
+                                      CanUserReorderColumns="True"
+                                      CanUserResizeColumns="True"
+                                      GridLinesVisibility="All"
+                                      BorderThickness="1"
+                                      BorderBrush="Gray">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp}" Width="160"/>
+                                    <DataGridTemplateColumn Header="Level" Width="130">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate x:DataType="models1:LogEntry">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
+                                                    <PathIcon Data="{Binding LevelIcon}" Width="16" Height="16" Foreground="{Binding LevelColor}"/>
+                                                    <TextBlock Text="{Binding Level}" VerticalAlignment="Center" Foreground="{Binding LevelColor}"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="6*" MinWidth="200"/>
+                                    <DataGridTextColumn Header="Source File" Binding="{Binding SourceTabTitle}" Width="2*"/> 
+                                    <DataGridTextColumn Header="Recommendation" Binding="{Binding Recommendation}" Width="3*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </TabItem>
+                    </TabControl>
+                </Grid>
+            </Border>
+            
+            <Panel Grid.Row="2" IsVisible="{Binding MainView.IsLoading}">
+                <Border Background="#55262729" 
+                        Opacity="0.9" 
+                        CornerRadius="8">
+                    <StackPanel Spacing="16" 
+                               HorizontalAlignment="Center" 
+                               VerticalAlignment="Center">
+                        <ProgressBar IsIndeterminate="True" 
+                                   Width="220" />
+                        <TextBlock Text="{Binding MainView.StatusMessage}"
+                                   HorizontalAlignment="Center" 
+                                   Foreground="#FFFFFF"
+                                   FontSize="14" />
+                    </StackPanel>
+                </Border>
+            </Panel>
+            
+            <!-- Directory Loading Indicator -->
+            <Panel Grid.Row="2" IsVisible="{Binding MainView.IsLoadingDirectory}">
+                <Border Background="#55395B29" 
+                        Opacity="0.9" 
+                        CornerRadius="8">
+                    <StackPanel Spacing="16" 
+                               HorizontalAlignment="Center" 
+                               VerticalAlignment="Center">
+                        <ProgressBar IsIndeterminate="True" 
+                                   Width="220" 
+                                   Foreground="#4CAF50" />
+                        <TextBlock Text="Loading directory files..."
+                                   HorizontalAlignment="Center" 
+                                   Foreground="#FFFFFF"
+                                   FontSize="14" />
+                    </StackPanel>
+                </Border>
+            </Panel>
+            
+            <Border Grid.Row="3" 
+                    Padding="16,12"
+                    Background="#262729">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock Text="{Binding MainView.StatusMessage}" 
+                              Grid.Column="0" 
+                              VerticalAlignment="Center"
+                              Foreground="#CCCCCC"
+                              FontSize="14" />
+                    
+                    <!-- Кнопка настроек и обновлений -->
+                    <Button Grid.Column="1" 
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="8,4"
+                            Margin="16,0,16,0"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                                                         Command="{Binding ShowUpdateSettingsCommand}"
+                             ToolTip.Tip="Settings and Updates">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="⚙️" 
+                                       FontSize="14" 
+                                       VerticalAlignment="Center"/>
+                            <TextBlock Text="Settings" 
+                                       FontSize="13" 
+                                       Foreground="#AAAAAA"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Button.Styles>
+                            <Style Selector="Button:pointerover">
+                                <Setter Property="Background" Value="#333333"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                    
+                    <!-- Логотип приложения, версия и счетчик записей -->
+                    <StackPanel Grid.Column="2" 
+                              Orientation="Horizontal"
+                              VerticalAlignment="Center" 
+                              HorizontalAlignment="Right"
+                              Margin="0,0,16,0"
+                              Spacing="12">
+                        
+                        <!-- Entry Counter -->
+                        <TextBlock Text="{Binding MainView.LogEntries.Count, StringFormat=Entries: {0}}" 
+                                   VerticalAlignment="Center" 
+                                   Foreground="#AAAAAA"
+                                   FontSize="13" />
+                        
+                        <!-- Separator -->
+                        <TextBlock Text="|" 
+                                   VerticalAlignment="Center" 
+                                   Foreground="#555555"
+                                   FontSize="13" />
+                        
+                        <!-- Logo and Version -->
+                        <StackPanel Orientation="Horizontal" 
+                                   VerticalAlignment="Center"
+                                   Spacing="6">
+                            <!-- Application Logo -->
+                            <Border Width="20" Height="20" 
+                                    Background="#0078D7" 
+                                    CornerRadius="3">
+                                <TextBlock Text="OG" 
+                                           FontSize="12" 
+                                           FontWeight="Bold" 
+                                           Foreground="White"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock Text="🏷️" 
+                                       FontSize="16" 
+                                       VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding AppVersion}" 
+                                       VerticalAlignment="Center" 
+                                       Foreground="#777777"
+                                       FontSize="14" 
+                                       FontWeight="Medium"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Panel>
+</Window>

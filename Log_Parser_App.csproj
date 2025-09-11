@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net9.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <Version>1.0.8</Version>
+        <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+        <ApplicationManifest>app.manifest</ApplicationManifest>
+        <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+        <ApplicationIcon>Assets\logparserv1.ico</ApplicationIcon>
+        <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+        <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <AvaloniaResource Include="Assets\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Avalonia" Version="11.2.1" />
+        <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.2.1" />
+        <PackageReference Include="Avalonia.Desktop" Version="11.2.1" />
+        <PackageReference Include="Avalonia.Svg.Skia" Version="11.0.0.12" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.1" />
+        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.1" />
+        <PackageReference Include="Avalonia.Diagnostics" Version="11.2.1">
+            <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
+            <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+        </PackageReference>
+        <PackageReference Include="BenchmarkDotNet" Version="0.15.1" />
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
+        <PackageReference Include="LiveChartsCore.SkiaSharpView.Avalonia" Version="2.0.0-rc3" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
+        <PackageReference Include="NLog" Version="5.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="Services\CreatioLogProcessor.cs" />
+      <Compile Remove="Models\Interfaces\ILogProcessor.cs" />
+      <Compile Remove="Models\CommandLineOptions.cs" />
+    </ItemGroup>
+</Project>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Фон -->
+  <circle cx="32" cy="32" r="30" fill="#2C3E50"/>
+  
+  <!-- Бумажный лист с логами -->
+  <rect x="14" y="10" width="36" height="44" rx="3" fill="#ECF0F1"/>
+  
+  <!-- Линии логов -->
+  <rect x="18" y="16" width="28" height="2" rx="1" fill="#3498DB"/>
+  <rect x="18" y="22" width="20" height="2" rx="1" fill="#E74C3C"/>
+  <rect x="18" y="28" width="25" height="2" rx="1" fill="#2ECC71"/>
+  <rect x="18" y="34" width="22" height="2" rx="1" fill="#F39C12"/>
+  <rect x="18" y="40" width="28" height="2" rx="1" fill="#3498DB"/>
+  <rect x="18" y="46" width="15" height="2" rx="1" fill="#9B59B6"/>
+  
+  <!-- Лупа -->
+  <circle cx="44" cy="44" r="12" fill="#3498DB" fill-opacity="0.9"/>
+  <circle cx="44" cy="44" r="9" fill="#2C3E50"/>
+  <circle cx="44" cy="44" r="7" fill="#3498DB"/>
+  
+  <!-- Ручка лупы -->
+  <rect x="36" y="50" width="12" height="4" rx="2" transform="rotate(-45 36 50)" fill="#3498DB"/>
+</svg> 

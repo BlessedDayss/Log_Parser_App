@@ -1,0 +1,193 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Log_Parser_App.Views.UpdateView"
+             x:DataType="vm:UpdateViewModel"
+             xmlns:vm="using:Log_Parser_App.ViewModels">
+
+    <Border Background="#F8F9FA" CornerRadius="8" Padding="20">
+        <StackPanel Spacing="15">
+            <TextBlock Text="Application Updates" 
+                       FontSize="18" 
+                       FontWeight="Bold" 
+                       HorizontalAlignment="Center"/>
+            
+            <!-- Current Status -->
+            <Border Background="White" 
+                    CornerRadius="6" 
+                    Padding="15"
+                    BoxShadow="0 2 4 0 #10000000">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Status" 
+                               FontWeight="SemiBold" 
+                               Foreground="#6366F1"/>
+                    <TextBlock Text="{Binding StatusMessage}" 
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Available Update Info -->
+            <Border Background="White" 
+                    CornerRadius="6" 
+                    Padding="15"
+                    BoxShadow="0 2 4 0 #10000000"
+                    IsVisible="{Binding AvailableUpdate, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Available Update" 
+                               FontWeight="SemiBold" 
+                               Foreground="#059669"/>
+                    <TextBlock Text="{Binding AvailableUpdate.Version, StringFormat='Version: {0}'}" 
+                               FontWeight="Medium"/>
+                    <TextBlock Text="{Binding AvailableUpdate.ReleaseName}" 
+                               FontStyle="Italic"
+                               IsVisible="{Binding AvailableUpdate.ReleaseName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                    <ScrollViewer Height="100" IsVisible="{Binding AvailableUpdate.ReleaseNotes, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Text="{Binding AvailableUpdate.ReleaseNotes}" 
+                                   TextWrapping="Wrap"
+                                   FontSize="12"
+                                   Foreground="#6B7280"/>
+                    </ScrollViewer>
+                </StackPanel>
+            </Border>
+
+            <!-- Progress Bar -->
+            <ProgressBar Value="{Binding DownloadProgress}" 
+                         Maximum="100"
+                         Height="8"
+                         IsVisible="{Binding IsDownloadingUpdate}"
+                         Background="#E5E7EB"
+                         Foreground="#6366F1"/>
+
+            <!-- Auto-Update Settings -->
+            <Border Background="White" 
+                    CornerRadius="6" 
+                    Padding="15"
+                    BoxShadow="0 2 4 0 #10000000">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Settings" 
+                               FontWeight="SemiBold" 
+                               Foreground="#6366F1"/>
+                                         <CheckBox Content="Enable automatic updates" 
+                               IsChecked="{Binding AutoUpdateEnabled}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Action Buttons -->
+            <StackPanel Orientation="Horizontal" 
+                        HorizontalAlignment="Center" 
+                        Spacing="10">
+                <Button Content="Check for Updates"
+                        Command="{Binding CheckForUpdatesCommand}"
+                        IsEnabled="{Binding !IsCheckingForUpdates}"
+                        Background="#6366F1"
+                        Foreground="White"
+                        CornerRadius="6"
+                        Padding="12,8">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover">
+                            <Setter Property="Background" Value="#5B5CF6"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+
+                <Button Content="Download &amp; Install"
+                        Command="{Binding DownloadAndUpdateCommand}"
+                        IsVisible="{Binding AvailableUpdate, Converter={x:Static ObjectConverters.IsNotNull}}"
+                        Background="#059669"
+                        Foreground="White"
+                        CornerRadius="6"
+                        Padding="12,8">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover">
+                            <Setter Property="Background" Value="#047857"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+            </StackPanel>
+
+            <!-- Loading Indicators -->
+            <StackPanel Orientation="Horizontal" 
+                        HorizontalAlignment="Center" 
+                        Spacing="8"
+                        IsVisible="{Binding IsCheckingForUpdates}">
+                                 <Border Width="16" Height="16" CornerRadius="8" Background="#6366F1">
+                     <Border.Styles>
+                         <Style Selector="Border">
+                             <Style.Animations>
+                                 <Animation Duration="0:0:1" IterationCount="Infinite">
+                                     <KeyFrame Cue="0%">
+                                         <Setter Property="Opacity" Value="1"/>
+                                     </KeyFrame>
+                                     <KeyFrame Cue="50%">
+                                         <Setter Property="Opacity" Value="0.3"/>
+                                     </KeyFrame>
+                                     <KeyFrame Cue="100%">
+                                         <Setter Property="Opacity" Value="1"/>
+                                     </KeyFrame>
+                                 </Animation>
+                             </Style.Animations>
+                         </Style>
+                     </Border.Styles>
+                 </Border>
+                <TextBlock Text="Checking for updates..." 
+                           Foreground="#6B7280"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" 
+                        HorizontalAlignment="Center" 
+                        Spacing="8"
+                        IsVisible="{Binding IsDownloadingUpdate}">
+                                 <Border Width="16" Height="16" CornerRadius="8" Background="#059669">
+                     <Border.Styles>
+                         <Style Selector="Border">
+                             <Style.Animations>
+                                 <Animation Duration="0:0:1" IterationCount="Infinite">
+                                     <KeyFrame Cue="0%">
+                                         <Setter Property="Opacity" Value="1"/>
+                                     </KeyFrame>
+                                     <KeyFrame Cue="50%">
+                                         <Setter Property="Opacity" Value="0.3"/>
+                                     </KeyFrame>
+                                     <KeyFrame Cue="100%">
+                                         <Setter Property="Opacity" Value="1"/>
+                                     </KeyFrame>
+                                 </Animation>
+                             </Style.Animations>
+                         </Style>
+                     </Border.Styles>
+                 </Border>
+                <TextBlock Text="Downloading update..." 
+                           Foreground="#6B7280"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" 
+                        HorizontalAlignment="Center" 
+                        Spacing="8"
+                        IsVisible="{Binding IsInstallingUpdate}">
+                                 <Border Width="16" Height="16" CornerRadius="8" Background="#DC2626">
+                     <Border.Styles>
+                         <Style Selector="Border">
+                             <Style.Animations>
+                                 <Animation Duration="0:0:1" IterationCount="Infinite">
+                                     <KeyFrame Cue="0%">
+                                         <Setter Property="Opacity" Value="1"/>
+                                     </KeyFrame>
+                                     <KeyFrame Cue="50%">
+                                         <Setter Property="Opacity" Value="0.3"/>
+                                     </KeyFrame>
+                                     <KeyFrame Cue="100%">
+                                         <Setter Property="Opacity" Value="1"/>
+                                     </KeyFrame>
+                                 </Animation>
+                             </Style.Animations>
+                         </Style>
+                     </Border.Styles>
+                 </Border>
+                <TextBlock Text="Installing update..." 
+                           Foreground="#6B7280"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</UserControl> 

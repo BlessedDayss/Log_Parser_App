@@ -1,0 +1,46 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Log_Parser_App.Views.EmptyStateView">
+    <Border Background="#F5F5F7" CornerRadius="8" Margin="20">
+        <Grid>
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
+                <Image Source="/Assets/logparserv1.ico" Width="64" Height="64" Opacity="0.7"/>
+                <TextBlock Text="Добро пожаловать в LogParser" HorizontalAlignment="Center" 
+                         FontSize="24" FontWeight="SemiBold" Foreground="#333333"/>
+                <TextBlock Text="Начните работу с приложением:" HorizontalAlignment="Center" 
+                         FontSize="16" Foreground="#555555"/>
+                
+                <Border Background="#FFFFFF" CornerRadius="6" BoxShadow="0 2 4 #20000000" Padding="15" Margin="0,10,0,0" Width="500">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <TextBlock Grid.Column="0" Text="1" FontSize="20" FontWeight="Bold" Foreground="#007BFF" 
+                                 VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <StackPanel Grid.Column="1" Spacing="5">
+                            <TextBlock Text="Откройте лог-файл" FontSize="16" FontWeight="SemiBold" Foreground="#333333"/>
+                            <TextBlock Text="Нажмите кнопку 'Open Log File' или перетащите файл в окно приложения" 
+                                     FontSize="14" Foreground="#555555" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                
+                <Border Background="#FFFFFF" CornerRadius="6" BoxShadow="0 2 4 #20000000" Padding="15" Margin="0,10,0,0" Width="500">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <TextBlock Grid.Column="0" Text="2" FontSize="20" FontWeight="Bold" Foreground="#007BFF" 
+                                 VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <StackPanel Grid.Column="1" Spacing="5">
+                            <TextBlock Text="Настройте фильтры" FontSize="16" FontWeight="SemiBold" Foreground="#333333"/>
+                            <TextBlock Text="Используйте фильтры для анализа данных лог-файла" 
+                                     FontSize="14" Foreground="#555555" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                
+                <Button Content="Открыть лог-файл" HorizontalAlignment="Center" Margin="0,20,0,0"
+                      Padding="20,10" Background="#007BFF" Foreground="White" 
+                      CornerRadius="4" Name="OpenLogFileButton"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl> 
