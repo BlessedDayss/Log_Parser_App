@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using Log_Parser_App.Interfaces;
 using Log_Parser_App.Models;
 using Log_Parser_App.Services.LevelDetection;
@@ -45,7 +46,7 @@ namespace Log_Parser_App.Services.Parsing
                     Timestamp = parsedData.Timestamp,
                     Level = detectedLevel,
                     Message = parsedData.Message,
-                    Source = parsedData.Source,
+                    Source = string.IsNullOrWhiteSpace(parsedData.Source) ? Path.GetFileName(filePath) : parsedData.Source,
                     FilePath = filePath,
                     LineNumber = lineNumber,
                     RawData = line

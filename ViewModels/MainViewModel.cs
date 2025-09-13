@@ -458,14 +458,15 @@ namespace Log_Parser_App.ViewModels
                             }
                         }
 
-                        // Now clean up message for display
+                        // Normalize message and stack trace for display, preserving existing StackTrace if parser already set it
                         if (!string.IsNullOrEmpty(entry.Message)) {
                             var lines = entry.Message.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                            var regex = new System.Text.RegularExpressions.Regex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}");
                             string mainLine = lines.FirstOrDefault(l => !l.TrimStart().StartsWith("at ")) ?? (lines.Length > 0 ? lines[0] : string.Empty);
                             var stackLines = lines.SkipWhile(l => !l.TrimStart().StartsWith("at ")).Where(l => l.TrimStart().StartsWith("at ")).ToList();
                             entry.Message = mainLine.Trim();
-                            entry.StackTrace = stackLines.Count > 0 ? string.Join("\n", stackLines) : null;
+                            if (string.IsNullOrEmpty(entry.StackTrace) && stackLines.Count > 0) {
+                                entry.StackTrace = string.Join("\n", stackLines);
+                            }
                         }
 
                         entry.OpenFileCommand = ExternalOpenFileCommand;
@@ -480,7 +481,7 @@ namespace Log_Parser_App.ViewModels
                 await Dispatcher.UIThread.InvokeAsync(() => {
                     // Create a new tab instead of just setting LogEntries
                     var title = Path.GetFileName(filePath);
-                    var newTab = new TabViewModel(filePath, title, processedEntries.ToList(), _filePickerService);
+                    var newTab = new TabViewModel(filePath, title, processedEntries.ToList(), LogFormatType.Standard, _filePickerService);
 
                     // Add debug logging to check tab type
                     _logger.LogInformation("Created new tab in LoadFileAsync for file {FilePath}. LogType: {LogType}, IsThisTabIIS: {IsIIS}, IsThisTabStandard: {IsStandard}",
@@ -626,14 +627,15 @@ namespace Log_Parser_App.ViewModels
                             }
                         }
 
-                        // Now clean up message for display
+                        // Normalize message and stack trace for display, preserving existing StackTrace if parser already set it
                         if (!string.IsNullOrEmpty(entry.Message)) {
                             var lines = entry.Message.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                            var regex = new System.Text.RegularExpressions.Regex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}");
                             string mainLine = lines.FirstOrDefault(l => !l.TrimStart().StartsWith("at ")) ?? (lines.Length > 0 ? lines[0] : string.Empty);
                             var stackLines = lines.SkipWhile(l => !l.TrimStart().StartsWith("at ")).Where(l => l.TrimStart().StartsWith("at ")).ToList();
                             entry.Message = mainLine.Trim();
-                            entry.StackTrace = stackLines.Count > 0 ? string.Join("\n", stackLines) : null;
+                            if (string.IsNullOrEmpty(entry.StackTrace) && stackLines.Count > 0) {
+                                entry.StackTrace = string.Join("\n", stackLines);
+                            }
                         }
 
                         entry.OpenFileCommand = ExternalOpenFileCommand;
@@ -644,7 +646,7 @@ namespace Log_Parser_App.ViewModels
 
                 await Dispatcher.UIThread.InvokeAsync(() => {
                     var title = Path.GetFileName(filePath);
-                    var newTab = new TabViewModel(filePath, title, processedEntries.ToList(), _filePickerService); // Use ToList() for safety if processedEntries is modified elsewhere
+                    var newTab = new TabViewModel(filePath, title, processedEntries.ToList(), LogFormatType.Standard, _filePickerService); // Use ToList() for safety if processedEntries is modified elsewhere
 
                     // Add debug logging to check tab type
                     _logger.LogInformation("Created new tab for file {FilePath}. LogType: {LogType}, IsThisTabIIS: {IsIIS}, IsThisTabStandard: {IsStandard}",

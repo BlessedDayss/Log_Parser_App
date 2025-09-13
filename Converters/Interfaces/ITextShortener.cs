@@ -1,7 +1,6 @@
-namespace Log_Parser_App.Converters.Interfaces
+namespace Log_Parser_App.Converters.Interfaces;
+
+public interface ITextShortener
 {
-    public interface ITextShortener
-    {
-        string ShortenText(string text, int maxLength);
-    }
+    string ShortenText(string text, int maxLength);
 } 

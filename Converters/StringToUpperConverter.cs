@@ -1,24 +1,18 @@
-using System;
 using System.Globalization;
-using Avalonia.Data.Converters;
+using Log_Parser_App.Converters.Base;
 using Log_Parser_App.Converters.Interfaces;
 
-namespace Log_Parser_App.Converters
-{
-	public class StringToUpperConverter : IValueConverter, IStringConverter
-	{
-		public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-		{
-			if (value is string str)
-			{
-				return str.ToUpperInvariant();
-			}
-			return value;
-		}
+namespace Log_Parser_App.Converters;
 
-		public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-		{
-			throw new NotImplementedException();
-		}
-	}
+public class StringToUpperConverter : BaseTypedConverter<string?, string?>, IStringConverter
+{
+    public override string? Convert(string? value, CultureInfo? culture = null)
+    {
+        if (value == null)
+            return null;
+
+        return value.ToUpperInvariant();
+    }
+
+    protected override string? GetDefaultOutput() => null;
 }

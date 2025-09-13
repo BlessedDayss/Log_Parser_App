@@ -1,11 +1,8 @@
-using System;
 using System.Globalization;
 
-namespace Log_Parser_App.Converters.Interfaces
+namespace Log_Parser_App.Converters.Interfaces;
+
+public interface IStringConverter : IConverter<string?, string?>
 {
-    public interface IStringConverter
-    {
-        object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture);
-        object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture);
-    }
-} 
+    new string? Convert(string? value, CultureInfo? culture = null);
+}

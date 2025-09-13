@@ -65,10 +65,10 @@ namespace Log_Parser_App.Services
 		private async IAsyncEnumerable<LogEntry> ParseLines(
 			IAsyncEnumerable<(string filePath, string line)> lines,
 			[EnumeratorCancellation] CancellationToken cancellationToken = default) {
-			var lastErrorEntryByFile = new Dictionary<string, LogEntry?>();
+			var lastEntryByFile = new Dictionary<string, LogEntry?>();
 			var lineNumberByFile = new Dictionary<string, int>();
 			var singleWordKeywords = new[] { "error", "exception", "failed", "timeout", "critical", "fatal" };
-			var timeRegex = new System.Text.RegularExpressions.Regex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}");
+			var timeRegex = new System.Text.RegularExpressions.Regex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:[,.]\d{3})?");
 			var singleWordRegex = new System.Text.RegularExpressions.Regex($@"\b({string.Join("|", singleWordKeywords)})\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 			// var notFoundRegex = new System.Text.RegularExpressions.Regex(@"\bnot\s+found\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
@@ -128,40 +128,55 @@ namespace Log_Parser_App.Services
 
 					yield return entry;
 
-					if (entry.Level.Trim().Equals(ErrorLevel, System.StringComparison.InvariantCultureIgnoreCase))
-						lastErrorEntryByFile[filePath] = entry;
-					else
-						lastErrorEntryByFile[filePath] = null;
+					lastEntryByFile[filePath] = entry;
 				} else {
-					bool handledAsStackTrace = false;
-					if (lastErrorEntryByFile.TryGetValue(filePath, out var lastErrorEntry) && lastErrorEntry != null) {
-						if (!timeRegex.IsMatch(line)) {
+					bool handled = false;
+					// If the line does NOT start with date, append to previous entry's stack trace
+					if (!timeRegex.IsMatch(line)) {
+						if (lastEntryByFile.TryGetValue(filePath, out var lastEntry) && lastEntry != null) {
 							try {
-								AppendStackTrace(lastErrorEntry, line);
-								handledAsStackTrace = true;
+								AppendStackTrace(lastEntry, line);
+								handled = true;
 							} catch (System.Exception ex) {
 								_logger.LogError(ex, "Failed to append stack trace for line {LineNumber} in {FilePath}: {Line}", lineNumber, filePath, line);
 							}
 						}
 					}
 
-					if (!handledAsStackTrace) {
-						// Check for "0 Error" false positive before setting ERROR level
-						string levelForUnparsedLine = (containsErrorKeyword && !IsZeroErrorOrWarningFalsePositive(line)) ? "ERROR" : "INFO";
-						var unparsedEntry = new LogEntry {
-							Timestamp = System.DateTime.Now,
-							Level = levelForUnparsedLine,
-							Message = line.Trim(),
-							RawData = line,
-							FilePath = filePath,
-							LineNumber = lineNumber
-						};
-						yield return unparsedEntry;
-
-						if (levelForUnparsedLine == "ERROR") {
-							lastErrorEntryByFile[filePath] = unparsedEntry;
+					if (!handled) {
+						if (timeRegex.IsMatch(line)) {
+							// Line starts with date => new event
+							var match = timeRegex.Match(line);
+							var tsText = match.Value;
+							System.DateTime parsedTs;
+							if (!System.DateTime.TryParse(tsText.Replace(',', '.'), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeLocal, out parsedTs)) {
+								parsedTs = System.DateTime.Now;
+							}
+							var messagePart = line.Substring(match.Length).Trim();
+							string levelForLine = (containsErrorKeyword && !IsZeroErrorOrWarningFalsePositive(line)) ? "ERROR" : "INFO";
+							var newEntry = new LogEntry {
+								Timestamp = parsedTs,
+								Level = levelForLine,
+								Message = messagePart,
+								RawData = line,
+								FilePath = filePath,
+								LineNumber = lineNumber
+							};
+							yield return newEntry;
+							lastEntryByFile[filePath] = newEntry;
 						} else {
-							lastErrorEntryByFile[filePath] = null;
+							// No date and no previous entry: create minimal entry
+							string levelForUnparsedLine = (containsErrorKeyword && !IsZeroErrorOrWarningFalsePositive(line)) ? "ERROR" : "INFO";
+							var unparsedEntry = new LogEntry {
+								Timestamp = System.DateTime.Now,
+								Level = levelForUnparsedLine,
+								Message = line.Trim(),
+								RawData = line,
+								FilePath = filePath,
+								LineNumber = lineNumber
+							};
+							yield return unparsedEntry;
+							lastEntryByFile[filePath] = unparsedEntry;
 						}
 					}
 				}

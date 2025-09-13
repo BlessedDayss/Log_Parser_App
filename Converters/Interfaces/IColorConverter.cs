@@ -1,11 +1,9 @@
-using System;
 using System.Globalization;
+using Avalonia.Media;
 
-namespace Log_Parser_App.Converters.Interfaces
+namespace Log_Parser_App.Converters.Interfaces;
+
+public interface IColorConverter<in TInput> : IConverter<TInput, IBrush?>
 {
-    public interface IColorConverter
-    {
-        object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture);
-        object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture);
-    }
-} 
+    new IBrush? Convert(TInput value, CultureInfo? culture = null);
+}

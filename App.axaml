@@ -22,11 +22,6 @@
                 <!-- <ResourceInclude Source="/Assets/Styles/MaterialDesign.axaml"/> -->
             </ResourceDictionary.MergedDictionaries>
             <converters:TabToVisibilityConverter x:Key="TabToVisibilityConv"/>
-
-            <converters:StringEqualsConverter x:Key="StringEqualsConverter"/>
-            <converters:StringNotEqualsConverter x:Key="StringNotEqualsConverter"/>
-            <converters:ErrorCountToColorConverter x:Key="ErrorCountToColorConverter"/>
-            <converters:ErrorTypeToColorConverter x:Key="ErrorTypeToColorConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 

@@ -1,32 +1,32 @@
-using System;
 using System.Globalization;
-using Avalonia.Data.Converters;
+using Log_Parser_App.Converters.Base;
 using Log_Parser_App.Converters.Interfaces;
 using Log_Parser_App.Models;
 using Log_Parser_App.ViewModels;
 
-namespace Log_Parser_App.Converters
+namespace Log_Parser_App.Converters;
+
+public class TabToVisibilityConverter : BaseTypedConverter<TabViewModel, bool>, IVisibilityConverter<TabViewModel>
 {
-    public class TabToVisibilityConverter : IValueConverter, IVisibilityConverter
+    public override bool Convert(TabViewModel value, CultureInfo? culture = null)
     {
-        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        return false;
+    }
+
+    public override object? Convert(object? value, System.Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is not TabViewModel tabViewModel || parameter is not string mode)
         {
-            if (value is not TabViewModel tabViewModel || parameter is not string mode)
-            {
-                return false;
-            }
-            
-            return mode switch
-            {
-                "Standard" => tabViewModel.LogType == LogFormatType.Standard,
-                "IIS" => tabViewModel.LogType == LogFormatType.IIS,
-                _ => false
-            };
+            return false;
         }
 
-        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        return mode switch
         {
-            throw new NotImplementedException();
-        }
+            "Standard" => tabViewModel.LogType == LogFormatType.Standard,
+            "IIS" => tabViewModel.LogType == LogFormatType.IIS,
+            _ => false
+        };
     }
+
+    protected override bool GetDefaultOutput() => false;
 }

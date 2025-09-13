@@ -29,7 +29,6 @@
         <conv:StringShortenerConverter x:Key="StringShortenerConverter" />
         <converters:LogLevelToBrushConverter x:Key="LogLevelToBrushConverter" />
         <converters:StringToUpperConverter x:Key="StringToUpperConverter" />
-        <converters:BooleanTextSelector x:Key="BooleanTextSelector" />
         
         <!-- Color/Brush Resources -->
         <SolidColorBrush x:Key="BackgroundBrush" Color="#1A1C21" />
@@ -267,6 +266,31 @@
         
         <Style Selector="Button.icon-button-small:pointerover">
             <Setter Property="Background" Value="#444444" />
+        </Style>
+
+        <!-- Consistent small circular icon button for list rows -->
+        <Style Selector="Button.list-icon">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Background" Value="#2D2E32" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <!-- Override global Button transitions to avoid extra 150ms fade adding to 1s delay -->
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.list-icon:pointerover">
+            <Setter Property="Background" Value="#3A3B40" />
+        </Style>
+        <Style Selector="Button.list-icon:pressed">
+            <Setter Property="Background" Value="#4A4C53" />
         </Style>
     </Window.Styles>
 
@@ -739,28 +763,25 @@
                                                 <RowDefinition Height="*"/>
                                             </Grid.RowDefinitions>
                                             
-                                            <!-- Column Headers -->
+                                            <!-- Column Headers (Standard) -->
                                             <Grid Grid.Row="0" Background="#2D2F33">
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="70" MinWidth="65"/> <!-- date -->
-                                                    <ColumnDefinition Width="65" MinWidth="60"/> <!-- time -->
-                                                    <ColumnDefinition Width="95" MinWidth="90"/> <!-- s-ip -->
-                                                    <ColumnDefinition Width="55" MinWidth="50"/> <!-- cs-method -->
-                                                    <ColumnDefinition Width="400" MinWidth="300"/> <!-- cs-uri-stem -->
-                                                    <ColumnDefinition Width="180" MinWidth="120"/> <!-- cs-uri-query -->
-                                                    <ColumnDefinition Width="40" MinWidth="35"/> <!-- s-port -->
-                                                    <ColumnDefinition Width="75" MinWidth="70"/> <!-- cs-username -->
-                                                    <ColumnDefinition Width="95" MinWidth="90"/> <!-- c-ip -->
-                                                    <ColumnDefinition Width="65" MinWidth="60"/> <!-- time-taken -->
-                                                    <ColumnDefinition Width="200" MinWidth="150"/> <!-- cs(User-Agent) -->
-                                                    <ColumnDefinition Width="65" MinWidth="60"/> <!-- sc-status -->
+                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="TimestampCol" MinWidth="160"/>
+                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="LevelCol" MinWidth="80"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="SourceCol" MinWidth="120"/>
+                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="RecommendationCol" MinWidth="160"/>
+                                                    <ColumnDefinition Width="Auto" MinWidth="28"/>
                                                 </Grid.ColumnDefinitions>
-                                                
-                                                <TextBlock Grid.Column="0" Text="Timestamp" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="1" Text="Level" Padding="8,8" FontWeight="SemiBold" HorizontalAlignment="Center"/>
-                                                <TextBlock Grid.Column="2" Text="Message" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="3" Text="Source" Padding="8,8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="4" Text="Recommendation" Padding="8,8" FontWeight="SemiBold"/>
+
+                                                <TextBlock Grid.Column="0" Text="Timestamp" Padding="8,4" FontWeight="SemiBold" HorizontalAlignment="Left"/>
+                                                <Border Grid.Column="1" Padding="5,2" HorizontalAlignment="Center" MinWidth="60">
+                                                    <TextBlock Text="Level" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                                </Border>
+                                                <TextBlock Grid.Column="2" Text="Message" Padding="8,4" FontWeight="SemiBold" HorizontalAlignment="Left"/>
+                                                <TextBlock Grid.Column="3" Text="Source" Padding="8,4" FontWeight="SemiBold" HorizontalAlignment="Left"/>
+                                                <TextBlock Grid.Column="4" Text="Recommendation" Padding="8,4" FontWeight="SemiBold" HorizontalAlignment="Left"/>
+                                                <TextBlock Grid.Column="5" Text=""/>
                                             </Grid>
                                             
                                             <!-- Table Content -->
@@ -771,27 +792,48 @@
                                                      BorderThickness="0">
                                                 <ListBox.ItemTemplate>
                                                     <DataTemplate x:DataType="models1:LogEntry">
-                                                        <Grid>
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="Auto" SharedSizeGroup="TimestampCol"/>
-                                                                <ColumnDefinition Width="Auto" SharedSizeGroup="LevelCol"/>
-                                                                <ColumnDefinition Width="*"/>
-                                                                <ColumnDefinition Width="Auto" SharedSizeGroup="SourceCol"/>
-                                                                <ColumnDefinition Width="Auto" SharedSizeGroup="RecommendationCol"/>
-                                                            </Grid.ColumnDefinitions>
-                                                            
-                                                            <TextBlock Grid.Column="0" Text="{Binding Timestamp, StringFormat='yyyy-MM-dd HH:mm:ss.fff'}" Padding="8,4"/>
-                                                            <Border Grid.Column="1" Background="{Binding Level, Converter={StaticResource LogLevelToBrushConverter}}" 
-                                                                    CornerRadius="3" 
-                                                                    Padding="5,2" 
-                                                                    HorizontalAlignment="Center" 
-                                                                    MinWidth="60">
-                                                                <TextBlock Text="{Binding Level}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontSize="10" FontWeight="Bold"/>
+                                                        <StackPanel>
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="TimestampCol"/>
+                                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="LevelCol"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="SourceCol"/>
+                                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="RecommendationCol"/>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                
+                                                                <TextBlock Grid.Column="0" Text="{Binding Timestamp, StringFormat='yyyy-MM-dd HH:mm:ss.fff'}" Padding="8,4"/>
+                                                                <Border Grid.Column="1" Background="{Binding Level, Converter={StaticResource LogLevelToBrushConverter}}" 
+                                                                        CornerRadius="3" 
+                                                                        Padding="5,2" 
+                                                                        HorizontalAlignment="Center" 
+                                                                        MinWidth="60">
+                                                                    <TextBlock Text="{Binding Level}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontSize="10" FontWeight="Bold"/>
+                                                                </Border>
+                                                                <TextBlock Grid.Column="2" Text="{Binding Message}" Padding="8,4" TextWrapping="Wrap"/>
+                                                                <TextBlock Grid.Column="3" Text="{Binding Source}" Padding="8,4"/>
+                                                                <TextBlock Grid.Column="4" Text="{Binding Recommendation}" Padding="8,4"/>
+                                                                <StackPanel Grid.Column="5" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="4">
+                                                                    <Button ToolTip.Tip="Expand details"
+                                                                            Classes="list-icon"
+                                                                            IsVisible="{Binding StackTrace, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                                                            Command="{Binding ToggleExpandCommand}">
+                                                                        <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                    </Button>
+                                                                    <Button ToolTip.Tip="Copy message (+ stack trace)"
+                                                                            Classes="list-icon"
+                                                                            Click="OnCopyLogEntryClick">
+                                                                        <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                    </Button>
+                                                                </StackPanel>
+                                                            </Grid>
+                                                            <Border IsVisible="{Binding IsExpanded}" Margin="8,0,8,8" Background="#1E1F24" CornerRadius="6" Padding="8">
+                                                                <ScrollViewer MaxHeight="200">
+                                                                    <TextBlock Text="{Binding StackTrace}" FontFamily="Consolas" TextWrapping="Wrap"/>
+                                                                </ScrollViewer>
                                                             </Border>
-                                                            <TextBlock Grid.Column="2" Text="{Binding Message}" Padding="8,4" TextWrapping="Wrap"/>
-                                                            <TextBlock Grid.Column="3" Text="{Binding Source}" Padding="8,4"/>
-                                                            <TextBlock Grid.Column="4" Text="{Binding Recommendation}" Padding="8,4"/>
-                                                        </Grid>
+                                                        </StackPanel>
                                                     </DataTemplate>
                                                 </ListBox.ItemTemplate>
                                             </ListBox>

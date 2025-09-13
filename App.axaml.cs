@@ -17,9 +17,13 @@ namespace Log_Parser_App
     using Microsoft.Extensions.Logging;
     using MainViewModel = Log_Parser_App.ViewModels.MainViewModel;
     using MainWindow = Log_Parser_App.Views.MainWindow;
-    using Log_Parser_App.Interfaces;
-    using Log_Parser_App.Strategies;
-    using Log_Parser_App.Factories;
+using Log_Parser_App.Interfaces;
+using Log_Parser_App.Strategies;
+using Log_Parser_App.Factories;
+using Log_Parser_App.Services.Interfaces;
+using Log_Parser_App.Services.Filtering.Interfaces;
+using Log_Parser_App.Services.ErrorDetection.Interfaces;
+using Log_Parser_App.Models;
 
 
 
@@ -240,10 +244,15 @@ namespace Log_Parser_App
 
             // Register SOLID refactored services (Phase 2)
             services.AddSingleton<IChartService, ChartService>();
+            services.AddSingleton<IUiDispatcher, AvaloniaUiDispatcher>();
             services.AddSingleton<ITabManagerService, TabManagerService>();
             services.AddSingleton<IFilterService, FilterService>();
             
-            // RabbitMQ Filtering System (RMQ-002)
+            // RabbitMQ Filtering System (RMQ-002) - Refactored with SOLID
+            services.AddSingleton<IStorageProvider, JsonFileStorageProvider>();
+            services.AddSingleton<IConfigurationValidator, ConfigurationValidator>();
+            services.AddSingleton<IFilterStrategyFactory<RabbitMqLogEntry>, RabbitMQFilterStrategyFactory>();
+            services.AddSingleton<IFieldMetadataProvider, RabbitMQFieldMetadataProvider>();
             services.AddSingleton<IRabbitMQFilterService, RabbitMQFilterService>();
             services.AddSingleton<IFilterConfigurationService, FilterConfigurationService>();
 
@@ -282,6 +291,11 @@ namespace Log_Parser_App
             services.AddTransient<Log_Parser_App.Services.ErrorDetection.RabbitMQLogErrorDetectionStrategy>();
 
 
+            // Error Detection Services with SOLID refactored dependencies
+            services.AddSingleton<Log_Parser_App.Services.ErrorDetection.Interfaces.IKeywordDetector, Log_Parser_App.Services.ErrorDetection.KeywordDetector>();
+            services.AddSingleton<Log_Parser_App.Services.ErrorDetection.Interfaces.IStackTraceParser, Log_Parser_App.Services.ErrorDetection.StackTraceParser>();
+            services.AddSingleton<Log_Parser_App.Services.ErrorDetection.Interfaces.IActivityHeatmapGenerator, Log_Parser_App.Services.ErrorDetection.ActivityHeatmapGenerator>();
+            services.AddSingleton<Log_Parser_App.Services.ErrorDetection.Interfaces.IErrorNavigator, Log_Parser_App.Services.ErrorDetection.ErrorNavigator>();
             services.AddSingleton<Log_Parser_App.Services.ErrorDetection.IAdvancedErrorDetectionService, Log_Parser_App.Services.ErrorDetection.AdvancedErrorDetectionService>();
 
             // IIS SOLID Architecture Services (ILA-001 - Phase 4: SOLID Compliance)

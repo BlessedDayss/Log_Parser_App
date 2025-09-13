@@ -1,8 +1,9 @@
-namespace Log_Parser_App.Converters.Interfaces
-{
+using System.Collections.Generic;
 
-    public interface IColorSchemeFactory
-    {
-        IColorProvider CreateColorProvider(string schemeName);
-    }
+namespace Log_Parser_App.Converters.Interfaces;
+
+public interface IColorSchemeFactory
+{
+    IColorProvider CreateColorProvider(string schemeName);
+    IEnumerable<string> GetAvailableSchemes();
 }

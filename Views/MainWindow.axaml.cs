@@ -275,5 +275,37 @@ namespace Log_Parser_App.Views
                 }
             }
         }
+
+        public async void OnCopyLogEntryClick(object? sender, RoutedEventArgs e) {
+            try {
+                if (sender is not Button btn) return;
+                if (btn.DataContext is not Log_Parser_App.Models.LogEntry entry) return;
+
+                var textParts = new System.Collections.Generic.List<string>();
+                if (!string.IsNullOrEmpty(entry.Message))
+                    textParts.Add(entry.Message.Trim());
+                if (!string.IsNullOrEmpty(entry.StackTrace))
+                    textParts.Add(entry.StackTrace);
+
+                var textToCopy = string.Join("\n", textParts);
+                if (string.IsNullOrWhiteSpace(textToCopy)) return;
+
+                var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+                if (clipboard != null) {
+                    await clipboard.SetTextAsync(textToCopy);
+                }
+
+                // Visual feedback: turn button green for 300 ms
+                var originalBg = btn.Background;
+                try {
+                    btn.Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#2ECC71"));
+                    await Task.Delay(300);
+                } finally {
+                    btn.Background = originalBg;
+                }
+            } catch (Exception ex) {
+                logger.Error(ex, "Failed to copy log entry to clipboard");
+            }
+        }
     }
 }

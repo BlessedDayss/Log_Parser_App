@@ -5,116 +5,60 @@ using System.Threading;
 using System.Threading.Tasks;
 using Log_Parser_App.Interfaces;
 using Log_Parser_App.Models;
-using Log_Parser_App.Services.Filtering.Strategies;
+using Log_Parser_App.Services.Filtering.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace Log_Parser_App.Services.Filtering
 {
-    /// <summary>
-    /// Dedicated service for RabbitMQ message filtering operations.
-    /// Follows Single Responsibility Principle by isolating RabbitMQ-specific filtering logic.
-    /// Implements the Strategy pattern with composite filter expressions.
-    /// </summary>
     public class RabbitMQFilterService : IRabbitMQFilterService
     {
         private readonly ILogger<RabbitMQFilterService> _logger;
-        private readonly Dictionary<string, Func<string, IFilterStrategy<RabbitMqLogEntry>>> _strategyFactories;
-        private readonly HashSet<string> _availableFields;
-        private readonly Dictionary<string, HashSet<string>> _fieldOperators;
+        private readonly IFilterStrategyFactory<RabbitMqLogEntry> _strategyFactory;
+        private readonly IFieldMetadataProvider _fieldMetadata;
 
-        /// <summary>
-        /// Initializes a new instance of RabbitMQFilterService.
-        /// </summary>
-        /// <param name="logger">Logger for debugging and monitoring</param>
-        public RabbitMQFilterService(ILogger<RabbitMQFilterService> logger)
+        public RabbitMQFilterService(
+            ILogger<RabbitMQFilterService> logger,
+            IFilterStrategyFactory<RabbitMqLogEntry> strategyFactory,
+            IFieldMetadataProvider fieldMetadata)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            
-            // Initialize strategy factories for each supported field
-            _strategyFactories = new Dictionary<string, Func<string, IFilterStrategy<RabbitMqLogEntry>>>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["Timestamp"] = op => new TimestampFilterStrategy(op, _logger as ILogger<TimestampFilterStrategy>),
-                ["Level"] = op => new LevelFilterStrategy(op, _logger as ILogger<LevelFilterStrategy>),
-                ["Message"] = op => new MessageFilterStrategy(op, _logger as ILogger<MessageFilterStrategy>),
-                ["Node"] = op => new NodeFilterStrategy(op, _logger as ILogger<NodeFilterStrategy>),
-                ["ProcessUID"] = op => new ProcessUIDFilterStrategy(op, _logger as ILogger<ProcessUIDFilterStrategy>),
-                ["Username"] = op => new UsernameFilterStrategy(op, _logger as ILogger<UsernameFilterStrategy>)
-            };
-
-            // Define available fields for RabbitMQ log entries
-            _availableFields = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                "Timestamp", "Level", "Message", "Node", "ProcessUID", "Username"
-            };
-
-            // Define supported operators for each field type
-            _fieldOperators = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["Timestamp"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    "equals", "notequals", "greaterthan", "lessthan", 
-                    "greaterthanorequal", "lessthanorequal", "between"
-                },
-                ["Level"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    "equals", "notequals", "contains", "notcontains", 
-                    "startswith", "endswith", "in", "notin"
-                },
-                ["Message"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    "equals", "notequals", "contains", "notcontains", 
-                    "startswith", "endswith", "regex"
-                },
-                ["Node"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    "equals", "notequals", "contains", "notcontains", 
-                    "startswith", "endswith", "in", "notin"
-                },
-                ["ProcessUID"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    "equals", "notequals", "contains", "startswith", "endswith"
-                },
-                ["Username"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    "equals", "notequals", "contains", "startswith", "endswith", "in", "notin"
-                }
-            };
+            _strategyFactory = strategyFactory ?? throw new ArgumentNullException(nameof(strategyFactory));
+            _fieldMetadata = fieldMetadata ?? throw new ArgumentNullException(nameof(fieldMetadata));
         }
 
-        /// <inheritdoc />
         public async Task<IEnumerable<RabbitMqLogEntry>> ApplyFilterAsync(
             IEnumerable<RabbitMqLogEntry> logEntries,
             IFilterExpression<RabbitMqLogEntry> filterExpression,
             CancellationToken cancellationToken = default)
         {
-            if (logEntries == null) throw new ArgumentNullException(nameof(logEntries));
-            if (filterExpression == null) throw new ArgumentNullException(nameof(filterExpression));
+            if (logEntries == null)
+                throw new ArgumentNullException(nameof(logEntries));
+            if (filterExpression == null)
+                throw new ArgumentNullException(nameof(filterExpression));
 
-            _logger.LogDebug("Applying filter expression: {Description}", filterExpression.Description);
-
-            // Convert IEnumerable to IAsyncEnumerable manually
-            var source = ConvertToAsyncEnumerable(logEntries);
             var results = new List<RabbitMqLogEntry>();
+            var source = ConvertToAsyncEnumerable(logEntries);
 
             await foreach (var item in filterExpression.EvaluateAsync(source, cancellationToken))
             {
                 results.Add(item);
             }
 
-            _logger.LogDebug("Filter applied. Input: {InputCount}, Output: {OutputCount}", 
+            _logger.LogDebug("Filter applied. Input: {InputCount}, Output: {OutputCount}",
                 logEntries.Count(), results.Count);
 
             return results;
         }
 
-        /// <inheritdoc />
         public async Task<IEnumerable<RabbitMqLogEntry>> ApplySimpleFiltersAsync(
             IEnumerable<RabbitMqLogEntry> logEntries,
             IEnumerable<FilterCriterion> criteria,
             CancellationToken cancellationToken = default)
         {
-            if (logEntries == null) throw new ArgumentNullException(nameof(logEntries));
-            if (criteria == null) throw new ArgumentNullException(nameof(criteria));
+            if (logEntries == null)
+                throw new ArgumentNullException(nameof(logEntries));
+            if (criteria == null)
+                throw new ArgumentNullException(nameof(criteria));
 
             var criteriaList = criteria.ToList();
             if (!criteriaList.Any())
@@ -123,9 +67,6 @@ namespace Log_Parser_App.Services.Filtering
                 return logEntries;
             }
 
-            _logger.LogDebug("Applying {Count} simple filter criteria", criteriaList.Count);
-
-            // Validate criteria first
             var validation = ValidateFilterCriteria(criteriaList);
             if (!validation.IsValid)
             {
@@ -133,20 +74,16 @@ namespace Log_Parser_App.Services.Filtering
                 throw new ArgumentException($"Invalid filter criteria: {errors}");
             }
 
-            // Build filter expression from criteria
             var filterExpression = BuildFilterExpression(criteriaList);
-            
             return await ApplyFilterAsync(logEntries, filterExpression, cancellationToken);
         }
 
-        /// <inheritdoc />
         public ValidationResult ValidateFilterCriteria(IEnumerable<FilterCriterion> criteria)
         {
             var result = new ValidationResult { IsValid = true };
-            
+
             foreach (var criterion in criteria)
             {
-                // Validate field name - use Field property for compatibility
                 if (string.IsNullOrWhiteSpace(criterion.Field))
                 {
                     result.Errors.Add("Field name cannot be empty");
@@ -154,14 +91,6 @@ namespace Log_Parser_App.Services.Filtering
                     continue;
                 }
 
-                if (!_availableFields.Contains(criterion.Field))
-                {
-                    result.Errors.Add($"Unknown field: {criterion.Field}");
-                    result.IsValid = false;
-                    continue;
-                }
-
-                // Validate operator
                 if (string.IsNullOrWhiteSpace(criterion.Operator))
                 {
                     result.Errors.Add($"Operator cannot be empty for field {criterion.Field}");
@@ -169,189 +98,136 @@ namespace Log_Parser_App.Services.Filtering
                     continue;
                 }
 
-                if (!_fieldOperators.TryGetValue(criterion.Field, out var validOperators) ||
-                    !validOperators.Contains(criterion.Operator))
+                if (!_fieldMetadata.IsFieldSupported(criterion.Field))
+                {
+                    result.Errors.Add($"Unknown field: {criterion.Field}");
+                    result.IsValid = false;
+                    continue;
+                }
+
+                if (!_fieldMetadata.IsOperatorSupported(criterion.Field, criterion.Operator))
                 {
                     result.Errors.Add($"Invalid operator '{criterion.Operator}' for field {criterion.Field}");
                     result.IsValid = false;
                     continue;
                 }
 
-                // Validate value using strategy
-                if (_strategyFactories.TryGetValue(criterion.Field, out var factory))
+                try
                 {
-                    try
+                    var strategy = _strategyFactory.CreateStrategy(criterion.Field, criterion.Operator);
+                    if (criterion.Value == null || !strategy.IsValidValue(criterion.Value))
                     {
-                        var strategy = factory(criterion.Operator);
-                        if (!strategy.IsValidValue(criterion.Value))
-                        {
-                            result.Errors.Add($"Invalid value '{criterion.Value}' for {criterion.Field} {criterion.Operator}");
-                            result.IsValid = false;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        result.Errors.Add($"Error validating {criterion.Field} {criterion.Operator}: {ex.Message}");
+                        result.Errors.Add($"Invalid value '{criterion.Value}' for {criterion.Field} {criterion.Operator}");
                         result.IsValid = false;
                     }
                 }
-                else
+                catch (Exception ex)
                 {
-                    result.Warnings.Add($"No strategy factory available for field {criterion.Field}, skipping validation");
+                    result.Errors.Add($"Error validating {criterion.Field} {criterion.Operator}: {ex.Message}");
+                    result.IsValid = false;
                 }
             }
 
             return result;
         }
 
-        /// <inheritdoc />
         public IEnumerable<string> GetAvailableFields()
         {
-            return _availableFields.ToList();
+            return _fieldMetadata.GetAvailableFields();
         }
 
-        /// <inheritdoc />
         public IEnumerable<string> GetAvailableOperators(string fieldName)
         {
-            if (string.IsNullOrWhiteSpace(fieldName))
-                return Enumerable.Empty<string>();
-
-            return _fieldOperators.TryGetValue(fieldName, out var operators) 
-                ? operators.ToList() 
-                : Enumerable.Empty<string>();
+            return _fieldMetadata.GetAvailableOperators(fieldName);
         }
 
-        /// <summary>
-        /// Converts IEnumerable to IAsyncEnumerable manually.
-        /// </summary>
         private async IAsyncEnumerable<RabbitMqLogEntry> ConvertToAsyncEnumerable(IEnumerable<RabbitMqLogEntry> source)
         {
-            await Task.Yield(); // Make it truly async
-            
+            await Task.Yield();
+
             foreach (var item in source)
             {
                 yield return item;
             }
         }
 
-        /// <summary>
-        /// Builds a filter expression from simple filter criteria.
-        /// Combines multiple criteria using AND logic with smart ordering optimization.
-        /// </summary>
-        /// <param name="criteria">Filter criteria to combine</param>
-        /// <returns>Composite filter expression</returns>
         private IFilterExpression<RabbitMqLogEntry> BuildFilterExpression(IList<FilterCriterion> criteria)
         {
             if (criteria.Count == 1)
             {
-                // Single criterion - create a leaf filter
                 var criterion = criteria[0];
-                var strategy = _strategyFactories[criterion.Field!](criterion.Operator!);
-                return new FilterLeaf<RabbitMqLogEntry>(strategy, criterion.Value);
+                var strategy = _strategyFactory.CreateStrategy(criterion.Field!, criterion.Operator!);
+                return new FilterLeaf<RabbitMqLogEntry>(strategy, criterion.Value ?? string.Empty);
             }
 
-            // Multiple criteria - create an AND composite with smart ordering
             var composite = new FilterComposite<RabbitMqLogEntry>(LogicalOperator.And);
-            
-            // Apply smart ordering: order criteria by estimated selectivity (most selective first)
             var orderedCriteria = OptimizeFilterOrder(criteria);
-            
+
             foreach (var criterion in orderedCriteria)
             {
-                var strategy = _strategyFactories[criterion.Field!](criterion.Operator!);
-                var leaf = new FilterLeaf<RabbitMqLogEntry>(strategy, criterion.Value);
+                var strategy = _strategyFactory.CreateStrategy(criterion.Field!, criterion.Operator!);
+                var leaf = new FilterLeaf<RabbitMqLogEntry>(strategy, criterion.Value ?? string.Empty);
                 composite.AddChild(leaf);
             }
 
-            _logger.LogDebug("Built filter expression with {Count} criteria (smart ordered)", criteria.Count);
             return composite;
         }
 
-        /// <summary>
-        /// Optimizes filter order by estimating selectivity and computational cost.
-        /// Orders criteria from most selective (fastest elimination) to least selective.
-        /// </summary>
-        /// <param name="criteria">Original filter criteria</param>
-        /// <returns>Optimally ordered criteria</returns>
         private IEnumerable<FilterCriterion> OptimizeFilterOrder(IList<FilterCriterion> criteria)
         {
             var criteriaWithScore = new List<(FilterCriterion Criterion, double Score)>();
 
             foreach (var criterion in criteria)
             {
-                if (_strategyFactories.TryGetValue(criterion.Field!, out var factory))
+                try
                 {
-                    try
-                    {
-                        var strategy = factory(criterion.Operator!);
-                        var selectivity = strategy.EstimateSelectivity(criterion.Value);
-                        var computationalCost = EstimateComputationalCost(criterion);
-                        
-                        // Score = selectivity (lower is better) + computational_cost_factor
-                        // Lower score = higher priority (executed first)
-                        var score = selectivity + (computationalCost * 0.1); // Weight computational cost at 10%
-                        
-                        criteriaWithScore.Add((criterion, score));
-                        
-                        _logger.LogTrace("Criterion {Field} {Operator}: selectivity={Selectivity:F2}, cost={Cost:F2}, score={Score:F2}",
-                            criterion.Field, criterion.Operator, selectivity, computationalCost, score);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Error estimating selectivity for {Field} {Operator}, using default order",
-                            criterion.Field, criterion.Operator);
-                        criteriaWithScore.Add((criterion, 0.5)); // Default moderate selectivity
-                    }
+                    var strategy = _strategyFactory.CreateStrategy(criterion.Field!, criterion.Operator!);
+                    var selectivity = criterion.Value != null ? strategy.EstimateSelectivity(criterion.Value) : 0.5;
+                    var cost = EstimateComputationalCost(criterion);
+                    var score = selectivity + (cost * 0.1);
+
+                    criteriaWithScore.Add((criterion, score));
                 }
-                else
+                catch
                 {
-                    _logger.LogWarning("No strategy factory for field {Field}, using default order", criterion.Field);
-                    criteriaWithScore.Add((criterion, 0.5)); // Default moderate selectivity
+                    criteriaWithScore.Add((criterion, 0.5));
                 }
             }
 
-            // Order by score (ascending - lower score = higher selectivity = execute first)
             return criteriaWithScore.OrderBy(x => x.Score).Select(x => x.Criterion);
         }
 
-        /// <summary>
-        /// Estimates computational cost of a filter criterion.
-        /// Used to balance selectivity with execution time.
-        /// </summary>
-        /// <param name="criterion">Filter criterion to evaluate</param>
-        /// <returns>Computational cost estimate (0.0 = fast, 1.0 = slow)</returns>
         private double EstimateComputationalCost(FilterCriterion criterion)
         {
-            // Estimate computational cost based on field type and operator
             var fieldCost = criterion.Field?.ToLowerInvariant() switch
             {
-                "timestamp" => 0.2,    // DateTime comparisons are relatively fast
-                "level" => 0.1,        // String enum comparisons are very fast
-                "message" => 0.6,      // String operations on potentially large text
-                "node" => 0.3,         // String operations on short identifiers
-                "processuid" => 0.3,   // String operations on short identifiers
-                "username" => 0.3,     // String operations on short identifiers
-                _ => 0.4               // Default cost
+                "timestamp" => 0.2,
+                "level" => 0.1,
+                "message" => 0.6,
+                "node" => 0.3,
+                "processuid" => 0.3,
+                "username" => 0.3,
+                _ => 0.4
             };
 
             var operatorCost = criterion.Operator?.ToLowerInvariant() switch
             {
-                "equals" => 0.1,       // Simple equality is fast
-                "notequals" => 0.1,    // Simple inequality is fast
-                "contains" => 0.4,     // String searching is moderate
-                "notcontains" => 0.4,  // String searching is moderate
-                "startswith" => 0.2,   // Prefix matching is relatively fast
-                "endswith" => 0.3,     // Suffix matching is slightly slower
-                "regex" => 0.8,        // Regex is expensive
-                "in" => 0.3,           // Array lookup is moderate
-                "notin" => 0.3,        // Array lookup is moderate
-                "between" => 0.2,      // Range check is fast
-                "greaterthan" => 0.1,  // Simple comparison is fast
-                "lessthan" => 0.1,     // Simple comparison is fast
-                _ => 0.3               // Default cost
+                "equals" => 0.1,
+                "notequals" => 0.1,
+                "contains" => 0.4,
+                "notcontains" => 0.4,
+                "startswith" => 0.2,
+                "endswith" => 0.3,
+                "regex" => 0.8,
+                "in" => 0.3,
+                "notin" => 0.3,
+                "between" => 0.2,
+                "greaterthan" => 0.1,
+                "lessthan" => 0.1,
+                _ => 0.3
             };
 
-            return Math.Min(1.0, fieldCost + operatorCost); // Cap at 1.0
+            return Math.Min(1.0, fieldCost + operatorCost);
         }
     }
 } 

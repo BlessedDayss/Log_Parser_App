@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Log_Parser_App.Services.LevelDetection;
 
@@ -11,7 +12,7 @@ namespace Log_Parser_App.Services.Parsing
     /// </summary>
     public class RefactoredStandardLogLineParser : AbstractLogLineParser
     {
-        private static readonly Regex StandardLogRegex = new(@"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}[,.]\d{3})\s+(.*)", RegexOptions.Compiled);
+        private static readonly Regex StandardLogRegex = new(@"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:[,.]\d{3})?)\s+(.*)", RegexOptions.Compiled);
         
         public RefactoredStandardLogLineParser(LevelDetectionService levelDetectionService) 
             : base(levelDetectionService)
@@ -26,10 +27,17 @@ namespace Log_Parser_App.Services.Parsing
             if (!match.Success)
                 return null;
             
-            // Parse timestamp
+            // Parse timestamp (support both with and without milliseconds)
             DateTime timestamp;
-            if (!DateTime.TryParse(match.Groups[1].Value.Replace(',', '.'), out timestamp))
+            var tsRaw = match.Groups[1].Value.Replace(',', '.');
+            if (!DateTime.TryParseExact(tsRaw,
+                    new[] { "yyyy-MM-dd HH:mm:ss.fff", "yyyy-MM-dd HH:mm:ss" },
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out timestamp))
+            {
                 timestamp = DateTime.Now;
+            }
             
             // Extract message
             var message = match.Groups[2].Value.Trim();
