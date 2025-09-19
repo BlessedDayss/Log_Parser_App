@@ -96,19 +96,31 @@ using Log_Parser_App.Models;
                 };
                 Console.WriteLine("[App] MainWindow created but not shown yet.");
 
-                // Show WelcomeWindow first as the initial MainWindow to prevent shutdown on close
-                var welcomeWindow = new Views.WelcomeWindow();
-                desktop.MainWindow = welcomeWindow;
-                welcomeWindow.GetStartedClicked += (sender, e) => {
-                    // Switch the desktop MainWindow to the real app window BEFORE closing welcome
+                // Check if WelcomeWindow should be shown (only on first launch)
+                var showWelcome = !IsWelcomeShownBefore();
+
+                if (showWelcome) {
+                    // Show WelcomeWindow first as the initial MainWindow to prevent shutdown on close
+                    var welcomeWindow = new Views.WelcomeWindow();
+                    desktop.MainWindow = welcomeWindow;
+                    welcomeWindow.GetStartedClicked += (sender, e) => {
+                        // Mark welcome as shown and switch to main window
+                        MarkWelcomeAsShown();
+                        // Switch the desktop MainWindow to the real app window BEFORE closing welcome
+                        desktop.MainWindow = MainWindow;
+                        MainWindow.Show();
+                        Console.WriteLine("[App] MainWindow shown. Closing WelcomeWindow...");
+                        welcomeWindow.Close();
+                        Console.WriteLine("[App] WelcomeWindow closed, control handed to MainWindow.");
+                    };
+                    welcomeWindow.Show();
+                    Console.WriteLine("[App] WelcomeWindow shown as initial screen (first launch).");
+                } else {
+                    // Skip welcome screen, show main window directly
                     desktop.MainWindow = MainWindow;
                     MainWindow.Show();
-                    Console.WriteLine("[App] MainWindow shown. Closing WelcomeWindow...");
-                    welcomeWindow.Close();
-                    Console.WriteLine("[App] WelcomeWindow closed, control handed to MainWindow.");
-                };
-                welcomeWindow.Show();
-                Console.WriteLine("[App] WelcomeWindow shown as initial screen.");
+                    Console.WriteLine("[App] MainWindow shown directly (not first launch).");
+                }
 
                 // Process command line arguments for file opening after UI is ready
                 if (mainWindowViewModel?.MainView != null) {
@@ -341,6 +353,39 @@ using Log_Parser_App.Models;
 
             foreach (var plugin in dataValidationPluginsToRemove) {
                 BindingPlugins.DataValidators.Remove(plugin);
+            }
+        }
+
+        /// <summary>
+        /// Check if welcome screen has been shown before
+        /// </summary>
+        private bool IsWelcomeShownBefore() {
+            try {
+                var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                var appFolder = Path.Combine(appDataPath, "LogParserApp");
+                var welcomeFlagPath = Path.Combine(appFolder, "welcome_shown.txt");
+
+                return File.Exists(welcomeFlagPath);
+            } catch (Exception ex) {
+                Console.WriteLine($"[App] Error checking welcome flag: {ex.Message}");
+                return false; // Show welcome if we can't check
+            }
+        }
+
+        /// <summary>
+        /// Mark welcome screen as shown
+        /// </summary>
+        private void MarkWelcomeAsShown() {
+            try {
+                var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                var appFolder = Path.Combine(appDataPath, "LogParserApp");
+                Directory.CreateDirectory(appFolder);
+                var welcomeFlagPath = Path.Combine(appFolder, "welcome_shown.txt");
+
+                File.WriteAllText(welcomeFlagPath, "shown");
+                Console.WriteLine("[App] Welcome flag marked as shown.");
+            } catch (Exception ex) {
+                Console.WriteLine($"[App] Error marking welcome flag: {ex.Message}");
             }
         }
     }
