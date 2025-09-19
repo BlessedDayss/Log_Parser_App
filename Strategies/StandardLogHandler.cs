@@ -360,7 +360,7 @@ namespace Log_Parser_App.Strategies
                 return "FileSystem";
             if (lowerMessage.Contains("permission") || lowerMessage.Contains("access denied"))
                 return "Security";
-            if (lowerMessage.Contains("validation") || lowerMessage.Contains("invalid"))
+            if (lowerMessage.Contains("validation") || lowerMessage.Contains("invalid") || lowerMessage.Contains("invalidnameexception") || lowerMessage.Contains("invalid name"))
                 return "Validation";
 
             return "Application";

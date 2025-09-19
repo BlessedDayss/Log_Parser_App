@@ -9,3 +9,4 @@ public interface IConfigurationValidator
     bool HasInvalidFileNameCharacters(string name);
 }
 
+

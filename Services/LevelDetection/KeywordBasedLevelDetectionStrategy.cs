@@ -13,7 +13,7 @@ namespace Log_Parser_App.Services.LevelDetection
     {
         // Compiled regexes for performance - use word boundaries to match complete words only
         // Only singular forms to avoid false positives from plural forms like "errors", "warnings"
-        private static readonly Regex ErrorKeywordsRegex = new(@"\b(error|exception|failed|critical|fatal|not\s+found|FileNotFoundException|Access\s+denied|NullReferenceException|stack\s*trace)\b", 
+        private static readonly Regex ErrorKeywordsRegex = new(@"\b(error|exception|failed|critical|fatal|not\s+found|FileNotFoundException|Access\s+denied|NullReferenceException|stack\s*trace|InvalidNameException|invalid\s*name)\b",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static readonly Regex WarningKeywordsRegex = new(@"\b(warning|warn)\b", 
             RegexOptions.Compiled | RegexOptions.IgnoreCase);

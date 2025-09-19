@@ -9,3 +9,4 @@ public interface IFilterStrategyFactory<TEntry>
     bool IsOperatorSupported(string fieldName, string operatorName);
 }
 
+
