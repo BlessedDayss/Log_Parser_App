@@ -28,6 +28,8 @@ namespace Log_Parser_App.ViewModels
 		private List<IisLogEntry> _iisLogEntries;
 		// RabbitMQ entries collection
 		private List<RabbitMqLogEntry> _rabbitMqLogEntries;
+		// Log4Net entries collection
+		private List<Log4NetLogEntry> _log4NetLogEntries;
 		private bool _isSelected;
 		private bool _isErrorsOnly;
 		private readonly IFilePickerService _filePickerService;
@@ -67,6 +69,14 @@ namespace Log_Parser_App.ViewModels
 			}
 		}
 
+		public List<Log4NetLogEntry> Log4NetLogEntries {
+			get => _log4NetLogEntries;
+			set {
+				_log4NetLogEntries = value;
+				OnPropertyChanged();
+			}
+		}
+
 			public LogFormatType LogType { get; }
 
 	// New direct properties for tab type checking
@@ -77,9 +87,13 @@ namespace Log_Parser_App.ViewModels
 
 			public bool IsThisTabRabbitMQ => LogType == LogFormatType.RabbitMQ;
 
-	// Combined property for UI binding - both Standard and RabbitMQ use the same LogEntry structure
+			public bool IsThisTabLog4Net => LogType == LogFormatType.Log4Net;
+
+	// Combined property for UI binding - Standard, RabbitMQ, and Log4Net use filtering
 
 	public bool IsThisTabStandardOrRabbitMQ => LogType == LogFormatType.Standard || LogType == LogFormatType.RabbitMQ;
+
+	public bool IsThisTabSupportsFiltering => LogType == LogFormatType.Standard || LogType == LogFormatType.RabbitMQ || LogType == LogFormatType.Log4Net;
 
 		public bool IsSelected {
 			get => _isSelected;
@@ -123,6 +137,10 @@ namespace Log_Parser_App.ViewModels
 
 		public ObservableCollection<RabbitMqLogEntry> FilteredRabbitMQLogEntries { get; }
 
+		// Log4Net Filtering
+
+		public ObservableCollection<Log4NetLogEntry> FilteredLog4NetLogEntries { get; }
+
 		// Statistics for IIS
 
 		public int IIS_TotalCount => LogType == LogFormatType.IIS ? FilteredIISLogEntries.Count : 0;
@@ -146,6 +164,20 @@ namespace Log_Parser_App.ViewModels
 
 		public int RabbitMQ_InfoCount =>
 			LogType == LogFormatType.RabbitMQ ? FilteredRabbitMQLogEntries.Count(e => e.EffectiveLevel != null && e.EffectiveLevel.ToLower().Contains("info")) : 0;
+
+		// Statistics for Log4Net
+
+		public int Log4Net_TotalCount => LogType == LogFormatType.Log4Net ? FilteredLog4NetLogEntries.Count : 0;
+
+		public int Log4Net_ErrorCount => LogType == LogFormatType.Log4Net
+			? FilteredLog4NetLogEntries.Count(e => e.Level != null && (e.Level.ToLower().Contains("error") || e.Level.ToLower().Contains("fatal")))
+			: 0;
+
+		public int Log4Net_WarningCount =>
+			LogType == LogFormatType.Log4Net ? FilteredLog4NetLogEntries.Count(e => e.Level != null && e.Level.ToLower().Contains("warn")) : 0;
+
+		public int Log4Net_InfoCount =>
+			LogType == LogFormatType.Log4Net ? FilteredLog4NetLogEntries.Count(e => e.Level != null && e.Level.ToLower().Contains("info")) : 0;
 
 		public IRelayCommand AddIISFilterCriterionCommand { get; }
 
@@ -353,6 +385,110 @@ namespace Log_Parser_App.ViewModels
 			InitializeFilterFields();
 		}
 
+		// Default constructor for reflection-based initialization
+		public TabViewModel() {
+			_filePath = string.Empty;
+			_title = string.Empty;
+			_logEntries = new List<LogEntry>();
+			_iisLogEntries = new List<IisLogEntry>();
+			_rabbitMqLogEntries = new List<RabbitMqLogEntry>();
+			_log4NetLogEntries = new List<Log4NetLogEntry>();
+			LogType = LogFormatType.Standard;
+			_isSelected = false;
+			_filePickerService = null!;
+			
+			// Initialize all collections
+			IISFilterCriteria = new ObservableCollection<IISFilterCriterion>();
+			FilteredIISLogEntries = new ObservableCollection<IisLogEntry>();
+			FilteredRabbitMQLogEntries = new ObservableCollection<RabbitMqLogEntry>();
+			FilteredLog4NetLogEntries = new ObservableCollection<Log4NetLogEntry>();
+			
+			// Initialize commands
+			FilterCriteria = new ObservableCollection<FilterCriterion>();
+			RabbitMQFilterCriteria = new ObservableCollection<FilterCriterion>();
+			Log4NetFilterCriteria = new ObservableCollection<FilterCriterion>();
+			
+			AddFilterCriteriaCommand = new RelayCommand(ExecuteAddFilterCriterion);
+			RemoveFilterCriterionCommand = new RelayCommand<FilterCriterion>(ExecuteRemoveFilterCriterion);
+			ApplyFiltersCommand = new RelayCommand(ExecuteApplyFilters);
+			ResetFiltersCommand = new RelayCommand(ExecuteResetFilters);
+			
+			// IIS Filter Commands
+			AddIISFilterCriterionCommand = new RelayCommand(ExecuteAddIISFilterCriterion);
+			RemoveIISFilterCriterionCommand = new RelayCommand<IISFilterCriterion>(ExecuteRemoveIISFilterCriterion);
+			ApplyIISFiltersCommand = new RelayCommand(ExecuteApplyIISFilters);
+			ResetIISFiltersCommand = new RelayCommand(ExecuteResetIISFilters);
+			
+			// RabbitMQ Filter Commands
+			AddRabbitMQFilterCriterionCommand = new RelayCommand(ExecuteAddRabbitMQFilterCriterion);
+			RemoveRabbitMQFilterCriterionCommand = new RelayCommand<FilterCriterion>(ExecuteRemoveRabbitMQFilterCriterion);
+			ApplyRabbitMQFiltersCommand = new RelayCommand(ExecuteApplyRabbitMQFilters);
+			ResetRabbitMQFiltersCommand = new RelayCommand(ExecuteResetRabbitMQFilters);
+			
+			// Log4Net Filter Commands
+			AddLog4NetFilterCriterionCommand = new RelayCommand(ExecuteAddLog4NetFilterCriterion);
+			RemoveLog4NetFilterCriterionCommand = new RelayCommand<FilterCriterion>(ExecuteRemoveLog4NetFilterCriterion);
+			ApplyLog4NetFiltersCommand = new RelayCommand(ExecuteApplyLog4NetFilters);
+			ResetLog4NetFiltersCommand = new RelayCommand(ExecuteResetLog4NetFilters);
+			
+			InitializeFilterFields();
+		}
+
+		// Constructor specifically for Log4Net logs
+		public TabViewModel(string filePath, string title, List<Log4NetLogEntry> log4NetLogEntries, IFilePickerService filePickerService) {
+			_filePath = filePath;
+			_title = title;
+			_logEntries = new List<LogEntry>();
+			_iisLogEntries = new List<IisLogEntry>();
+			_rabbitMqLogEntries = new List<RabbitMqLogEntry>();
+			_log4NetLogEntries = log4NetLogEntries;
+			LogType = LogFormatType.Log4Net;
+			_isSelected = false;
+			_filePickerService = filePickerService;
+			// Initialize all collections
+			IISFilterCriteria = new ObservableCollection<IISFilterCriterion>();
+			FilteredIISLogEntries = new ObservableCollection<IisLogEntry>();
+			FilteredRabbitMQLogEntries = new ObservableCollection<RabbitMqLogEntry>();
+			FilteredLog4NetLogEntries = new ObservableCollection<Log4NetLogEntry>(log4NetLogEntries); // Initially populate with all Log4Net entries
+			AddIISFilterCriterionCommand = new RelayCommand(ExecuteAddIISFilterCriterion);
+			RemoveIISFilterCriterionCommand = new RelayCommand<IISFilterCriterion>(ExecuteRemoveIISFilterCriterion);
+			ApplyIISFiltersCommand = new RelayCommand(ExecuteApplyIISFilters);
+			ResetIISFiltersCommand = new RelayCommand(ExecuteResetIISFilters);
+			ExportIisLogsToCsvCommand = new RelayCommand(async () => await ExecuteExportIisLogsToCsvAsync());
+			SortIISCommand = new RelayCommand<string>(ExecuteSortIIS);
+			// Initialize Standard Filtering related collections and commands
+			FilterCriteria = new ObservableCollection<FilterCriterion>();
+			FilteredLogEntries = new ObservableCollection<LogEntry>(); // Empty for Log4Net-specific tabs
+			AddFilterCriteriaCommand = new RelayCommand(ExecuteAddFilterCriterion);
+			RemoveFilterCriterionCommand = new RelayCommand<FilterCriterion>(ExecuteRemoveFilterCriterion);
+			ApplyFiltersCommand = new RelayCommand(ExecuteApplyFilters);
+			ResetFiltersCommand = new RelayCommand(ExecuteResetFilters);
+			// Initialize RabbitMQ Filtering related collections and commands
+			RabbitMQFilterCriteria = new ObservableCollection<FilterCriterion>();
+			AddRabbitMQFilterCriterionCommand = new RelayCommand(ExecuteAddRabbitMQFilterCriterion);
+			RemoveRabbitMQFilterCriterionCommand = new RelayCommand<FilterCriterion>(ExecuteRemoveRabbitMQFilterCriterion);
+			ApplyRabbitMQFiltersCommand = new RelayCommand(ExecuteApplyRabbitMQFilters);
+			ResetRabbitMQFiltersCommand = new RelayCommand(ExecuteResetRabbitMQFilters);
+			// Initialize Log4Net Filtering related collections and commands
+			Log4NetFilterCriteria = new ObservableCollection<FilterCriterion>();
+			AddLog4NetFilterCriterionCommand = new RelayCommand(ExecuteAddLog4NetFilterCriterion);
+			RemoveLog4NetFilterCriterionCommand = new RelayCommand<FilterCriterion>(ExecuteRemoveLog4NetFilterCriterion);
+			ApplyLog4NetFiltersCommand = new RelayCommand(ExecuteApplyLog4NetFilters);
+			ResetLog4NetFiltersCommand = new RelayCommand(ExecuteResetLog4NetFilters);
+			InitializeFilterFields();
+		}
+
+		// Log4Net Filtering Properties and Commands
+
+		public ObservableCollection<FilterCriterion> Log4NetFilterCriteria { get; }
+
+		public IRelayCommand AddLog4NetFilterCriterionCommand { get; }
+
+		public IRelayCommand<FilterCriterion> RemoveLog4NetFilterCriterionCommand { get; }
+
+		public IRelayCommand ApplyLog4NetFiltersCommand { get; }
+
+		public IRelayCommand ResetLog4NetFiltersCommand { get; }
 
 
 		#endregion
@@ -801,6 +937,24 @@ namespace Log_Parser_App.ViewModels
 				AvailableValuesByField["Node"] = _rabbitMqLogEntries.Select(l => l.EffectiveNode).Where(s => !string.IsNullOrEmpty(s)).Distinct().ToList()!;
 				AvailableValuesByField["Username"] = _rabbitMqLogEntries.Select(l => l.EffectiveUserName).Where(s => !string.IsNullOrEmpty(s)).Distinct().ToList()!;
 				AvailableValuesByField["ProcessUID"] = _rabbitMqLogEntries.Select(l => l.EffectiveProcessUID).Where(s => !string.IsNullOrEmpty(s)).Distinct().ToList()!;
+			} else if (LogType == LogFormatType.Log4Net) {
+				// Initialize Log4Net filter fields
+				MasterAvailableFields.AddRange(new[] { "Date", "Level", "Message", "Host", "Thread", "Logger", "User", "Exception" });
+				OperatorsByFieldType["Date"] = new List<string> { "Before", "After", "Equals" };
+				OperatorsByFieldType["Level"] = new List<string> { "Equals", "Not Equals" };
+				OperatorsByFieldType["Message"] = new List<string> { "Contains", "Not Contains", "Equals", "StartsWith", "EndsWith" };
+				OperatorsByFieldType["Host"] = new List<string> { "Equals", "Contains" };
+				OperatorsByFieldType["Thread"] = new List<string> { "Equals", "Not Equals", "Contains" };
+				OperatorsByFieldType["Logger"] = new List<string> { "Equals", "Not Equals", "Contains" };
+				OperatorsByFieldType["User"] = new List<string> { "Equals", "Not Equals", "Contains" };
+				OperatorsByFieldType["Exception"] = new List<string> { "Contains", "Not Contains", "Equals" };
+
+				// Populate available values from Log4Net entries
+				AvailableValuesByField["Level"] = _log4NetLogEntries.Select(l => l.Level).Where(s => !string.IsNullOrEmpty(s)).Distinct().ToList()!;
+				AvailableValuesByField["Host"] = _log4NetLogEntries.Select(l => l.Host).Where(s => !string.IsNullOrEmpty(s)).Distinct().ToList()!;
+				AvailableValuesByField["Thread"] = _log4NetLogEntries.Select(l => l.Thread).Where(s => !string.IsNullOrEmpty(s)).Distinct().ToList()!;
+				AvailableValuesByField["Logger"] = _log4NetLogEntries.Select(l => l.Logger).Where(s => !string.IsNullOrEmpty(s)).Distinct().ToList()!;
+				AvailableValuesByField["User"] = _log4NetLogEntries.Select(l => l.User).Where(s => !string.IsNullOrEmpty(s)).Distinct().ToList()!;
 			}
 		}
 
@@ -939,6 +1093,119 @@ namespace Log_Parser_App.ViewModels
 				"Node" => entry.EffectiveNode,
 				"Username" => entry.EffectiveUserName,
 				"ProcessUID" => entry.EffectiveProcessUID,
+				_ => null
+			};
+		}
+
+		// Log4Net Filter Methods
+
+		private void ExecuteAddLog4NetFilterCriterion() {
+			if (LogType != LogFormatType.Log4Net)
+				return;
+			var newCriterion = new FilterCriterion { ParentViewModel = this };
+			// Initialize AvailableFields from MasterAvailableFields
+			foreach (var field in MasterAvailableFields) {
+				newCriterion.AvailableFields.Add(field);
+			}
+			// Set initial SelectedField to trigger operators and values population
+			if (MasterAvailableFields.Any()) {
+				newCriterion.SelectedField = MasterAvailableFields.First();
+			}
+			Log4NetFilterCriteria.Add(newCriterion);
+		}
+
+		private void ExecuteRemoveLog4NetFilterCriterion(FilterCriterion criterion) {
+			if (LogType != LogFormatType.Log4Net)
+				return;
+			Log4NetFilterCriteria.Remove(criterion);
+		}
+
+		private void ExecuteApplyLog4NetFilters() {
+			if (LogType != LogFormatType.Log4Net)
+				return;
+			ApplyLog4NetFiltersManually();
+		}
+
+		private void ApplyLog4NetFiltersManually() {
+			List<Log4NetLogEntry> tempList;
+			if (Log4NetFilterCriteria == null || !Log4NetFilterCriteria.Any()) {
+				tempList = new List<Log4NetLogEntry>(Log4NetLogEntries);
+			} else {
+				tempList = Log4NetLogEntries.Where(entry => Log4NetFilterCriteria.All(filter => MatchLog4NetFilter(entry, filter))).ToList();
+			}
+			FilteredLog4NetLogEntries.Clear();
+			foreach (var entry in tempList) {
+				FilteredLog4NetLogEntries.Add(entry);
+			}
+
+			// Update counts
+			OnPropertyChanged(nameof(Log4Net_TotalCount));
+			OnPropertyChanged(nameof(Log4Net_ErrorCount));
+			OnPropertyChanged(nameof(Log4Net_WarningCount));
+			OnPropertyChanged(nameof(Log4Net_InfoCount));
+		}
+
+		private void ExecuteResetLog4NetFilters() {
+			if (LogType != LogFormatType.Log4Net)
+				return;
+			Log4NetFilterCriteria.Clear();
+			FilteredLog4NetLogEntries.Clear();
+			foreach (var entry in Log4NetLogEntries) {
+				FilteredLog4NetLogEntries.Add(entry);
+			}
+
+			// Update counts
+			OnPropertyChanged(nameof(Log4Net_TotalCount));
+			OnPropertyChanged(nameof(Log4Net_ErrorCount));
+			OnPropertyChanged(nameof(Log4Net_WarningCount));
+			OnPropertyChanged(nameof(Log4Net_InfoCount));
+		}
+
+		private bool MatchLog4NetFilter(Log4NetLogEntry entry, FilterCriterion filter) {
+			string? value = GetLog4NetLogEntryPropertyValue(entry, filter.SelectedField);
+			if (value == null && !string.IsNullOrEmpty(filter.Value))
+				return false;
+			if (value == null)
+				return true;
+
+			switch (filter.SelectedOperator) {
+				case "Equals":
+					return string.Equals(value, filter.Value, StringComparison.OrdinalIgnoreCase);
+				case "Not Equals":
+					return !string.Equals(value, filter.Value, StringComparison.OrdinalIgnoreCase);
+				case "Contains":
+					return value.Contains(filter.Value ?? "", StringComparison.OrdinalIgnoreCase);
+				case "Not Contains":
+					return !value.Contains(filter.Value ?? "", StringComparison.OrdinalIgnoreCase);
+				case "StartsWith":
+					return value.StartsWith(filter.Value ?? "", StringComparison.OrdinalIgnoreCase);
+				case "EndsWith":
+					return value.EndsWith(filter.Value ?? "", StringComparison.OrdinalIgnoreCase);
+				case "Before":
+					if (DateTime.TryParse(filter.Value, out var beforeDate) && DateTime.TryParse(value, out var entryDate))
+						return entryDate < beforeDate;
+					return false;
+				case "After":
+					if (DateTime.TryParse(filter.Value, out var afterDate) && DateTime.TryParse(value, out var entryDate2))
+						return entryDate2 > afterDate;
+					return false;
+				default:
+					return false;
+			}
+		}
+
+		private string? GetLog4NetLogEntryPropertyValue(Log4NetLogEntry entry, string? field) {
+			if (field == null)
+				return null;
+			return field switch {
+				"Message" => entry.Message,
+				"Level" => entry.Level,
+				"Date" => entry.Date.ToString(),
+				"Host" => entry.Host,
+				"Thread" => entry.Thread,
+				"Logger" => entry.Logger,
+				"User" => entry.User,
+				"Exception" => entry.Exception,
 				_ => null
 			};
 		}

@@ -20,6 +20,7 @@
         Icon="/Assets/logparserv1.ico"
         Title="LogParser - Log Analyzer"
         MinWidth="950" MinHeight="650"
+        WindowState="Maximized"
         Background="#1A1C21"
         ExtendClientAreaToDecorationsHint="True">
 
@@ -326,10 +327,15 @@
                                 Command="{Binding MainView.LoadIISLogsCommand}">
                             <TextBlock Text="🖥️" FontSize="18" />
                         </Button>
-                        <Button Classes="icon-button" 
+                        <Button Classes="icon-button"
                                 ToolTip.Tip="RabbitMQ Logs Analysis"
                                 Command="{Binding MainView.LoadRabbitMqLogsCommand}">
                             <TextBlock Text="🐰" FontSize="18" />
+                        </Button>
+                        <Button Classes="icon-button"
+                                ToolTip.Tip="Log4Net Logs Analysis"
+                                Command="{Binding MainView.LoadLog4NetLogsAsyncCommand}">
+                            <TextBlock Text="🪵" FontSize="18" />
                         </Button>
                     </StackPanel>
 
@@ -668,9 +674,55 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <ProgressBar IsVisible="{Binding MainView.Statistics.IsProcessingAnalytics}" 
-                                         Value="{Binding MainView.Statistics.AnalyticsProgressPercent}" 
+                            <ProgressBar IsVisible="{Binding MainView.Statistics.IsProcessingAnalytics}"
+                                         Value="{Binding MainView.Statistics.AnalyticsProgressPercent}"
                                          Height="4" Background="#444" Foreground="#BBBBBB"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Log4Net Dashboard Panels -->
+                    <Border Grid.Column="0" Margin="2" Padding="8,4" Background="#263238" CornerRadius="6"
+                            IsVisible="{Binding SelectedTab.IsThisTabLog4Net}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="📊" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="TOTAL ENTRIES" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding SelectedTab.Log4Net_TotalCount}" FontSize="24" FontWeight="Bold" Margin="0,4,0,0" Foreground="#64F5A6" />
+                            <TextBlock Text="log4net entries" FontSize="12" Opacity="0.7" Foreground="#DDDDDD" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="1" Margin="2" Padding="8,4" Background="#3A2626" CornerRadius="6"
+                            IsVisible="{Binding SelectedTab.IsThisTabLog4Net}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🔴" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="ERRORS" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding SelectedTab.Log4Net_ErrorCount}" FontSize="24" FontWeight="Bold" Margin="0,4,0,0" Foreground="#F15B5B" />
+                            <TextBlock Text="{Binding SelectedTab.Log4Net_ErrorCount, StringFormat='/{0} total'}" FontSize="12" Opacity="0.7" Foreground="#DDDDDD" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="2" Margin="2" Padding="8,4" Background="#3A3320" CornerRadius="6"
+                            IsVisible="{Binding SelectedTab.IsThisTabLog4Net}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🟠" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="WARNINGS" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding SelectedTab.Log4Net_WarningCount}" FontSize="24" FontWeight="Bold" Margin="0,4,0,0" Foreground="#F9A825" />
+                            <TextBlock Text="{Binding SelectedTab.Log4Net_WarningCount, StringFormat='/{0} total'}" FontSize="12" Opacity="0.7" Foreground="#DDDDDD" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="3" Margin="2" Padding="8,4" Background="#2A3A2A" CornerRadius="6"
+                            IsVisible="{Binding SelectedTab.IsThisTabLog4Net}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🔵" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="INFO" Margin="2,0,0,0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#DDDDDD" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding SelectedTab.Log4Net_InfoCount}" FontSize="24" FontWeight="Bold" Margin="0,4,0,0" Foreground="#64B5F6" />
+                            <TextBlock Text="{Binding SelectedTab.Log4Net_InfoCount, StringFormat='/{0} total'}" FontSize="12" Opacity="0.7" Foreground="#DDDDDD" />
                         </StackPanel>
                     </Border>
                 </Grid>
@@ -682,7 +734,7 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <TabControl Grid.Column="0" SelectedIndex="{Binding MainView.SelectedTabIndex}">
+                    <TabControl Grid.Column="0" SelectedIndex="{Binding MainView.SelectedTabIndex}" DataContext="{Binding MainView}">
 
                         <TabItem Header="📊 Logs">
                             <Grid RowDefinitions="Auto, Auto, *">
@@ -702,7 +754,7 @@
                                 </Grid>
 
                                 <!-- Criteria row per type (only one visible) -->
-                                <ItemsControl Grid.Row="1" IsVisible="{Binding MainView.SelectedTab.IsThisTabStandardOrRabbitMQ}" ItemsSource="{Binding MainView.SelectedTab.FilterCriteria}" Margin="8,0,8,8">
+                                <ItemsControl Grid.Row="1" IsVisible="{Binding SelectedTab.IsThisTabSupportsFiltering}" ItemsSource="{Binding SelectedTab.FilterCriteria}" Margin="8,0,8,8">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
                                             <StackPanel Orientation="Vertical" Spacing="6" />
@@ -1030,6 +1082,97 @@
                                                                                ToolTip.Tip="Double-click to expand/collapse"/>
                                                                 </ScrollViewer>
                                                             </Border>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+
+                                        <!-- Log4Net LogEntry DataGrid -->
+                                        <DataGrid Name="Log4NetDataGrid"
+                                                  IsVisible="{Binding SelectedTab.IsThisTabLog4Net}"
+                                                  ItemsSource="{Binding SelectedTab.FilteredLog4NetLogEntries}"
+                                                  SelectedItem="{Binding SelectedLogEntry}"
+                                                  Background="#222326"
+                                                  IsReadOnly="True"
+                                                  AutoGenerateColumns="False"
+                                                  CanUserSortColumns="True"
+                                                  CanUserReorderColumns="True"
+                                                  CanUserResizeColumns="True"
+                                                  GridLinesVisibility="All"
+                                                  BorderThickness="1"
+                                                  BorderBrush="#404040"
+                                                  RowBackground="#2A2A2A">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Date"
+                                                                    Binding="{Binding Date, StringFormat='yyyy-MM-dd HH:mm:ss.fff'}"
+                                                                    Width="180"
+                                                                    MinWidth="120"/>
+                                                <DataGridTextColumn Header="Level"
+                                                                    Binding="{Binding Level}"
+                                                                    Width="80"
+                                                                    MinWidth="60"/>
+                                                <DataGridTextColumn Header="Logger"
+                                                                    Binding="{Binding Logger}"
+                                                                    Width="200"
+                                                                    MinWidth="120"/>
+                                                <DataGridTextColumn Header="Thread"
+                                                                    Binding="{Binding Thread}"
+                                                                    Width="100"
+                                                                    MinWidth="80"/>
+                                                <DataGridTemplateColumn Header="Message" Width="400" MinWidth="200">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock Text="{Binding ShortMessage}"
+                                                                       Padding="4,2"
+                                                                       TextWrapping="Wrap"
+                                                                       VerticalAlignment="Center"
+                                                                       Cursor="Hand"
+                                                                       Background="Transparent"
+                                                                       ToolTip.Tip="{Binding Message}"/>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                                <DataGridTemplateColumn Header="Exception" Width="300" MinWidth="150">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <Border BorderBrush="#404040"
+                                                                    BorderThickness="1"
+                                                                    CornerRadius="3"
+                                                                    Background="#1E1E1E"
+                                                                    Padding="4,2"
+                                                                    Margin="2">
+                                                                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                                                              VerticalScrollBarVisibility="Auto"
+                                                                              MaxHeight="60"
+                                                                              Background="Transparent">
+                                                                    <TextBlock Text="{Binding ShortException}"
+                                                                               TextWrapping="Wrap"
+                                                                               VerticalAlignment="Top"
+                                                                               Background="Transparent"
+                                                                               Cursor="Hand"
+                                                                               ToolTip.Tip="{Binding Exception}"/>
+                                                                </ScrollViewer>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                                <DataGridTextColumn Header="Host"
+                                                                    Binding="{Binding Host}"
+                                                                    Width="120"
+                                                                    MinWidth="80"/>
+                                                <DataGridTextColumn Header="User"
+                                                                    Binding="{Binding User}"
+                                                                    Width="100"
+                                                                    MinWidth="60"/>
+                                                <DataGridTemplateColumn Header="" Width="Auto" MinWidth="50">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <Button ToolTip.Tip="Copy message"
+                                                                    Classes="list-icon"
+                                                                    Click="OnCopyLogEntryClick">
+                                                                <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            </Button>
                                                         </DataTemplate>
                                                     </DataGridTemplateColumn.CellTemplate>
                                                 </DataGridTemplateColumn>

@@ -10,6 +10,8 @@ namespace Log_Parser_App.ViewModels
     using CommunityToolkit.Mvvm.Input;
     using Log_Parser_App.Models;
     using Log_Parser_App.Services;
+    using Log_Parser_App.Interfaces;
+    using ILog4NetParserService = Log_Parser_App.Interfaces.ILog4NetParserService;
 
     using Microsoft.Extensions.Logging;
     using LiveChartsCore;
@@ -19,7 +21,6 @@ namespace Log_Parser_App.ViewModels
     using SkiaSharp;
     using System.Collections.Generic;
     using System.Threading;
-    using Log_Parser_App.Interfaces;
     using Avalonia.Controls.ApplicationLifetimes;
     using Avalonia;
 
@@ -31,10 +32,12 @@ namespace Log_Parser_App.ViewModels
         private readonly ISimpleErrorRecommendationService _simpleErrorRecommendationService;
         private readonly IFilePickerService _filePickerService;
         private readonly IIISLogParserService _iisLogParserService;
-        private readonly IRabbitMqLogParserService _rabbitMqLogParserService;
-        
-        // Phase 2 SOLID refactored services
-        private readonly IChartService _chartService;
+		private readonly IRabbitMqLogParserService _rabbitMqLogParserService;
+		private readonly ILog4NetParserService _log4NetParserService;
+		private readonly ILog4NetService _log4NetService;
+
+		// Phase 2 SOLID refactored services
+		private readonly IChartService _chartService;
         private readonly ITabManagerService _tabManagerService;
         private readonly IFilterService _filterService;
         
@@ -273,6 +276,11 @@ namespace Log_Parser_App.ViewModels
             set => SetProperty(ref _lastOpenedFilePath, value);
         }
 
+        // Manually created Log4Net command
+        public IAsyncRelayCommand LoadLog4NetLogsAsyncCommand { get; private set; } = null!;
+        
+        private readonly IFirstTimeSetupService? _firstTimeSetupService;
+
         		public MainViewModel(
 			ILogParserService logParserService,
 			ILogger<MainViewModel> logger,
@@ -281,13 +289,18 @@ namespace Log_Parser_App.ViewModels
 			IFilePickerService filePickerService,
 			IIISLogParserService iisLogParserService,
 			IRabbitMqLogParserService rabbitMqLogParserService,
+			ILog4NetParserService log4NetParserService,
+			ILog4NetService log4NetService,
 			IChartService chartService,
 			ITabManagerService tabManagerService,
 			IFilterService filterService,
 			Log_Parser_App.Services.ErrorDetection.IErrorDetectionService errorDetectionService,
 			IFileTypeDetectionService fileTypeDetectionService,
 			StatisticsViewModel statisticsViewModel,
-			RabbitMQDashboardViewModel rabbitMqDashboardViewModel) {
+			RabbitMQDashboardViewModel rabbitMqDashboardViewModel,
+			IFirstTimeSetupService? firstTimeSetupService = null) {
+            Console.WriteLine("[MainViewModel] Constructor started - assigning services...");
+            
             _logParserService = logParserService;
             _logger = logger;
             _fileService = fileService;
@@ -295,31 +308,53 @@ namespace Log_Parser_App.ViewModels
             _filePickerService = filePickerService;
             _iisLogParserService = iisLogParserService;
             _rabbitMqLogParserService = rabbitMqLogParserService;
+            _log4NetParserService = log4NetParserService;
+            _log4NetService = log4NetService;
+            _firstTimeSetupService = firstTimeSetupService;
             _chartService = chartService;
             _tabManagerService = tabManagerService;
             _filterService = filterService;
 
+            Console.WriteLine("[MainViewModel] Assigning remaining services...");
             _errorDetectionService = errorDetectionService;
             _fileTypeDetectionService = fileTypeDetectionService;
             _statisticsViewModel = statisticsViewModel;
             _rabbitMqDashboardViewModel = rabbitMqDashboardViewModel;
+            Console.WriteLine("[MainViewModel] All services assigned successfully.");
 
-            InitializeErrorRecommendationService();
-
+            Console.WriteLine("[MainViewModel] Subscribing to service events...");
             // Subscribe to service events
             _tabManagerService.TabChanged += OnTabChanged;
             _tabManagerService.TabClosed += OnTabClosed;
             // TODO: Refactor to use new FilteringViewModel events
             // _filterService.FiltersApplied += OnFiltersApplied;
             // _filterService.FiltersReset += OnFiltersReset;
+            Console.WriteLine("[MainViewModel] Service events subscribed.");
 
-            // Проверяем аргументы командной строки для автоматической загрузки файла
-            CheckCommandLineArgs();
-
+            Console.WriteLine("[MainViewModel] MainViewModel initialized with SOLID refactored services");
             _logger.LogInformation("MainViewModel initialized with SOLID refactored services");
+
+            Console.WriteLine("[MainViewModel] Starting async initialization task...");
+            // Initialize services asynchronously after constructor completes
+            _ = Task.Run(async () => {
+                try {
+                    Console.WriteLine("[MainViewModel] Async initialization started...");
+                    await InitializeErrorRecommendationServiceAsync();
+                    await CheckCommandLineArgsAsync();
+                    Console.WriteLine("[MainViewModel] Async initialization completed.");
+                } catch (Exception ex) {
+                    Console.WriteLine($"[MainViewModel] Error during async initialization: {ex.Message}");
+                    _logger.LogError(ex, "Error during async initialization");
+                }
+            });
+            // Manually create Log4Net command since RelayCommand attribute isn't working
+            LoadLog4NetLogsAsyncCommand = new AsyncRelayCommand(LoadLog4NetLogsAsync);
+            Console.WriteLine("[MainViewModel] LoadLog4NetLogsAsyncCommand created manually.");
+            
+            Console.WriteLine("[MainViewModel] Constructor completed successfully.");
         }
 
-        private async void InitializeErrorRecommendationService() {
+        private async Task InitializeErrorRecommendationServiceAsync() {
             try {
                 await _simpleErrorRecommendationService.LoadAsync();
                 _logger.LogInformation("Simple error recommendation service initialized");
@@ -328,7 +363,7 @@ namespace Log_Parser_App.ViewModels
             }
         }
 
-        private void CheckCommandLineArgs() {
+        private async Task CheckCommandLineArgsAsync() {
             // Используем новую логику из Program.cs
             var startupFilePath = Program.StartupFilePath;
 
@@ -337,7 +372,8 @@ namespace Log_Parser_App.ViewModels
                 LastOpenedFilePath = startupFilePath;
 
                 // Делаем небольшую задержку перед загрузкой файла
-                Task.Delay(500).ContinueWith(async _ => {
+                await Task.Delay(500);
+                
                     await Dispatcher.UIThread.InvokeAsync(async () => {
                         try {
                             // Всегда используем стандартный парсер для всех файлов
@@ -356,7 +392,6 @@ namespace Log_Parser_App.ViewModels
                             _logger.LogError(ex, "Failed to load startup file: {FilePath}", startupFilePath);
                             StatusMessage = $"Error loading startup file: {ex.Message}";
                         }
-                    });
                 });
             }
         }
@@ -370,11 +405,29 @@ namespace Log_Parser_App.ViewModels
                 var sw = System.Diagnostics.Stopwatch.StartNew();
 
                 // Determine file type by checking first few lines
+                var isLog4NetLog = await IsLog4NetLogFileAsync(filePath);
                 var isIISLog = await IsIISLogFileAsync(filePath);
-                _logger.LogInformation("File {FilePath} detected as {LogType}", filePath, isIISLog ? "IIS" : "Standard");
+                var isRabbitMqLog = await IsRabbitMqLogFileAsync(filePath);
+
+                string logType = "Standard";
+                if (isLog4NetLog) logType = "Log4Net";
+                else if (isIISLog) logType = "IIS";
+                else if (isRabbitMqLog) logType = "RabbitMQ";
+
+                _logger.LogInformation("File {FilePath} detected as {LogType}", filePath, logType);
+
+                if (isLog4NetLog) {
+                    await LoadLog4NetFileAsync(filePath);
+                    return;
+                }
 
                 if (isIISLog) {
                     await LoadIISFileAsync(filePath);
+                    return;
+                }
+
+                if (isRabbitMqLog) {
+                    await LoadRabbitMqFileAsync(filePath);
                     return;
                 }
 
@@ -1983,6 +2036,44 @@ namespace Log_Parser_App.ViewModels
             }
         }
 
+        private async Task<bool> IsLog4NetLogFileAsync(string filePath) {
+            try {
+                using var reader = new StreamReader(filePath);
+                var lines = new List<string>();
+                for (int i = 0; i < 10 && !reader.EndOfStream; i++) {
+                    var line = await reader.ReadLineAsync();
+                    if (!string.IsNullOrEmpty(line))
+                        lines.Add(line);
+                }
+
+                // Check if any lines match Log4Net timestamp format
+                return lines.Any(line => System.Text.RegularExpressions.Regex.IsMatch(line, @"^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3}"));
+            } catch (Exception ex) {
+                _logger.LogError(ex, "Error detecting Log4Net file type for {FilePath}", filePath);
+                return false;
+            }
+        }
+
+        private async Task<bool> IsRabbitMqLogFileAsync(string filePath) {
+            try {
+                using var reader = new StreamReader(filePath);
+                var lines = new List<string>();
+                for (int i = 0; i < 10 && !reader.EndOfStream; i++) {
+                    var line = await reader.ReadLineAsync();
+                    if (!string.IsNullOrEmpty(line))
+                        lines.Add(line);
+                }
+
+                // Check if any lines contain RabbitMQ log patterns
+                return lines.Any(line => line.Contains("rabbitmq") || line.Contains("RABBITMQ") ||
+                                        line.Contains("consumer") || line.Contains("publisher") ||
+                                        System.Text.RegularExpressions.Regex.IsMatch(line, @"\b\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d{3}\b"));
+            } catch (Exception ex) {
+                _logger.LogError(ex, "Error detecting RabbitMQ file type for {FilePath}", filePath);
+                return false;
+            }
+        }
+
         private async Task LoadIISFilesAsync(IEnumerable<string> filePaths) {
             var allIISEntries = new List<IisLogEntry>();
             int totalFailedEntriesCount = 0;
@@ -2106,6 +2197,95 @@ namespace Log_Parser_App.ViewModels
                 _logger.LogError(ex, "Error loading RabbitMQ log files");
                 await Dispatcher.UIThread.InvokeAsync(() => {
                     StatusMessage = $"Error loading RabbitMQ logs: {ex.Message}";
+                    IsLoading = false;
+                });
+            }
+        }
+
+        private bool CanLoadLog4NetLogs() {
+            var canExecute = _log4NetParserService != null && _log4NetService != null && _filePickerService != null;
+            Console.WriteLine($"[DEBUG] CanLoadLog4NetLogs: {canExecute}");
+            Console.WriteLine($"[DEBUG] _log4NetParserService: {(_log4NetParserService != null ? "OK" : "NULL")}");
+            Console.WriteLine($"[DEBUG] _log4NetService: {(_log4NetService != null ? "OK" : "NULL")}");
+            Console.WriteLine($"[DEBUG] _filePickerService: {(_filePickerService != null ? "OK" : "NULL")}");
+            return canExecute;
+        }
+
+        [RelayCommand]
+        private async Task LoadLog4NetLogsAsync() {
+            try {
+                Console.WriteLine("[LOG4NET] Starting LoadLog4NetLogsAsync...");
+                _logger.LogInformation("Starting Log4Net file selection and loading process");
+                
+                // Check if this is the first time using Log4Net
+                if (_firstTimeSetupService != null && await _firstTimeSetupService.ShouldShowLog4NetSetupGuideAsync()) {
+                    Console.WriteLine("[LOG4NET] First time use detected, showing setup guide...");
+                    _logger.LogInformation("First time Log4Net use detected, showing setup guide");
+                    
+                    var setupMainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime setupDesktop ? setupDesktop.MainWindow : null;
+                    if (setupMainWindow != null) {
+                        var setupGuideWindow = new Log_Parser_App.Views.Log4NetSetupGuideWindow();
+                        await setupGuideWindow.ShowDialog(setupMainWindow);
+                        
+                        if (setupGuideWindow.DontShowAgain) {
+                            await _firstTimeSetupService.SetLog4NetSetupGuideShownAsync();
+                            Console.WriteLine("[LOG4NET] User chose not to show setup guide again");
+                        }
+                        
+                        if (setupGuideWindow.OpenSettings) {
+                            Console.WriteLine("[LOG4NET] User chose to open settings");
+                            _logger.LogInformation("User chose to open settings from Log4Net setup guide");
+                            
+                            // Open settings window
+                            try {
+                                var settingsWindow = new Log_Parser_App.Views.UpdateSettingsWindow();
+                                await settingsWindow.ShowDialog(setupMainWindow);
+                            } catch (Exception settingsEx) {
+                                _logger.LogError(settingsEx, "Error opening settings window from Log4Net setup guide");
+                            }
+                            return; // Don't continue with file loading
+                        }
+                    }
+                }
+                
+                var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop ? desktop.MainWindow : null;
+                var (files, directory) = await _filePickerService.ShowFilePickerContextMenuAsync(mainWindow);
+
+                Console.WriteLine($"[LOG4NET] File picker result - Files: {files?.Count() ?? 0}, Directory: {directory ?? "null"}");
+                _logger.LogInformation("File picker result - Files: {FileCount}, Directory: {Directory}", files?.Count() ?? 0, directory ?? "null");
+
+                if (files != null && files.Any()) {
+                    Console.WriteLine($"[LOG4NET] Selected files: {string.Join(", ", files)}");
+                    _logger.LogInformation("Selected files: {Files}", string.Join(", ", files));
+                    
+                    // Accept ALL file types for Log4Net, including .backup files
+                    var logFiles = files.Where(f => !string.IsNullOrEmpty(f));
+                    Console.WriteLine($"[LOG4NET] Files to process: {logFiles.Count()}");
+                    _logger.LogInformation("Files to process: {FileCount}", logFiles.Count());
+                    
+                    foreach (var file in logFiles) {
+                        Console.WriteLine($"[LOG4NET] Will process file: {file} (Extension: {System.IO.Path.GetExtension(file)})");
+                        _logger.LogInformation("Will process Log4Net file: {FilePath} (Extension: {Extension})", file, System.IO.Path.GetExtension(file));
+                    }
+                    
+                    await LoadLog4NetFilesAsync(logFiles);
+                } else if (!string.IsNullOrEmpty(directory)) {
+                    Console.WriteLine($"[LOG4NET] Processing directory: {directory}");
+                    _logger.LogInformation("Processing Log4Net directory: {DirectoryPath}", directory);
+                    await LoadLog4NetDirectoryAsync(directory);
+                } else {
+                    Console.WriteLine("[LOG4NET] No files or directory selected");
+                    _logger.LogWarning("No files or directory selected for Log4Net processing");
+                }
+
+                if (FileTabs.Any()) {
+                    IsStartScreenVisible = false;
+                    Console.WriteLine("[LOG4NET] Hiding start screen - files loaded successfully");
+                }
+            } catch (Exception ex) {
+                _logger.LogError(ex, "Error loading Log4Net log files");
+                await Dispatcher.UIThread.InvokeAsync(() => {
+                    StatusMessage = $"Error loading Log4Net logs: {ex.Message}";
                     IsLoading = false;
                 });
             }
@@ -2391,6 +2571,202 @@ namespace Log_Parser_App.ViewModels
 
 
 
+
+        private async Task LoadLog4NetFilesAsync(IEnumerable<string> filePaths) {
+            var files = filePaths.ToArray();
+            var totalFiles = files.Length;
+            var processedFiles = 0;
+
+            Console.WriteLine($"[LOG4NET] LoadLog4NetFilesAsync started with {totalFiles} files");
+            _logger.LogInformation("Starting to process {TotalFiles} Log4Net files", totalFiles);
+
+            await Dispatcher.UIThread.InvokeAsync(() => {
+                IsLoading = true;
+                IsLoadingDirectory = true;
+                StatusMessage = $"Loading {totalFiles} Log4Net files...";
+            });
+
+            try {
+                foreach (var filePath in files) {
+                    processedFiles++;
+                    
+                    Console.WriteLine($"[LOG4NET] Processing file {processedFiles}/{totalFiles}: {filePath}");
+                    _logger.LogInformation("Processing Log4Net file {CurrentFile}/{TotalFiles}: {FilePath}", processedFiles, totalFiles, filePath);
+                    
+                    await Dispatcher.UIThread.InvokeAsync(() => {
+                        StatusMessage = $"Processing Log4Net file {processedFiles}/{totalFiles}: {System.IO.Path.GetFileName(filePath)}";
+                    });
+
+                await LoadLog4NetFileAsync(filePath);
+                    
+                    Console.WriteLine($"[LOG4NET] Completed processing file: {filePath}");
+                    
+                    // Yield control to prevent UI freezing
+                    await Task.Yield();
+                }
+
+                await Dispatcher.UIThread.InvokeAsync(() => {
+                    StatusMessage = $"Successfully loaded {processedFiles} Log4Net files";
+                    IsLoading = false;
+                    IsLoadingDirectory = false;
+                    
+                    if (FileTabs.Any()) {
+                        SelectedTabIndex = FileTabs.Count - 1;
+                        IsStartScreenVisible = false;
+                    }
+                });
+            }
+            catch (Exception ex) {
+                _logger.LogError(ex, "Error loading Log4Net files");
+                await Dispatcher.UIThread.InvokeAsync(() => {
+                    StatusMessage = $"Error loading Log4Net files: {ex.Message}";
+                    IsLoading = false;
+                    IsLoadingDirectory = false;
+                });
+            }
+        }
+
+        private async Task LoadLog4NetDirectoryAsync(string directoryPath) {
+            try {
+                var logFiles = System.IO.Directory.GetFiles(directoryPath, "*.log", SearchOption.AllDirectories)
+                    .Concat(System.IO.Directory.GetFiles(directoryPath, "*.txt", SearchOption.AllDirectories))
+                    .ToArray();
+
+                await LoadLog4NetFilesAsync(logFiles);
+            } catch (Exception ex) {
+                _logger.LogError(ex, $"Error loading Log4Net directory: {directoryPath}");
+                await Dispatcher.UIThread.InvokeAsync(() => {
+                    StatusMessage = $"Error loading Log4Net directory: {ex.Message}";
+                });
+            }
+        }
+
+        private async Task LoadLog4NetFileAsync(string filePath) {
+            try {
+                Console.WriteLine($"[LOG4NET] LoadLog4NetFileAsync started for: {filePath}");
+                _logger.LogInformation("Starting to process Log4Net file: {FilePath}", filePath);
+                
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+
+                // First check if file exists and is readable
+                if (!System.IO.File.Exists(filePath)) {
+                    Console.WriteLine($"[LOG4NET] ERROR: File does not exist: {filePath}");
+                    _logger.LogError("File does not exist: {FilePath}", filePath);
+                    return;
+                }
+
+                var fileInfo = new System.IO.FileInfo(filePath);
+                Console.WriteLine($"[LOG4NET] File info - Size: {fileInfo.Length} bytes, Extension: {fileInfo.Extension}");
+                _logger.LogInformation("File info - Size: {FileSize} bytes, Extension: {Extension}", fileInfo.Length, fileInfo.Extension);
+
+                // Check if this is a backup file - use pg_restore
+                if (fileInfo.Extension.ToLower() == ".backup") {
+                    Console.WriteLine($"[LOG4NET] Detected backup file, using pg_restore...");
+                    _logger.LogInformation("Detected backup file, attempting pg_restore");
+
+                    // Restore from backup directly to PostgreSQL
+                    var restoreSuccess = await Task.Run(async () => {
+                        return await _log4NetService.RestoreFromBackupAsync(filePath);
+                    });
+
+                    if (restoreSuccess) {
+                        Console.WriteLine($"[LOG4NET] Backup restore successful, loading data from PostgreSQL...");
+                        _logger.LogInformation("Backup restore successful, loading data from PostgreSQL");
+
+                        // Load data from PostgreSQL
+                        var log4NetEntries = await Task.Run(async () => {
+                            return await _log4NetService.GetLog4NetLogsAsync();
+                        });
+
+                        Console.WriteLine($"[LOG4NET] Loaded {log4NetEntries?.Count ?? 0} entries from PostgreSQL");
+                        _logger.LogInformation("Loaded {EntryCount} Log4Net entries from PostgreSQL", log4NetEntries?.Count ?? 0);
+
+                        if (log4NetEntries != null && log4NetEntries.Any()) {
+                            await CreateLog4NetTab(filePath, log4NetEntries, sw);
+                } else {
+                            Console.WriteLine($"[LOG4NET] WARNING: No Log4Net entries found in PostgreSQL");
+                            _logger.LogWarning("No Log4Net entries found in PostgreSQL");
+                        }
+                    } else {
+                        Console.WriteLine($"[LOG4NET] ERROR: Backup restore failed");
+                        _logger.LogError("Backup restore failed");
+                    await Dispatcher.UIThread.InvokeAsync(() => {
+                            StatusMessage = $"Error restoring backup file {System.IO.Path.GetFileName(filePath)}";
+                        });
+                    }
+                } else {
+                    // Parse regular log file
+                    Console.WriteLine($"[LOG4NET] Parsing regular log file...");
+                    var log4NetEntries = await Task.Run(async () => {
+                        return await _log4NetParserService.ParseLog4NetFileAsync(filePath);
+                    });
+
+                    Console.WriteLine($"[LOG4NET] Parsing completed. Found {log4NetEntries?.Count ?? 0} entries");
+                    _logger.LogInformation("Parsing completed. Found {EntryCount} Log4Net entries", log4NetEntries?.Count ?? 0);
+
+                    if (log4NetEntries != null && log4NetEntries.Any()) {
+                        Console.WriteLine($"[LOG4NET] Saving {log4NetEntries.Count} entries to PostgreSQL...");
+                        // Save to PostgreSQL on background thread
+                        await Task.Run(async () => {
+                            await _log4NetService.SaveLog4NetLogsAsync(log4NetEntries);
+                        });
+                        Console.WriteLine($"[LOG4NET] PostgreSQL save completed");
+
+                        await CreateLog4NetTab(filePath, log4NetEntries, sw);
+                    } else {
+                        Console.WriteLine($"[LOG4NET] WARNING: No Log4Net entries found in {filePath}");
+                        _logger.LogWarning("No Log4Net entries found in {FilePath}", filePath);
+                    }
+                }
+            } catch (Exception ex) {
+                _logger.LogError(ex, $"Error loading Log4Net file: {filePath}");
+                await Dispatcher.UIThread.InvokeAsync(() => {
+                    StatusMessage = $"Error loading Log4Net file {System.IO.Path.GetFileName(filePath)}: {ex.Message}";
+                });
+            }
+        }
+
+        private async Task CreateLog4NetTab(string filePath, List<Log4NetLogEntry> log4NetEntries, System.Diagnostics.Stopwatch sw) {
+            // Create tab on UI thread
+            Console.WriteLine($"[LOG4NET] Creating UI tab...");
+            await Dispatcher.UIThread.InvokeAsync(() => {
+                var tabTitle = System.IO.Path.GetFileName(filePath);
+                Console.WriteLine($"[LOG4NET] Creating TabViewModel with title: {tabTitle}");
+                
+                // Create tab with Log4Net entries loaded from PostgreSQL
+                var tab = new TabViewModel();
+                
+                // Initialize tab properties
+                var tabType = typeof(TabViewModel);
+                tabType.GetField("_filePath", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.SetValue(tab, filePath);
+                tabType.GetField("_title", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.SetValue(tab, tabTitle);
+                tabType.GetField("_log4NetLogEntries", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.SetValue(tab, log4NetEntries);
+                tabType.GetField("_filePickerService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.SetValue(tab, _filePickerService);
+                
+                // Set LogType property
+                var logTypeProperty = tabType.GetProperty("LogType");
+                logTypeProperty?.SetValue(tab, LogFormatType.Log4Net);
+                
+                // Update filtered collection
+                var filteredProperty = tabType.GetProperty("FilteredLog4NetLogEntries");
+                if (filteredProperty?.GetValue(tab) is System.Collections.ObjectModel.ObservableCollection<Log4NetLogEntry> filteredCollection) {
+                    filteredCollection.Clear();
+                    foreach (var entry in log4NetEntries) {
+                        filteredCollection.Add(entry);
+                    }
+                }
+                
+                Console.WriteLine($"[LOG4NET] TabViewModel initialized successfully");
+                FileTabs.Add(tab);
+                
+                sw.Stop();
+                Console.WriteLine($"[LOG4NET] SUCCESS: Loaded {log4NetEntries.Count} Log4Net entries from {filePath} in {sw.ElapsedMilliseconds}ms");
+                _logger.LogInformation("Loaded {EntryCount} Log4Net entries from {FilePath} in {ElapsedMs}ms", log4NetEntries.Count, filePath, sw.ElapsedMilliseconds);
+                
+                StatusMessage = $"Loaded {log4NetEntries.Count} Log4Net entries from {tabTitle}";
+                SelectedTabIndex = FileTabs.Count - 1;
+            });
+        }
 
         [RelayCommand]
         private async Task ShowUpdateSettings()

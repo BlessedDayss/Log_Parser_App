@@ -3,273 +3,357 @@
         xmlns:vm="using:Log_Parser_App.ViewModels"
         x:Class="Log_Parser_App.Views.UpdateSettingsWindow"
         x:DataType="vm:UpdateViewModel"
-        Title="Settings and Updates"
-        Width="550"
-        Height="400"
-        WindowStartupLocation="CenterOwner"
-        CanResize="False"
-        Background="#1E1E1E">
+        Title="⚙️ Application Settings"
+        MinWidth="1200"
+        MinHeight="800"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
+        CanResize="True"
+        ExtendClientAreaToDecorationsHint="True"
+        Background="#0B101A">
 
-    <Border Background="#2D2D30" CornerRadius="8" Margin="20">
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <StackPanel Spacing="25" Margin="30">
-                
-                <!-- Header -->
-                <StackPanel Orientation="Horizontal" Spacing="15">
-                    <Border Width="48" Height="48" CornerRadius="24" Background="#0078D4">
-                        <TextBlock Text="⚙️" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
-                    <StackPanel>
-                        <TextBlock Text="Application Settings" 
-                                   FontSize="22" 
-                                   FontWeight="Bold" 
-                                   Foreground="White"/>
-                        <TextBlock Text="Manage updates and settings" 
-                                   FontSize="14" 
-                                   Foreground="#CCCCCC"/>
-                    </StackPanel>
+    <Window.Resources>
+        <LinearGradientBrush x:Key="HeroBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Offset="0" Color="#1E293B"/>
+            <GradientStop Offset="1" Color="#0F172A"/>
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="CardBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Offset="0" Color="#111C2A"/>
+            <GradientStop Offset="1" Color="#0B1624"/>
+        </LinearGradientBrush>
+    </Window.Resources>
+
+    <Grid Margin="48">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="{StaticResource HeroBrush}" CornerRadius="32" Padding="48" BoxShadow="0 25 50 0 #060A12AA">
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
+                <Border Width="80" Height="80" CornerRadius="40" Background="#2563EB" VerticalAlignment="Center">
+                    <TextBlock Text="⚙️" FontSize="38" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel Grid.Column="1" Spacing="8" Margin="32,0,0,0">
+                    <TextBlock Text="Application Settings" FontSize="36" FontWeight="Bold" Foreground="#F8FAFC"/>
+                    <TextBlock Text="Manage updates, integrations, and database access from a single control hub" FontSize="18" Foreground="#C7D2FE" TextWrapping="Wrap"/>
                 </StackPanel>
+            </Grid>
+        </Border>
 
-                <!-- Auto-Update Section -->
-                <Border Background="#3C3C3C" CornerRadius="8" Padding="20">
-                    <StackPanel Spacing="15">
-                        <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,5">
-                            <Border Width="24" Height="24" CornerRadius="12" Background="#0078D4" VerticalAlignment="Top" Margin="0,2,0,0">
-                                <TextBlock Text="🔄" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <StackPanel>
-                                <TextBlock Text="Auto-Updates" 
-                                           FontSize="18" 
-                                           FontWeight="SemiBold" 
-                                           Foreground="White"/>
-                            </StackPanel>
-                        </StackPanel>
-                        
-                        <StackPanel Margin="24,10,0,0">
-                            <CheckBox Content="Automatically check for updates on startup" 
-                                      IsChecked="{Binding AutoUpdateEnabled}"
-                                      Command="{Binding SetAutoUpdateEnabledCommand}"
-                                      CommandParameter="{Binding RelativeSource={RelativeSource Self}, Path=IsChecked}"
-                                      Foreground="#CCCCCC"
-                                      FontSize="14"
-                                      Margin="0,0,0,8"/>
-                            
-                            <TextBlock Text="When auto-updates are enabled, the application will automatically check for new versions on GitHub and install them." 
-                                       FontSize="12" 
-                                       Foreground="#AAAAAA" 
-                                       TextWrapping="Wrap"
-                                       Margin="24,0,0,0"/>
-                        </StackPanel>
+        <!-- Tabbed Settings Content -->
+        <TabControl Grid.Row="1"
+                    Margin="0,36,0,36"
+                    TabStripPlacement="Left"
+                    Background="Transparent"
+                    BorderBrush="Transparent">
+            <!-- Updates Tab -->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="🔄" FontSize="16"/>
+                        <TextBlock Text="Updates" FontSize="16" Foreground="#E2E8F0"/>
                     </StackPanel>
-                </Border>
+                </TabItem.Header>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="12">
+                    <StackPanel Spacing="26">
 
-                <!-- Manual Update Section -->
-                <Border Background="#3C3C3C" CornerRadius="8" Padding="20">
-                    <StackPanel Spacing="15">
-                        <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,5">
-                            <Border Width="24" Height="24" CornerRadius="12" Background="#28a745" VerticalAlignment="Top" Margin="0,2,0,0">
-                                <TextBlock Text="📥" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <StackPanel>
-                                <TextBlock Text="Manual Update Check" 
-                                           FontSize="18" 
-                                           FontWeight="SemiBold" 
-                                           Foreground="White"/>
+                        <!-- Auto Update Card -->
+                        <Border Background="{StaticResource CardBrush}"
+                                CornerRadius="28"
+                                Padding="36"
+                                BoxShadow="0 25 50 0 #050A16AA">
+                            <StackPanel Spacing="18">
+                                <StackPanel Orientation="Horizontal" Spacing="20">
+                                    <Border Width="64" Height="64" CornerRadius="32" Background="#0EA5E9">
+                                        <TextBlock Text="✨" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel>
+                                        <TextBlock Text="Smart Auto-Updates" FontSize="28" FontWeight="SemiBold" Foreground="#F1F5F9"/>
+                                        <TextBlock Text="Let the app quietly fetch fresh builds every time you launch it." FontSize="16" Foreground="#8FA3C7" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <Border Background="#0D1727" CornerRadius="20" Padding="28" BorderBrush="#173052" BorderThickness="1">
+                                    <StackPanel Spacing="18">
+                                        <CheckBox Content="Check for updates automatically on startup"
+                                                  IsChecked="{Binding AutoUpdateEnabled}"
+                                                  Command="{Binding SetAutoUpdateEnabledCommand}"
+                                                  CommandParameter="{Binding RelativeSource={RelativeSource Self}, Path=IsChecked}"
+                                                  FontSize="18"
+                                                  Foreground="#E2E8F0"/>
+                                        <TextBlock Text="We’ll pull release info from GitHub and alert you if something newer is waiting."
+                                                   FontSize="15"
+                                                   Foreground="#94A3B8"
+                                                   TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
-                        </StackPanel>
-                        
-                        <!-- Status Display -->
-                        <Border Background="#404040" CornerRadius="6" Padding="12" Margin="24,10,0,0">
-                            <StackPanel Spacing="5">
-                                <TextBlock Text="Status:" 
-                                           FontSize="12" 
-                                           Foreground="#AAAAAA"/>
-                                <TextBlock Text="{Binding StatusMessage}" 
-                                           FontSize="14" 
-                                           Foreground="#CCCCCC" 
+                        </Border>
+
+                        <!-- Manual Update Card -->
+                        <Border Background="{StaticResource CardBrush}"
+                                CornerRadius="28"
+                                Padding="36"
+                                BoxShadow="0 25 50 0 #050A16AA">
+                            <StackPanel Spacing="18">
+                                <StackPanel Orientation="Horizontal" Spacing="20">
+                                    <Border Width="64" Height="64" CornerRadius="32" Background="#34D399">
+                                        <TextBlock Text="🛠️" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel>
+                                        <TextBlock Text="Manual Update Control" FontSize="28" FontWeight="SemiBold" Foreground="#F1F5F9"/>
+                                        <TextBlock Text="Trigger checks, read release notes, and install when you’re ready." FontSize="16" Foreground="#8FA3C7" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <Border Background="#0D1727" CornerRadius="20" Padding="28" BorderBrush="#173052" BorderThickness="1">
+                                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                                        <StackPanel Grid.Column="0" Grid.RowSpan="2" Spacing="10">
+                                            <TextBlock Text="Status" FontSize="16" Foreground="#94A3B8"/>
+                                            <TextBlock Text="{Binding StatusMessage}" FontSize="18" Foreground="#E2E8F0" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1"
+                                                Content="Check for Updates"
+                                                Command="{Binding CheckForUpdatesCommand}"
+                                                IsEnabled="{Binding !IsCheckingForUpdates}"
+                                                Classes="accent"
+                                                Padding="24,14" FontSize="16"/>
+                                        <Button Grid.Column="1" Grid.Row="1"
+                                                Content="Download &amp; Install"
+                                                Command="{Binding DownloadAndUpdateCommand}"
+                                                Background="#22C55E"
+                                                Foreground="#08111F"
+                                                Padding="24,14"
+                                                FontSize="16"
+                                                IsVisible="{Binding AvailableUpdate, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                                    </Grid>
+                                </Border>
+
+                                <Border Background="#0D1727" CornerRadius="16" Padding="22" BorderBrush="#173052" BorderThickness="1" IsVisible="{Binding AvailableUpdate, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                    <StackPanel Spacing="10">
+                                        <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#4ADE80">
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}Update available → {0}">
+                                                    <Binding Path="AvailableUpdate.Version"/>
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding AvailableUpdate.ReleaseNotes}" FontSize="13" Foreground="#C7D2FE" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Background="#0D1727" CornerRadius="16" Padding="22" BorderBrush="#173052" BorderThickness="1" IsVisible="{Binding IsDownloadingUpdate}">
+                                    <StackPanel Spacing="12">
+                                        <TextBlock FontSize="16" Foreground="#F8FAFC">
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}Downloading… {0}%">
+                                                    <Binding Path="DownloadProgress"/>
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                        <ProgressBar Value="{Binding DownloadProgress}" Maximum="100" Height="10" Foreground="#38BDF8" Background="#1E293B"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- App Info Card -->
+                        <Border Background="{StaticResource CardBrush}"
+                                CornerRadius="28"
+                                Padding="36"
+                                BoxShadow="0 25 50 0 #050A16AA">
+                            <StackPanel Spacing="18">
+                                <StackPanel Orientation="Horizontal" Spacing="20">
+                                    <Border Width="64" Height="64" CornerRadius="32" Background="#6366F1">
+                                        <TextBlock Text="ℹ️" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel>
+                                        <TextBlock Text="Application Identity" FontSize="28" FontWeight="SemiBold" Foreground="#F1F5F9"/>
+                                        <TextBlock Text="Build facts and quick shortcuts for your team." FontSize="16" Foreground="#8FA3C7"/>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Version" Foreground="#8FA3C7" FontSize="18"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding CurrentVersion}" Foreground="#E2E8F0" FontSize="20" FontWeight="Medium"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Author" Foreground="#8FA3C7" FontSize="18"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="OG" Foreground="#E2E8F0" FontSize="20"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="GitHub" Foreground="#8FA3C7" FontSize="18"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="⭐ Give us a star!" Foreground="#FACC15" FontSize="18" Cursor="Hand" TextDecorations="Underline" Name="GitHubLink"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- PostgreSQL Tab -->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="🐘" FontSize="16"/>
+                        <TextBlock Text="PostgreSQL" FontSize="16" Foreground="#E2E8F0"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="12">
+                    <StackPanel Spacing="26">
+
+                        <!-- Connection Config Card -->
+                        <Border Background="{StaticResource CardBrush}"
+                                CornerRadius="28"
+                                Padding="36"
+                                BoxShadow="0 25 50 0 #050A16AA">
+                            <StackPanel Spacing="18">
+                                <StackPanel Orientation="Horizontal" Spacing="16">
+                                    <Border Width="48" Height="48" CornerRadius="24" Background="#3B82F6">
+                                        <TextBlock Text="⚙️" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel>
+                                        <TextBlock Text="Enable Integration" FontSize="22" FontWeight="SemiBold" Foreground="#F1F5F9"/>
+                                        <TextBlock Text="Connect Log4Net workflows to a ready PostgreSQL instance." FontSize="14" Foreground="#8FA3C7" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <CheckBox Content="Enable PostgreSQL integration for Log4Net"
+                                          Name="EnablePostgreSQLCheckBox"
+                                          FontWeight="SemiBold"
+                                          FontSize="15"
+                                          Foreground="#E2E8F0"
+                                          Margin="0,0,0,12"/>
+
+                                <Grid ColumnDefinitions="180,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" Name="PostgreSQLSettingsGrid">
+                                    <Grid.Styles>
+                                        <Style Selector="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="Foreground" Value="#9CA3AF"/>
+                                            <Setter Property="FontSize" Value="14"/>
+                                        </Style>
+                                        <Style Selector="TextBox">
+                                            <Setter Property="Margin" Value="0"/>
+                                            <Setter Property="Padding" Value="10"/>
+                                            <Setter Property="Background" Value="#0D1727"/>
+                                            <Setter Property="Foreground" Value="#E2E8F0"/>
+                                            <Setter Property="BorderBrush" Value="#1D3A5F"/>
+                                            <Setter Property="BorderThickness" Value="1"/>
+                                            <Setter Property="CornerRadius" Value="6"/>
+                                            <Setter Property="FontSize" Value="14"/>
+                                        </Style>
+                                        <Style Selector="NumericUpDown">
+                                            <Setter Property="Margin" Value="0"/>
+                                            <Setter Property="Padding" Value="10"/>
+                                            <Setter Property="Background" Value="#0D1727"/>
+                                            <Setter Property="Foreground" Value="#E2E8F0"/>
+                                            <Setter Property="BorderBrush" Value="#1D3A5F"/>
+                                            <Setter Property="BorderThickness" Value="1"/>
+                                            <Setter Property="CornerRadius" Value="6"/>
+                                            <Setter Property="FontSize" Value="14"/>
+                                        </Style>
+                                    </Grid.Styles>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Host" Margin="0,0,0,6"/>
+                                    <TextBox Grid.Row="0" Grid.Column="1" Name="HostTextBox" Watermark="localhost" Margin="0,0,0,6"/>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Port" Margin="0,0,0,6"/>
+                                    <NumericUpDown Grid.Row="1" Grid.Column="1" Name="PortNumericUpDown" Minimum="1" Maximum="65535" Value="5432" Margin="0,0,0,6"/>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Username" Margin="0,0,0,6"/>
+                                    <TextBox Grid.Row="2" Grid.Column="1" Name="UsernameTextBox" Watermark="postgres" Margin="0,0,0,6"/>
+
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Password" Margin="0,0,0,6"/>
+                                    <TextBox Grid.Row="3" Grid.Column="1" Name="PasswordTextBox" PasswordChar="•" Watermark="password" Margin="0,0,0,6"/>
+
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Database" Margin="0,0,0,6"/>
+                                    <TextBox Grid.Row="4" Grid.Column="1" Name="DatabaseTextBox" Watermark="log4net" Margin="0,0,0,6"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Connection Status Card -->
+                        <Border Background="{StaticResource CardBrush}"
+                                CornerRadius="20"
+                                Padding="28"
+                                BoxShadow="0 18 40 0 #050A16AA">
+                            <StackPanel Spacing="14">
+                                <StackPanel Orientation="Horizontal" Spacing="16">
+                                    <Border Width="48" Height="48" CornerRadius="24" Background="#22C55E">
+                                        <TextBlock Text="📊" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel>
+                                        <TextBlock Text="Connection Status" FontSize="22" FontWeight="SemiBold" Foreground="#F1F5F9"/>
+                                        <TextBlock Text="Test connectivity and save your credentials with one click." FontSize="14" Foreground="#8FA3C7" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <TextBlock Name="ConnectionStatusTextBlock"
+                                           Text="Not tested"
+                                           Foreground="#E2E8F0"
+                                           FontWeight="SemiBold"
+                                           FontSize="16"/>
+
+                                <TextBlock Name="ConnectionStringTextBlock"
+                                           Text="Connection String: Not configured"
+                                           Foreground="#9CA3AF"
+                                           FontSize="12"
                                            TextWrapping="Wrap"/>
-                            </StackPanel>
-                        </Border>
-                        
-                        <StackPanel Orientation="Horizontal" Spacing="15" HorizontalAlignment="Left" Margin="24,0,0,0">
-                            <Button Content="Check for Updates" 
-                                    Command="{Binding CheckForUpdatesCommand}"
-                                    IsEnabled="{Binding !IsCheckingForUpdates}"
-                                    Background="#0078D4" 
-                                    Foreground="White"
-                                    BorderThickness="0"
-                                    Padding="20,8"
-                                    CornerRadius="4"
-                                    FontWeight="Medium">
-                                <Button.Styles>
-                                    <Style Selector="Button:pointerover">
-                                        <Setter Property="Background" Value="#106ebe"/>
-                                    </Style>
-                                    <Style Selector="Button:disabled">
-                                        <Setter Property="Background" Value="#404040"/>
-                                        <Setter Property="Foreground" Value="#777777"/>
-                                    </Style>
-                                </Button.Styles>
-                            </Button>
-                            
-                            <Button Content="Download and Install" 
-                                    Command="{Binding DownloadAndUpdateCommand}"
-                                    IsVisible="{Binding AvailableUpdate, Converter={x:Static ObjectConverters.IsNotNull}}"
-                                    Background="#28a745" 
-                                    Foreground="White"
-                                    BorderThickness="0"
-                                    Padding="20,8"
-                                    CornerRadius="4"
-                                    FontWeight="Medium">
-                                <Button.Styles>
-                                    <Style Selector="Button:pointerover">
-                                        <Setter Property="Background" Value="#218838"/>
-                                    </Style>
-                                </Button.Styles>
-                            </Button>
-                        </StackPanel>
-                        
-                        <!-- Update Info -->
-                        <Border Background="#2D5016" 
-                                BorderBrush="#4EC9B0"
-                                BorderThickness="1"
-                                CornerRadius="6" 
-                                Padding="15"
-                                Margin="24,0,0,0"
-                                IsVisible="{Binding AvailableUpdate, Converter={x:Static ObjectConverters.IsNotNull}}">
-                            <StackPanel Spacing="10">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Border Width="16" Height="16" CornerRadius="8" Background="#4EC9B0">
-                                        <TextBlock Text="✓" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontWeight="Bold"/>
-                                    </Border>
-                                    <TextBlock FontSize="14" Foreground="#4EC9B0" FontWeight="SemiBold">
-                                        <TextBlock.Text>
-                                            <MultiBinding StringFormat="{}Update available: {0}">
-                                                <Binding Path="AvailableUpdate.Version"/>
-                                            </MultiBinding>
-                                        </TextBlock.Text>
-                                    </TextBlock>
+
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <Button Content="Test Connection" Name="TestConnectionButton" Classes="accent" Padding="18,10" FontSize="14"/>
+                                    <Button Content="Create Database" Name="CreateDatabaseButton" Padding="18,10" FontSize="14" Background="#1F2937" Foreground="#E2E8F0"/>
+                                    <Button Content="Save Settings" Name="SavePostgreSQLSettingsButton" Classes="accent" Padding="18,10" FontSize="14"/>
+                                    <Button Content="Reset to Defaults" Name="ResetPostgreSQLButton" Padding="18,10" FontSize="14" Background="#1F2937" Foreground="#E2E8F0"/>
                                 </StackPanel>
-                                <TextBlock Text="{Binding AvailableUpdate.ReleaseName}" 
-                                           FontSize="13" 
-                                           Foreground="#CCCCCC"
-                                           IsVisible="{Binding AvailableUpdate.ReleaseName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-                                <ScrollViewer MaxHeight="80" VerticalScrollBarVisibility="Auto">
-                                    <TextBlock Text="{Binding AvailableUpdate.ReleaseNotes}" 
-                                               FontSize="12" 
-                                               Foreground="#AAAAAA" 
-                                               TextWrapping="Wrap"
-                                               IsVisible="{Binding AvailableUpdate.ReleaseNotes, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-                                </ScrollViewer>
                             </StackPanel>
                         </Border>
-                        
-                        <!-- Progress Bar -->
-                        <Border Background="#404040" 
-                                CornerRadius="6" 
-                                Padding="15"
-                                Margin="24,0,0,0"
-                                IsVisible="{Binding IsDownloadingUpdate}">
-                            <StackPanel Spacing="12">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Border Width="16" Height="16" CornerRadius="8" Background="#0078D4">
-                                        <TextBlock Text="⬇" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White"/>
+
+                        <!-- Info Card -->
+                        <Border Background="{StaticResource CardBrush}"
+                                CornerRadius="20"
+                                Padding="28"
+                                BoxShadow="0 18 40 0 #050A16AA">
+                            <StackPanel Spacing="14">
+                                <StackPanel Orientation="Horizontal" Spacing="16">
+                                    <Border Width="48" Height="48" CornerRadius="24" Background="#F59E0B">
+                                        <TextBlock Text="🔎" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     </Border>
-                                    <TextBlock FontSize="14" 
-                                               Foreground="White" 
-                                               FontWeight="Medium">
-                                        <TextBlock.Text>
-                                            <MultiBinding StringFormat="{}Downloading... {0}%">
-                                                <Binding Path="DownloadProgress"/>
-                                            </MultiBinding>
-                                        </TextBlock.Text>
-                                    </TextBlock>
+                                    <StackPanel>
+                                        <TextBlock Text="Why PostgreSQL" FontSize="22" FontWeight="SemiBold" Foreground="#F1F5F9"/>
+                                        <TextBlock Text="Unlock persistence, analytics, and recovery options for heavy Log4Net datasets." FontSize="14" Foreground="#8FA3C7" TextWrapping="Wrap"/>
+                                    </StackPanel>
                                 </StackPanel>
-                                <ProgressBar Value="{Binding DownloadProgress}" 
-                                             Maximum="100" 
-                                             Height="10" 
-                                             Background="#2D2D30"
-                                             Foreground="#0078D4"
-                                             CornerRadius="5"/>
+
+                                <StackPanel Spacing="6" Margin="8,12,0,0">
+                                    <TextBlock Text="• Restore *.backup archives via pg_restore automatically" Foreground="#E2E8F0" FontSize="13"/>
+                                    <TextBlock Text="• Persist parsed logs for lightning-fast filtering" Foreground="#E2E8F0" FontSize="13"/>
+                                    <TextBlock Text="• Access all dashboards from a single database source" Foreground="#E2E8F0" FontSize="13"/>
+                                    <TextBlock Text="• Auto-create schemas and tables when needed" Foreground="#E2E8F0" FontSize="13"/>
+                                </StackPanel>
+
+                                <Border Background="#1E293B" CornerRadius="12" Padding="16" Margin="0,12,0,0">
+                                    <TextBlock Text="⚠️ Ensure the PostgreSQL service is running locally or remotely before toggling the integration on."
+                                               Foreground="#FCD34D"
+                                               FontWeight="SemiBold"
+                                               FontSize="13"
+                                               TextWrapping="Wrap"/>
+                                </Border>
                             </StackPanel>
                         </Border>
+
                     </StackPanel>
-                </Border>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
 
-                <!-- App Info Section -->
-                <Border Background="#3C3C3C" CornerRadius="8" Padding="20">
-                    <StackPanel Spacing="15">
-                        <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,5">
-                            <Border Width="24" Height="24" CornerRadius="12" Background="#6366F1" VerticalAlignment="Top" Margin="0,2,0,0">
-                                <TextBlock Text="ℹ️" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <StackPanel>
-                                <TextBlock Text="Application Information" 
-                                           FontSize="18" 
-                                           FontWeight="SemiBold" 
-                                           Foreground="White"/>
-                            </StackPanel>
-                        </StackPanel>
-                        
-                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" Margin="20,0,0,0">
-                            <TextBlock Grid.Row="0" Grid.Column="0" 
-                                       Text="Version:" 
-                                       FontSize="14" 
-                                       Foreground="#AAAAAA" 
-                                       Margin="0,0,15,5"/>
-                            <TextBlock Grid.Row="0" Grid.Column="1" 
-                                       Text="{Binding CurrentVersion}" 
-                                       FontSize="14" 
-                                       Foreground="White" 
-                                       Margin="0,0,0,5"/>
-                            
-                            <TextBlock Grid.Row="1" Grid.Column="0" 
-                                       Text="Author:" 
-                                       FontSize="14" 
-                                       Foreground="#AAAAAA" 
-                                       Margin="0,0,15,5"/>
-                            <TextBlock Grid.Row="1" Grid.Column="1" 
-                                       Text="OG" 
-                                       FontSize="14" 
-                                       Foreground="White" 
-                                       Margin="0,0,0,5"/>
-                            <TextBlock Grid.Row="2" Grid.Column="0" 
-                                       Text="GitHub:" 
-                                       FontSize="14" 
-                                       Foreground="#AAAAAA" 
-                                       Margin="0,0,15,0"/>
-                            <TextBlock Grid.Row="2" Grid.Column="1" 
-                                       FontSize="14" 
-                                       Foreground="#FFD700"
-                                       Cursor="Hand"
-                                       TextDecorations="Underline"
-                                       Name="GitHubLink">
-                                <Run Text="⭐ Give us a star!"/>
-                            </TextBlock>
-                        </Grid>
-                    </StackPanel>
-                </Border>
-
-                <!-- Close Button -->
-                <Button Content="Close" 
-                        Click="CloseButton_Click"
-                        Background="Transparent" 
-                        BorderBrush="#555555"
-                        BorderThickness="1"
-                        Foreground="#CCCCCC"
-                        Padding="30,10"
-                        CornerRadius="4"
-                        HorizontalAlignment="Center"
-                        FontWeight="Medium">
-                    <Button.Styles>
-                        <Style Selector="Button:pointerover">
-                            <Setter Property="Background" Value="#404040"/>
-                            <Setter Property="BorderBrush" Value="#777777"/>
-                        </Style>
-                    </Button.Styles>
-                </Button>
-
+        <!-- Footer Buttons -->
+        <Border Grid.Row="2" Background="#0D141F" CornerRadius="24" Padding="32" BoxShadow="0 16 32 0 #04070CAA">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="20">
+                <Button Content="💾 Save All Settings" Name="SaveAllButton" Classes="accent" Padding="32,16" FontSize="16"/>
+                <Button Content="✕ Close" Click="CloseButton_Click" Padding="32,16" FontSize="16" Background="#1F2937" Foreground="#9CA3AF"/>
             </StackPanel>
-        </ScrollViewer>
-    </Border>
-</Window> 
+        </Border>
+
+    </Grid>
+</Window>

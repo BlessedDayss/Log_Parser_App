@@ -8,10 +8,13 @@ namespace Log_Parser_App
     using Avalonia.Controls;
     using Avalonia.Controls.ApplicationLifetimes;
     using Avalonia.Data.Core.Plugins;
+    using Avalonia.Layout;
     using Avalonia.Markup.Xaml;
+    using Avalonia.Threading;
     using Log_Parser_App.Services;
     using Log_Parser_App.Services.Filtering;
     using Log_Parser_App.Services.Analytics;
+using Microsoft.EntityFrameworkCore;
     using Log_Parser_App.ViewModels;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
@@ -76,60 +79,151 @@ using Log_Parser_App.Models;
                     Console.WriteLine("[App] UpdateViewModel is NULL - update functionality not available.");
                 }
 
-                MainWindowViewModel? mainWindowViewModel = null;
+                // Initialize PostgreSQL for Log4Net
+                /*
+                IPostgreSQLAutoStartService? postgreSQLService = null;
                 try {
-                    // First get the required dependencies
-                    var mainViewModel = services.GetRequiredService<MainViewModel>();
-                    var updateService = services.GetRequiredService<Log_Parser_App.Interfaces.IUpdateService>();
-                    var logger = services.GetRequiredService<ILogger<MainWindowViewModel>>();
-                    
-                    // Create MainWindowViewModel manually with all dependencies including UpdateViewModel
-                    mainWindowViewModel = new MainWindowViewModel(logger, mainViewModel, updateService, updateViewModel!);
-                    Console.WriteLine("[App] MainWindowViewModel created manually with UpdateViewModel.");
+                    postgreSQLService = services.GetService<IPostgreSQLAutoStartService>();
+                    Console.WriteLine(postgreSQLService == null ? "[App] IPostgreSQLAutoStartService NOT resolved." : "[App] IPostgreSQLAutoStartService resolved.");
                 } catch (Exception ex) {
-                    Console.WriteLine($"[App] Error creating MainWindowViewModel: {ex.Message}");
+                    Console.WriteLine($"[App] Error resolving IPostgreSQLAutoStartService: {ex.Message}");
                 }
 
-                // Create MainWindow but don't show it yet
+                if (postgreSQLService != null) {
+                    Console.WriteLine("[App] Starting PostgreSQL auto-start service.");
+                    Task.Run(async () => {
+                        try {
+                            var started = await postgreSQLService.EnsurePostgreSQLRunningAsync();
+                            Console.WriteLine(started ? "[App] PostgreSQL started successfully." : "[App] Failed to start PostgreSQL.");
+                        } catch (Exception ex_task) {
+                            Console.WriteLine($"[App] Error starting PostgreSQL: {ex_task.Message}");
+                        }
+                    });
+                }
+                */
+
+                // Create a minimal loading window first to show something immediately
+                var loadingWindow = new Window {
+                    Title = "Log Parser - Loading...",
+                    Width = 400,
+                    Height = 200,
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                    CanResize = false,
+                    SystemDecorations = SystemDecorations.BorderOnly
+                };
+                
+                var loadingPanel = new StackPanel {
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Spacing = 20
+                };
+                
+                var loadingText = new TextBlock {
+                    Text = "Initializing services...",
+                    FontSize = 16,
+                    HorizontalAlignment = HorizontalAlignment.Center
+                };
+                
+                var progressBar = new ProgressBar {
+                    IsIndeterminate = true,
+                    Width = 300
+                };
+                
+                loadingPanel.Children.Add(loadingText);
+                loadingPanel.Children.Add(progressBar);
+                loadingWindow.Content = loadingPanel;
+                
+                // Show loading window immediately
+                desktop.MainWindow = loadingWindow;
+                loadingWindow.Show();
+                Console.WriteLine("[App] Loading window shown immediately.");
+                
+                // Initialize MainViewModel asynchronously
+                Task.Run(async () => {
+                    MainWindowViewModel? mainWindowViewModel = null;
+                    try {
+                        Console.WriteLine("[App] Starting async MainViewModel initialization...");
+                        
+                        await Dispatcher.UIThread.InvokeAsync(() => {
+                            loadingText.Text = "Resolving dependencies...";
+                        });
+                        
+                        Console.WriteLine("[App] Resolving MainViewModel...");
+                        var mainViewModel = services.GetRequiredService<MainViewModel>();
+                        Console.WriteLine("[App] MainViewModel resolved successfully.");
+                        
+                        await Dispatcher.UIThread.InvokeAsync(() => {
+                            loadingText.Text = "Loading update service...";
+                        });
+                        
+                        Console.WriteLine("[App] Resolving IUpdateService...");
+                        var updateService = services.GetRequiredService<Log_Parser_App.Interfaces.IUpdateService>();
+                        Console.WriteLine("[App] IUpdateService resolved successfully.");
+                        
+                        Console.WriteLine("[App] Resolving ILogger<MainWindowViewModel>...");
+                        var logger = services.GetRequiredService<ILogger<MainWindowViewModel>>();
+                        Console.WriteLine("[App] ILogger<MainWindowViewModel> resolved successfully.");
+                        
+                        await Dispatcher.UIThread.InvokeAsync(() => {
+                            loadingText.Text = "Creating main window...";
+                        });
+                        
+                        Console.WriteLine("[App] Creating MainWindowViewModel instance...");
+                        mainWindowViewModel = new MainWindowViewModel(logger, mainViewModel, updateService, updateViewModel!);
+                        Console.WriteLine("[App] MainWindowViewModel created successfully.");
+                        
+                        // Create MainWindow on UI thread
+                        await Dispatcher.UIThread.InvokeAsync(() => {
+                            try {
                 MainWindow = new MainWindow {
                     DataContext = mainWindowViewModel
                 };
-                Console.WriteLine("[App] MainWindow created but not shown yet.");
+                                Console.WriteLine("[App] MainWindow created successfully.");
 
-                // Check if WelcomeWindow should be shown (only on first launch)
+                                // Check if WelcomeWindow should be shown
                 var showWelcome = !IsWelcomeShownBefore();
 
                 if (showWelcome) {
-                    // Show WelcomeWindow first as the initial MainWindow to prevent shutdown on close
+                                    // Show WelcomeWindow
                     var welcomeWindow = new Views.WelcomeWindow();
-                    desktop.MainWindow = welcomeWindow;
                     welcomeWindow.GetStartedClicked += (sender, e) => {
-                        // Mark welcome as shown and switch to main window
                         MarkWelcomeAsShown();
-                        // Switch the desktop MainWindow to the real app window BEFORE closing welcome
                         desktop.MainWindow = MainWindow;
                         MainWindow.Show();
                         Console.WriteLine("[App] MainWindow shown. Closing WelcomeWindow...");
                         welcomeWindow.Close();
                         Console.WriteLine("[App] WelcomeWindow closed, control handed to MainWindow.");
                     };
+                                    
+                                    desktop.MainWindow = welcomeWindow;
                     welcomeWindow.Show();
-                    Console.WriteLine("[App] WelcomeWindow shown as initial screen (first launch).");
+                                    loadingWindow.Close();
+                                    Console.WriteLine("[App] WelcomeWindow shown, loading window closed.");
                 } else {
-                    // Skip welcome screen, show main window directly
+                                    // Show MainWindow directly
                     desktop.MainWindow = MainWindow;
                     MainWindow.Show();
-                    Console.WriteLine("[App] MainWindow shown directly (not first launch).");
-                }
+                                    loadingWindow.Close();
+                                    Console.WriteLine("[App] MainWindow shown directly, loading window closed.");
+                                }
+                            } catch (Exception uiEx) {
+                                Console.WriteLine($"[App] Error creating UI: {uiEx.Message}");
+                                loadingText.Text = $"Error: {uiEx.Message}";
+                            }
+                        });
+                        
+                    } catch (Exception ex) {
+                        Console.WriteLine($"[App] Error during async initialization: {ex.Message}");
+                        Console.WriteLine($"[App] Exception details: {ex}");
+                        
+                        await Dispatcher.UIThread.InvokeAsync(() => {
+                            loadingText.Text = $"Error: {ex.Message}";
+                        });
+                    }
+                });
 
-                // Process command line arguments for file opening after UI is ready
-                if (mainWindowViewModel?.MainView != null) {
-                    Console.WriteLine("[App] Processing command line arguments for file opening...");
-                    // Call CheckCommandLineArgs via reflection to avoid making it public
-                    var checkMethod = typeof(MainViewModel).GetMethod("CheckCommandLineArgs",
-                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    checkMethod?.Invoke(mainWindowViewModel.MainView, null);
-                }
+                // Command line args are now handled asynchronously in MainViewModel constructor
+                Console.WriteLine("[App] Command line arguments will be processed after MainViewModel initialization.");
 
                 IFileService? fileService = null;
                 try {
@@ -271,11 +365,21 @@ using Log_Parser_App.Models;
             // RabbitMQ Dashboard Analytics (RDB-003)
             services.AddSingleton<IRabbitMQAnalyticsService, RabbitMQAnalyticsService>();
 
+            // Log4Net Services - temporarily disabled to fix startup
+            services.AddSingleton<IPostgreSQLSettingsService, PostgreSQLSettingsService>();
+            services.AddSingleton<ILog4NetService, Log4NetService>();
+            services.AddSingleton<ILog4NetParserService, Log4NetParserService>();
+            services.AddSingleton<IFirstTimeSetupService, FirstTimeSetupService>();
+            // services.AddSingleton<IPostgreSQLAutoStartService, PostgreSQLAutoStartService>();
+            // services.AddDbContext<Log4NetDbContext>(options =>
+            //     options.UseNpgsql("Host=localhost;Port=5432;Database=log4net_logs;Username=postgres;Password=postgres"));
+
             // Phase 3 Advanced pattern services
             services.AddSingleton<IStatisticsService, StatisticsService>();
             services.AddSingleton<ILogTypeHandler, StandardLogHandler>();
             services.AddSingleton<ILogTypeHandler, IISLogHandler>();
             services.AddSingleton<ILogTypeHandler, RabbitMqLogHandler>();
+            // services.AddSingleton<ILogTypeHandler, Log_Parser_App.Strategies.Log4NetLogHandler>(); // TODO: Fix implementation
             services.AddSingleton<ILogTypeHandlerFactory, LogTypeHandlerFactory>();
 
             // Performance Optimization Services (Phase 3 - BUILD)

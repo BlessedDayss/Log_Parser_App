@@ -1,0 +1,193 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Log_Parser_App.Views.Log4NetSetupGuideWindow"
+        Title="🪵 Log4Net Setup Guide"
+        Width="850"
+        Height="700"
+        MinWidth="800"
+        MinHeight="650"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
+        CanResize="True"
+        Background="#1E1E1E">
+
+    <Grid Margin="25">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="15" Margin="0,0,0,20">
+            <Border Width="48" Height="48" CornerRadius="24" Background="#FF6B35">
+                <TextBlock Text="🪵" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <StackPanel>
+                <TextBlock Text="Log4Net Setup Required!" 
+                           FontSize="24" 
+                           FontWeight="Bold" 
+                           Foreground="White"/>
+                <TextBlock Text="PostgreSQL database configuration is needed to work with Log4Net files" 
+                           FontSize="16" 
+                           Foreground="#CCCCCC"/>
+            </StackPanel>
+        </StackPanel>
+        
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,10,0,10">
+            <StackPanel Spacing="25">
+                
+                <!-- Quick Info -->
+                <Border Background="#1A237E" CornerRadius="10" Padding="20">
+                    <StackPanel Orientation="Horizontal" Spacing="15">
+                        <TextBlock Text="💡" FontSize="24" VerticalAlignment="Top" Margin="0,2,0,0"/>
+                        <StackPanel>
+                            <TextBlock Text="What is Log4Net?" FontSize="18" FontWeight="SemiBold" Foreground="#C5CAE9"/>
+                            <TextBlock Text="Log4Net is a logging framework for .NET applications. To work with these logs, you need a PostgreSQL database configured and running on your system." 
+                                       Foreground="#E8EAF6" 
+                                       TextWrapping="Wrap"
+                                       FontSize="15"
+                                       Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Step 1 -->
+                <Border Background="#2D2D30" CornerRadius="10" Padding="25">
+                    <StackPanel Spacing="18">
+                        <StackPanel Orientation="Horizontal" Spacing="15">
+                            <Border Width="40" Height="40" CornerRadius="20" Background="#4CAF50">
+                                <TextBlock Text="1" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White"/>
+                            </Border>
+                            <TextBlock Text="Install PostgreSQL Database" 
+                                       FontSize="20" 
+                                       FontWeight="SemiBold" 
+                                       Foreground="White"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                        
+                        <StackPanel Spacing="12" Margin="55,0,0,0">
+                            <TextBlock Text="You need a PostgreSQL database server to store and manage Log4Net log data:" 
+                                       Foreground="#E0E0E0" 
+                                       TextWrapping="Wrap"
+                                       FontSize="16"/>
+                            
+                            <StackPanel Spacing="10" Margin="15,8,0,0">
+                                <TextBlock Text="📥 Download PostgreSQL from postgresql.org" Foreground="#E0E0E0" FontSize="15"/>
+                                <TextBlock Text="⚙️ Install with default settings (port 5432, remember the password)" Foreground="#E0E0E0" FontSize="15"/>
+                                <TextBlock Text="▶️ Start the PostgreSQL service" Foreground="#E0E0E0" FontSize="15"/>
+                                <TextBlock Text="🔍 Verify installation by checking if PostgreSQL is running" Foreground="#E0E0E0" FontSize="15"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Step 2 -->
+                <Border Background="#2D2D30" CornerRadius="10" Padding="25">
+                    <StackPanel Spacing="18">
+                        <StackPanel Orientation="Horizontal" Spacing="15">
+                            <Border Width="40" Height="40" CornerRadius="20" Background="#FF9800">
+                                <TextBlock Text="2" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White"/>
+                            </Border>
+                            <TextBlock Text="Configure Database Connection" 
+                                       FontSize="20" 
+                                       FontWeight="SemiBold" 
+                                       Foreground="White"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                        
+                        <StackPanel Spacing="12" Margin="55,0,0,0">
+                            <TextBlock Text="Open application settings and configure PostgreSQL:" 
+                                       Foreground="#E0E0E0" 
+                                       TextWrapping="Wrap"
+                                       FontSize="16"/>
+                            
+                            <StackPanel Spacing="10" Margin="15,8,0,0">
+                                <TextBlock Text="⚙️ Go to Settings → PostgreSQL tab" Foreground="#E0E0E0" FontSize="15"/>
+                                <TextBlock Text="✅ Enable PostgreSQL integration checkbox" Foreground="#E0E0E0" FontSize="15"/>
+                                <TextBlock Text="🌐 Set Host: localhost, Port: 5432" Foreground="#E0E0E0" FontSize="15"/>
+                                <TextBlock Text="👤 Enter your PostgreSQL username and password" Foreground="#E0E0E0" FontSize="15"/>
+                                <TextBlock Text="🔍 Test the connection to verify it works" Foreground="#E0E0E0" FontSize="15"/>
+                                <TextBlock Text="🏗️ Create the log4net database" Foreground="#E0E0E0" FontSize="15"/>
+                                <TextBlock Text="💾 Save all settings" Foreground="#E0E0E0" FontSize="15"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Step 3 -->
+                <Border Background="#2D2D30" CornerRadius="10" Padding="25">
+                    <StackPanel Spacing="18">
+                        <StackPanel Orientation="Horizontal" Spacing="15">
+                            <Border Width="40" Height="40" CornerRadius="20" Background="#9C27B0">
+                                <TextBlock Text="3" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White"/>
+                            </Border>
+                            <TextBlock Text="Ready! Use Log4Net Features" 
+                                       FontSize="20" 
+                                       FontWeight="SemiBold" 
+                                       Foreground="White"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                        
+                        <StackPanel Spacing="12" Margin="55,0,0,0">
+                            <TextBlock Text="Once PostgreSQL is configured, you'll be able to:" 
+                                       Foreground="#E0E0E0" 
+                                       TextWrapping="Wrap"
+                                       FontSize="16"/>
+                            
+                            <StackPanel Spacing="10" Margin="15,8,0,0">
+                                <TextBlock Text="📦 Load .backup files (restored via pg_restore)" Foreground="#E0E0E0" FontSize="15"/>
+                                <TextBlock Text="📄 Parse regular log files and save to database" Foreground="#E0E0E0" FontSize="15"/>
+                                <TextBlock Text="🔍 View, search, and filter log data" Foreground="#E0E0E0" FontSize="15"/>
+                                <TextBlock Text="📊 Analyze Log4Net logs with powerful tools" Foreground="#E0E0E0" FontSize="15"/>
+                                <TextBlock Text="⚡ Fast performance with database indexing" Foreground="#E0E0E0" FontSize="15"/>
+                                <TextBlock Text="🔄 Automatic data persistence and recovery" Foreground="#E0E0E0" FontSize="15"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Warning -->
+                <Border Background="#B71C1C" BorderBrush="#F44336" BorderThickness="3" CornerRadius="12" Padding="25">
+                    <StackPanel Orientation="Horizontal" Spacing="20">
+                        <TextBlock Text="🚨" FontSize="28" VerticalAlignment="Top" Margin="0,2,0,0"/>
+                        <StackPanel>
+                            <TextBlock Text="Important Warning!" FontSize="20" FontWeight="Bold" Foreground="#FFCDD2"/>
+                            <TextBlock Text="Without PostgreSQL configuration, the Log4Net button will not work! You must complete the database setup before using Log4Net functionality." 
+                                       Foreground="#FFEBEE" 
+                                       TextWrapping="Wrap"
+                                       FontSize="16"
+                                       Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                
+            </StackPanel>
+        </ScrollViewer>
+        
+        <!-- Footer Buttons -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="20" Margin="0,25,0,0">
+            <CheckBox Content="Don't show this again" 
+                      Name="DontShowAgainCheckBox"
+                      Foreground="#CCCCCC"
+                      FontSize="16"/>
+            <Button Content="⚙️ Open Settings" 
+                    Name="OpenSettingsButton"
+                    Background="#4CAF50"
+                    Foreground="White"
+                    FontWeight="SemiBold"
+                    FontSize="16"
+                    Padding="30,15"
+                    CornerRadius="8"/>
+            <Button Content="❌ I'll Set Up Later" 
+                    Name="CloseButton"
+                    Background="#666666"
+                    Foreground="White"
+                    FontSize="16"
+                    Padding="30,15"
+                    CornerRadius="8"/>
+        </StackPanel>
+        
+    </Grid>
+</Window>
